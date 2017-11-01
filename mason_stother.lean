@@ -1,5 +1,5 @@
 -- the to be Mason-Stother formalization
---Authors Johannes and Jens
+-- Authors Johannes and Jens
 
 
 
