@@ -1,0 +1,6 @@
+[package]
+name = "mason-stother"
+version = "0.1"
+
+[dependencies]
+mathlib = { path = "/home/hoelzl/Projects/lean-lib" }
