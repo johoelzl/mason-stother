@@ -16,3 +16,11 @@ show b≤c, from  le_of_not_gt h0
 lemma left_le {a b c : α} (h :(max a b) ≤ c) : a ≤ c := 
 have h0: (max b a) ≤ c, from (max_comm a b) ▸ h,
 show a ≤ c, from right_le h0
+
+namespace nat
+def test (k : set nat) (a: ℕ) : ℕ := a
+def kk : ℕ := 9
+#reduce kk.test {} 
+
+
+end nat

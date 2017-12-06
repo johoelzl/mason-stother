@@ -146,7 +146,7 @@ end
 
 def sum {γ : Type w} [has_zero β] [add_comm_monoid γ] (f : α →₀ β) (g : α → β → γ) : γ :=
 f.support.sum (λa, g a (f a))
-
+#print sum
 instance [add_monoid β] : has_add (α →₀ β) :=
 ⟨zip_with (+) (add_zero 0)⟩
 
