@@ -23,6 +23,7 @@ instance : has_add (polynomial α) := finsupp.has_add
 instance : has_mul (polynomial α) := finsupp.has_mul
 instance : semiring (polynomial α) := finsupp.semiring
 
+
 def C (a : α) : polynomial α := finsupp.single 0 a
 
 @[simp] lemma C_0 : C 0 = (0:polynomial α) := single_zero
@@ -63,6 +64,7 @@ end
 def eval (p : polynomial α) (a : α) : α := p.sum $ λn c, c * a ^ n
 
 def degree (p : polynomial α) : ℕ := p.support.Sup_fin id
+
 
 lemma le_degree {p : polynomial α} {n : ℕ} (h : p n ≠ 0) : n ≤ degree p :=
 show id n ≤ degree p, from finset.le_Sup_fin (by simp [h])
@@ -223,7 +225,17 @@ begin
 
   end
 
-
-
 end comm_semiring
+
+section ring
+variable [ring α]
+
+instance : ring (polynomial α) := finsupp.ring
+
+lemma neg_apply (a : polynomial α) (n : ℕ):  (- a) n = - (a n) :=
+begin intros, simp [coe_fn], simp [has_coe_to_fun.coe], simp [has_neg.neg, add_group.neg, add_comm_group.neg, ring.neg] ,
+simp [map_range], simp [(∘)], apply rfl
+end  
+
+end ring
 end polynomial
