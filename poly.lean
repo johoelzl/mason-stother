@@ -106,6 +106,13 @@ calc degree (f * g) ≤ _ : degree_sum
     calc _ ≤ b₁ + b₂ : degree_single
       ... ≤ degree f + degree g : add_le_add (finset.le_Sup_fin hb₁) (finset.le_Sup_fin hb₂)
 
+lemma degree_ne_zero_ne_zero {f : polynomial α} : degree f ≠ 0 → f ≠ 0 :=--I want to apply normal by_cpntradiction here, but I don't know how to apply that, due to ambiguous overload.
+begin intro, apply (@classical.by_contradiction (f ≠ 0) _), intro,
+have h3: (f = 0), from iff.elim_left not_not a_1,
+have h4: degree f = 0, calc degree f = degree 0 : by rw [h3] ... = 0 : degree_zero,
+apply a h4
+ end
+
 def derivative (p : polynomial α) : polynomial α :=
 p.sum (λn a, match n with 0 := 0 | (n + 1) := single n (a * (n + 1)) end)
 
@@ -232,10 +239,17 @@ variable [ring α]
 
 instance : ring (polynomial α) := finsupp.ring
 
-lemma neg_apply (a : polynomial α) (n : ℕ):  (- a) n = - (a n) :=
+lemma neg_apply_poly (a : polynomial α) (n : ℕ):  (- a) n = - (a n) :=
 begin intros, simp [coe_fn], simp [has_coe_to_fun.coe], simp [has_neg.neg, add_group.neg, add_comm_group.neg, ring.neg] ,
 simp [map_range], simp [(∘)], apply rfl
 end  
+
+
+lemma degree_neg {f : polynomial α} : degree f = degree (-f):=
+begin
+simp [degree],  rw [neg_support]
+end
+
 
 end ring
 end polynomial

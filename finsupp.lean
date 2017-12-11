@@ -146,7 +146,7 @@ end
 
 def sum {γ : Type w} [has_zero β] [add_comm_monoid γ] (f : α →₀ β) (g : α → β → γ) : γ :=
 f.support.sum (λa, g a (f a))
-#print sum
+
 instance [add_monoid β] : has_add (α →₀ β) :=
 ⟨zip_with (+) (add_zero 0)⟩
 
@@ -359,6 +359,29 @@ instance [add_monoid α] [ring β] : ring (α →₀ β) :=
 { finsupp.semiring with
   neg := has_neg.neg,
   add_left_neg := add_left_neg }
+
+
+lemma neg_apply [add_monoid α] [ring β]  {f : α →₀ β} {n : α }:  (- f) n = - (f n) :=
+begin intros, simp [coe_fn], simp [has_coe_to_fun.coe], simp [has_neg.neg, add_group.neg, add_comm_group.neg, ring.neg] ,
+simp [map_range], simp [(∘)], apply rfl
+end  
+
+lemma neg_support [add_monoid α] [ring β]  {f : α →₀ β} : support f = support (-f) := 
+begin apply finset.ext, intro, apply iff.intro, 
+  {intro, 
+    have htmp : (f a ≠ 0) ,by apply ( (iff.elim_left (mem_support_iff f)) a_1),
+    have htmp2 : ((- f) a ≠ 0), 
+       from calc (- f) a = - (f a) : neg_apply
+       ... ≠  0 : iff.elim_right neg_ne_zero htmp, 
+  apply (iff.elim_right (mem_support_iff (-f))), exact htmp2},
+  {intro,
+    have htmp : ((-f) a ≠ 0), by apply  (iff.elim_left (mem_support_iff (-f)) a_1),
+    have htmp2 : (f a ≠ 0), 
+       from calc f a = ((- -f) a) : by rw [neg_neg]
+       ... ≠  0 : iff.elim_right neg_ne_zero htmp, 
+  apply (iff.elim_right (mem_support_iff (f))), exact htmp2}
+  
+  end
 
 instance [add_comm_monoid α] [comm_ring β] : comm_ring (α →₀ β) :=
 { finsupp.ring with mul_comm := mul_comm }
