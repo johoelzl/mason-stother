@@ -1,4 +1,4 @@
-import .finsupp .Sup_fin order.lattice data.nat.cast
+import .finsupp .Sup_fin order.lattice data.nat.cast .euclidean_domain
 universes u v w
 
 noncomputable theory
@@ -58,8 +58,30 @@ begin
   rw [←@sum_single _ _ _ p],
   apply M_sum,
   exact (assume a ha, M_single _ _)
-end
+end 
 
+--set_option pp.notation false
+lemma induction_on2 {M : polynomial α → Prop} (p : polynomial α)
+  (M_C : ∀(a : α), M (C a)) 
+  (M_X : M X)
+  (M_add : ∀{p q}, M p → M q → M (p + q))
+  (M_mul_X : ∀{p}, M p → M (p * X) ):
+  M p :=
+have M_0 : M 0, by rw [←C_0]; exact M_C 0,
+have M_1 : M 1, from M_C 1,
+have M_single : ∀n c, M (single n c),
+begin
+assume n a, simp [single_eq_X_pow ],
+induction n, have htmp : C a * X ^ 0 = C a, simp [pow_zero], simp [pow_zero], exact M_C _, simp [pow_succ'], 
+have htmp3 : (C a * (X ^ a_1 * X)) = (C a * (X ^ a_1) * X), simp [mul_assoc], rw [htmp3], apply M_mul_X, assumption
+end,
+have M_sum : ∀{s:finset ℕ} {f : ℕ → polynomial α}, (∀a∈s, M (f a)) → M (s.sum f),
+  from assume s f, s.induction_on (by simp [M_0]) (by simp * {contextual := tt}),
+begin
+  rw [←@sum_single _ _ _ p],
+  apply M_sum,
+  exact (assume a ha, M_single _ _)
+end
 
 def eval (p : polynomial α) (a : α) : α := p.sum $ λn c, c * a ^ n
 
@@ -111,7 +133,7 @@ begin intro, apply (@classical.by_contradiction (f ≠ 0) _), intro,
 have h3: (f = 0), from iff.elim_left not_not a_1,
 have h4: degree f = 0, calc degree f = degree 0 : by rw [h3] ... = 0 : degree_zero,
 apply a h4
- end
+ end -- Maybe contradiction not needed?
 
 def derivative (p : polynomial α) : polynomial α :=
 p.sum (λn a, match n with 0 := 0 | (n + 1) := single n (a * (n + 1)) end)
@@ -250,6 +272,20 @@ begin
 simp [degree],  rw [neg_support]
 end
 
-
 end ring
+
+section comm_ring
+variable [comm_ring α]
+
+instance : comm_ring (polynomial α) := finsupp.comm_ring
+end comm_ring
+
+instance {α : Type u} [field α] : euclidean_domain (polynomial α) :=
+{ eq_zero_or_eq_zero_of_mul_eq_zero := sorry,
+  zero_ne_one := sorry,
+  norm := sorry,
+  h1 := sorry,
+  h_norm := sorry,
+  .. polynomial.comm_ring }
+
 end polynomial
