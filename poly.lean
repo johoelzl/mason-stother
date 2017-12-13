@@ -23,6 +23,11 @@ instance : has_add (polynomial α) := finsupp.has_add
 instance : has_mul (polynomial α) := finsupp.has_mul
 instance : semiring (polynomial α) := finsupp.semiring
 
+@[simp] lemma one_apply_zero : (1 : polynomial α) 0 = 1 :=
+single_eq_same
+
+@[simp] lemma zero_apply {n : ℕ} : (0 : polynomial α) n = 0 :=
+zero_apply
 
 def C (a : α) : polynomial α := finsupp.single 0 a
 
@@ -61,7 +66,7 @@ begin
 end 
 
 --set_option pp.notation false
-lemma induction_on2 {M : polynomial α → Prop} (p : polynomial α)
+lemma induction_on_X {M : polynomial α → Prop} (p : polynomial α)
   (M_C : ∀(a : α), M (C a)) 
   (M_X : M X)
   (M_add : ∀{p q}, M p → M q → M (p + q))
@@ -83,9 +88,28 @@ begin
   exact (assume a ha, M_single _ _)
 end
 
+
 def eval (p : polynomial α) (a : α) : α := p.sum $ λn c, c * a ^ n
 
 def degree (p : polynomial α) : ℕ := p.support.Sup_fin id
+
+def leading_coeff (p : polynomial α) : α := p (degree p)
+
+lemma ext : ∀{f g : polynomial α}, (∀a, f a = g a) → f = g:=
+begin
+  apply @finsupp.ext
+end  
+
+lemma exists_coeff_ne_zero_of_ne_zero {f : polynomial α}: f ≠ 0 → ∃m, f m ≠ 0:=
+begin 
+  intro h, 
+  have : ¬(∀k, f k = (0 : polynomial α) k),
+  apply (iff.elim_right not_imp_not ext),
+  exact h,
+  exact (classical.prop_decidable _),
+  apply (iff.elim_left classical.not_forall this)
+end  
+
 
 
 lemma le_degree {p : polynomial α} {n : ℕ} (h : p n ≠ 0) : n ≤ degree p :=
@@ -133,7 +157,120 @@ begin intro, apply (@classical.by_contradiction (f ≠ 0) _), intro,
 have h3: (f = 0), from iff.elim_left not_not a_1,
 have h4: degree f = 0, calc degree f = degree 0 : by rw [h3] ... = 0 : degree_zero,
 apply a h4
- end -- Maybe contradiction not needed?
+ end -- Contradiction not needed
+
+lemma less_degree_imp {f : polynomial α} {k : ℕ} : k < degree f → ∃m, m>k ∧f m ≠ 0:=
+begin
+intro,
+apply classical.by_contradiction,
+intro, 
+have :  ∀m, ¬(m > k ∧ f m ≠ 0),
+apply forall_not_of_not_exists a_1,
+have : ¬((degree f) > k ∧ f (degree f) ≠ 0),
+from (this (degree f)),
+have : ¬((degree f) > k) ∨ ¬ ( f (degree f) ≠ 0),
+rw ←not_and_distrib,
+exact this,
+cases this,
+{admit},
+{}--weer terug bij af.
+
+
+end
+
+
+--set_option pp.notation false
+
+lemma leading_coeff_ne_zero {p : polynomial α} : p ≠ 0 → (leading_coeff p) ≠ 0 :=
+/-
+begin
+  intro,
+  cases n : degree p,
+  {
+    have : ∃m, p m ≠ 0,
+    apply exists_coeff_ne_zero_of_ne_zero a, 
+    apply (exists.elim this),
+    intros,
+    have h1 : a_1 ≤ degree p,
+    apply (le_degree a_2),
+    have h2 : a_1 = 0,
+    apply nat.eq_zero_of_le_zero,
+    exact calc a_1 ≤ degree p : h1
+    ... = 0 : n,
+    exact calc p (degree p) = p 0 : by rw n
+      ... = p a_1 : by rw h2
+      ... ≠ 0 : a_2
+  },
+  {
+    have : a_1 < degree p, 
+    apply nat.lt_of_succ_le,
+    simp *,
+
+
+
+
+  }
+  -/
+/-
+begin
+  intro,
+
+  
+  dunfold leading_coeff,
+  dunfold degree,
+  have : ∃m, p m ≠ 0,
+  apply exists_coeff_ne_zero_of_ne_zero a, 
+  apply (exists.elim this),
+  intros,
+  have : a_1 ∈ (support p),
+  apply (iff.elim_right (mem_support_iff _)),
+  exact a_2,
+
+  have : id a_1 ≤ (finset.Sup_fin (support p) id),
+  apply (finset.le_Sup_fin _),
+  exact this,
+  intro,
+  cases k : (finset.Sup_fin (support p) id),
+  have : p = 0,
+  apply ext,
+  intro,
+  rw [zero_apply],
+  cases a_4,
+  rw [←k],
+  rw [a_3],
+  have : 0 < (nat.succ a_4),
+  simp [nat.zero_lt_succ],
+  apply classical.by_contradiction,
+  intro,
+  have : (nat.succ a_4) ∈ support p,
+  apply (iff.elim_right (mem_support_iff _)),
+  exact a_5,
+  have h1: id (nat.succ a_4)≤ (finset.Sup_fin (support p) id),
+  apply (finset.le_Sup_fin _),
+  exact this,
+  have : (nat.succ a_4) ≤ 0,
+  exact calc (nat.succ a_4) = id (nat.succ a_4) : by simp
+    ... ≤ (finset.Sup_fin (support p) id) : h1
+    ... = 0 : k,
+  apply (nat.not_succ_le_zero _ this),
+  contradiction,
+-/
+begin
+intro,
+have : (degree p) ∈ (support p), 
+dunfold degree, dunfold finset.Sup_fin,
+cases test : (support p),
+--ginduction test : (p),
+--apply (iff.elim_right (mem_support_iff _)),
+--Maybe something with the image? To remove the id?
+--Can we do an induction on the (support p), as a finset?
+
+
+
+
+
+end
+
 
 def derivative (p : polynomial α) : polynomial α :=
 p.sum (λn a, match n with 0 := 0 | (n + 1) := single n (a * (n + 1)) end)
@@ -279,6 +416,39 @@ variable [comm_ring α]
 
 instance : comm_ring (polynomial α) := finsupp.comm_ring
 end comm_ring
+--set_option pp.all true
+section integral_domain
+variable [integral_domain α]
+lemma zero_ne_one : (0:polynomial α) ≠ 1:=
+begin 
+  intro h,
+  have : (0 : polynomial α) 0 = (1 : polynomial α) 0, by rw [h],
+  simp * at *
+end
+
+instance {α : Type u} [integral_domain α] : zero_ne_one_class (polynomial α):=
+{ zero_ne_one := zero_ne_one, .. polynomial.comm_ring } 
+
+lemma eq_zero_or_eq_zero_of_mul_eq_zero_tmp {a b : α} (h : a * b = 0) : a = 0 ∨ b = 0 :=
+begin 
+
+end
+
+
+instance {α : Type u} [integral_domain α] : no_zero_divisors (polynomial α):=
+{eq_zero_or_eq_zero_of_mul_eq_zero := sorry
+
+.. polynomial.comm_ring}
+
+set_option pp.numerals false
+instance {α : Type u} [integral_domain α]: integral_domain (polynomial α) :=
+{ eq_zero_or_eq_zero_of_mul_eq_zero := sorry,
+  .. polynomial.comm_ring, .. polynomial.zero_ne_one_class }
+
+end integral_domain
+
+
+
 
 instance {α : Type u} [field α] : euclidean_domain (polynomial α) :=
 { eq_zero_or_eq_zero_of_mul_eq_zero := sorry,

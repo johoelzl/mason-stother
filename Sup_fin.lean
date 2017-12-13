@@ -47,9 +47,6 @@ Sup_fin_le $ assume b hb, le_Sup_fin (mem_of_subset_of_mem h hb)
 end general
 
 
-
-
-
 end finset
 
 
