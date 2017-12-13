@@ -131,7 +131,7 @@ have one_le_deg : 1 ≤ degree (X + (- C q)), from
     have h1: ((X : polynomial β) + (- C q)) 1 = (1:β),  -- Type annotation is needed here, otherwise + will fail.
     begin simp [add_apply, neg_apply_poly], 
     simp [coe_fn, has_coe_to_fun.coe], 
-    simp [X, C, single, single_apply],
+    simp [X, C, single, single_apply, if_pos, if_neg],
     have h2 :  ite ((1:ℕ) = 1) (1:β) (0:β)  = (1:β), from rfl,
     have h3: ite (0 = 1) q (0: β ) = 0, from  rfl,
     exact calc 
@@ -156,6 +156,33 @@ have ha: degree (X + (- C q)) ≤ 1, from
     ... ≤ 1 : dec_trivial,
 have 1 ≤ degree (X + (- C q)), from (one_le_deg), 
 show degree (X + (- C q)) = 1, from le_antisymm ha this
+
+lemma deg_ln_fac2 {q : β} : degree (X + (- C q)) = 1 :=
+have one_le_deg : 1 ≤ degree (X + (- C q)), from
+    have h1: ((X : polynomial β) + (- C q)) 1 = (1:β),  -- Type annotation is needed here, otherwise + will fail.
+    begin 
+        simp [add_apply, neg_apply_poly], 
+        simp [coe_fn, has_coe_to_fun.coe], 
+        simp [X, C, single, single_apply, if_pos, if_neg]
+    end,
+    have ((X : polynomial β) + (- C q)) 1 ≠ 0, from calc
+        ((X : polynomial β) + (- C q)) 1 = 1 : h1
+        ... ≠ 0 : one_ne_zero,
+    le_degree this, 
+have (0 ≠ (1 : β)), from zero_ne_one,
+have h_deg_X : degree X = 1, from  degree_X this,
+have degree (C q) = 0, from degree_C,
+have h_deg_neg_C :degree (- C q) = 0, by rw [(eq.symm degree_neg), this],
+have ha: degree (X + (- C q)) ≤ 1, from 
+  calc 
+    degree (X + (- C q)) ≤ max (degree (X)) (degree (- C q)) : degree_add
+    ... ≤ max 1 0 : by rw [h_deg_X, h_deg_neg_C ]
+    ... ≤ 1 : dec_trivial,
+have 1 ≤ degree (X + (- C q)), from (one_le_deg), 
+show degree (X + (- C q)) = 1, from le_antisymm ha this
+
+
+
 
 --set_option pp.all true
 --set_option pp.implicit false
