@@ -8,6 +8,9 @@ open classical set function lattice
 instance {α : Type u} [semilattice_sup α] : is_idempotent α (⊔) := ⟨assume a, sup_idem⟩
 
 namespace finset
+section general
+
+
 variables {α : Type u} {β : Type w} [decidable_eq β] [semilattice_sup_bot α]
 
 def Sup_fin (s : finset β) (f : β → α) : α := s.fold (⊔) ⊥ f
@@ -41,10 +44,73 @@ s.induction_on (by simp) (by simp {contextual := tt})
 lemma Sup_fin_mono (h : s₁ ⊆ s₂) : s₁.Sup_fin f ≤ s₂.Sup_fin f :=
 Sup_fin_le $ assume b hb, le_Sup_fin (mem_of_subset_of_mem h hb)
 
+end general
+
+
+
+
+
 end finset
+
 
 instance nat.distrib_lattice : distrib_lattice ℕ :=
 by apply_instance
 
 instance nat.semilattice_sup_bot : semilattice_sup_bot ℕ :=
 { bot := 0, bot_le := nat.zero_le , .. nat.distrib_lattice }
+
+namespace finset
+
+lemma Sup_fin_mem_of_id_nat : ∀ (s : finset ℕ),s ≠ ∅ →  (Sup_fin s id) ∈ s :=
+begin
+refine @finset.induction _ _ (λs : finset ℕ, s ≠ ∅ →  (Sup_fin s id) ∈ s ) _ _,
+intros,
+{contradiction},
+{intros,
+have htmp : s = ∅ ∨ s ≠ ∅, from classical.em _,
+cases (htmp),
+{
+  have : insert a ∅  = {a}, 
+  apply rfl, 
+  rw ←a_4 at this,
+  rw this,
+  have : Sup_fin {a} id = id a,
+  apply Sup_fin_singleton,
+  simp [id]
+},
+{ 
+  have hdec : Sup_fin (insert a s) id = id a ⊔ s.Sup_fin id,
+  apply Sup_fin_insert,
+  have : Sup_fin s id ∈ s, simp [a_2, a_4],
+  cases (le_total a (Sup_fin s id)) with h1 h1,
+  {
+    have h2: (Sup_fin s id) ≤ (Sup_fin s id), from le_refl _,
+    have h3: (a ⊔ Sup_fin s id) ≤ Sup_fin s id, 
+    apply sup_le _ _, assumption, apply le_refl,
+    have h4: (Sup_fin s id) ≤ (a ⊔ (Sup_fin s id)), from le_sup_right,
+    have h5: (a ⊔ (Sup_fin s id)) = (Sup_fin s id), from le_antisymm h3 h4,
+    rw [hdec],
+    have : id a = a, from rfl, 
+    rw this,   
+    apply mem_insert_of_mem, 
+    rw [h5],
+    assumption
+  },
+  {
+    have h2: (a) ≤ (a), from le_refl _,
+    have h3: (a ⊔ Sup_fin s id) ≤ a,
+    apply sup_le _ _, assumption, from h1,
+    have h4: a ≤ (a ⊔ (Sup_fin s id)), from le_sup_left,
+    have h5: (a ⊔ (Sup_fin s id)) = (a), from le_antisymm h3 h4,
+    rw [hdec],
+    have : id a = a, from rfl, 
+    rw this,   
+    rw h5,
+    simp
+  }
+}
+}
+
+end
+
+end finset
