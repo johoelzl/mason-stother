@@ -1,11 +1,13 @@
-import .finsupp .Sup_fin order.lattice data.nat.cast .euclidean_domain
+import  .Sup_fin data.finsupp order.lattice data.nat.cast .euclidean_domain
 universes u v w
 
 noncomputable theory
 
 open classical set function finsupp lattice
-local attribute [instance] decidable_inhabited prop_decidable
-
+local attribute [instance] prop_decidable
+local attribute [instance] finsupp.to_comm_semiring
+local attribute [instance] finsupp.to_semiring
+local infix ^ := monoid.pow
 
 -- TODO: relax semiring to semi-algebra?
 def polynomial (α : Type u) [semiring α] := ℕ →₀ α
@@ -21,7 +23,7 @@ instance : has_zero (polynomial α) := finsupp.has_zero
 instance : has_one (polynomial α) := finsupp.has_one
 instance : has_add (polynomial α) := finsupp.has_add
 instance : has_mul (polynomial α) := finsupp.has_mul
-instance : semiring (polynomial α) := finsupp.semiring
+instance : semiring (polynomial α) := finsupp.to_semiring
 
 @[simp] lemma one_apply_zero : (1 : polynomial α) 0 = 1 :=
 single_eq_same
@@ -37,11 +39,11 @@ def C (a : α) : polynomial α := finsupp.single 0 a
 
 def X : polynomial α := finsupp.single 1 1
 
-lemma single_eq_X_pow : ∀{n}, single n a = C a * X ^ n
+lemma single_eq_X_pow : ∀{n:ℕ}, single n a = C a * X ^ n
 | 0       := by simp [C]
 | (n + 1) :=
   calc single (n + 1) a = single n a * X : by simp [X, single_mul_single]
-    ... = C a * X ^ (n + 1) : by rw [@single_eq_X_pow n]; simp [pow_add]
+    ... = C a * X ^ (n + 1) : by rw [@single_eq_X_pow n]; simp [pow_add, pow_one, mul_assoc]
 
 lemma induction_on {M : polynomial α → Prop} (p : polynomial α)
   (M_C : ∀(a : α), M (C a)) (M_X : M X)
@@ -55,19 +57,19 @@ begin
   assume n a,
   rw [single_eq_X_pow],
   apply M_mul (M_C a),
-  induction n; simp [pow_add, nat.succ_eq_add_one, *]; exact M_1
+  induction n; simp [M_1, pow_add, pow_one, nat.succ_eq_add_one, *]; exact M_1
 end,
 have M_sum : ∀{s:finset ℕ} {f : ℕ → polynomial α}, (∀a∈s, M (f a)) → M (s.sum f),
-  from assume s f, s.induction_on (by simp [M_0]) (by simp * {contextual := tt}),
+  from assume s f, finset.induction_on s (by simp [M_0]) (by simp * {contextual := tt}),
 begin
   rw [←@sum_single _ _ _ p],
   apply M_sum,
   exact (assume a ha, M_single _ _)
-end 
+end
 
 --set_option pp.notation false
 lemma induction_on_X {M : polynomial α → Prop} (p : polynomial α)
-  (M_C : ∀(a : α), M (C a)) 
+  (M_C : ∀(a : α), M (C a))
   (M_X : M X)
   (M_add : ∀{p q}, M p → M q → M (p + q))
   (M_mul_X : ∀{p}, M p → M (p * X) ):
@@ -77,11 +79,11 @@ have M_1 : M 1, from M_C 1,
 have M_single : ∀n c, M (single n c),
 begin
 assume n a, simp [single_eq_X_pow ],
-induction n, have htmp : C a * X ^ 0 = C a, simp [pow_zero], simp [pow_zero], exact M_C _, simp [pow_succ'], 
+induction n, have htmp : C a * X ^ 0 = C a, simp [pow_zero], simp [pow_zero], exact M_C _, simp [pow_succ'],
 have htmp3 : (C a * (X ^ a_1 * X)) = (C a * (X ^ a_1) * X), simp [mul_assoc], rw [htmp3], apply M_mul_X, assumption
 end,
 have M_sum : ∀{s:finset ℕ} {f : ℕ → polynomial α}, (∀a∈s, M (f a)) → M (s.sum f),
-  from assume s f, s.induction_on (by simp [M_0]) (by simp * {contextual := tt}),
+  from assume s f, finset.induction_on s (by simp [M_0]) (by simp * {contextual := tt}),
 begin
   rw [←@sum_single _ _ _ p],
   apply M_sum,
@@ -98,17 +100,17 @@ def leading_coeff (p : polynomial α) : α := p (degree p)
 lemma ext : ∀{f g : polynomial α}, (∀a, f a = g a) → f = g:=
 begin
   apply @finsupp.ext
-end  
+end
 
 lemma exists_coeff_ne_zero_of_ne_zero {f : polynomial α}: f ≠ 0 → ∃m, f m ≠ 0:=
-begin 
-  intro h, 
+begin
+  intro h,
   have : ¬(∀k, f k = (0 : polynomial α) k),
   apply (iff.elim_right not_imp_not ext),
   exact h,
   exact (classical.prop_decidable _),
   apply (iff.elim_left classical.not_forall this)
-end  
+end
 
 
 
@@ -121,7 +123,7 @@ by simp [degree, this]; refl
 
 lemma degree_single {a : α} {n : ℕ} : degree (single n a) ≤ n :=
 calc degree (single n a) = (single n a).support.Sup_fin id : by simp [degree]
-  ... ≤ ({n} : finset ℕ).Sup_fin id : finset.Sup_fin_mono finsupp.support_single_subset
+  ... ≤ (finset.singleton n).Sup_fin id : finset.Sup_fin_mono finsupp.support_single_subset
   ... ≤ _ : by simp
 
 @[simp] lemma degree_X (h : 0 ≠ (1:α)) : degree (X : polynomial α) = 1 :=
@@ -138,7 +140,7 @@ calc degree (f + g) ≤ (f.support ∪ g.support).Sup_fin id : finset.Sup_fin_mo
 
 lemma degree_sum {β : Type w} {s : finset β} {f : β → polynomial α} :
   degree (s.sum f) ≤ s.Sup_fin (λi, degree (f i)) :=
-s.induction_on (by simp; refl) $
+finset.induction_on s (by simp; refl) $
   assume b s hbs ih,
   calc degree ((insert b s).sum f) = degree (f b + s.sum f) : by simp [hbs]
     ... ≤ degree (f b) ⊔ degree (s.sum f) : degree_add
@@ -163,7 +165,7 @@ lemma less_degree_imp {f : polynomial α} {k : ℕ} : k < degree f → ∃m, m>k
 begin
 intro,
 apply classical.by_contradiction,
-intro, 
+intro,
 have :  ∀m, ¬(m > k ∧ f m ≠ 0),
 apply forall_not_of_not_exists a_1,
 have : ¬((degree f) > k ∧ f (degree f) ≠ 0),
@@ -188,7 +190,7 @@ begin
   cases n : degree p,
   {
     have : ∃m, p m ≠ 0,
-    apply exists_coeff_ne_zero_of_ne_zero a, 
+    apply exists_coeff_ne_zero_of_ne_zero a,
     apply (exists.elim this),
     intros,
     have h1 : a_1 ≤ degree p,
@@ -202,7 +204,7 @@ begin
       ... ≠ 0 : a_2
   },
   {
-    have : a_1 < degree p, 
+    have : a_1 < degree p,
     apply nat.lt_of_succ_le,
     simp *,
 
@@ -215,11 +217,11 @@ begin
 begin
   intro,
 
-  
+
   dunfold leading_coeff,
   dunfold degree,
   have : ∃m, p m ≠ 0,
-  apply exists_coeff_ne_zero_of_ne_zero a, 
+  apply exists_coeff_ne_zero_of_ne_zero a,
   apply (exists.elim this),
   intros,
   have : a_1 ∈ (support p),
@@ -257,7 +259,7 @@ begin
 -/
 begin
 intro,
-have : (degree p) ∈ (support p), 
+have : (degree p) ∈ (support p),
 dunfold degree, dunfold finset.Sup_fin,
 cases test : (support p),
 --ginduction test : (p),
@@ -308,7 +310,6 @@ finsupp.sum_add_index
   derivative (s.sum f) = s.sum (λb, derivative (f b)) :=
 begin
   apply (finset.sum_hom derivative _ _).symm,
-  apply_instance,
   exact derivative_zero,
   exact assume x y, derivative_add
 end
@@ -321,24 +322,26 @@ end semiring
 section comm_semiring
 variable [comm_semiring α]
 
-instance : comm_semiring (polynomial α) := finsupp.comm_semiring
+instance : comm_semiring (polynomial α) := finsupp.to_comm_semiring
 
 lemma mul_C_eq_sum {f : polynomial α} {a : α} :
   f * C a = f.sum (λi c, single i (a * c)) :=
 calc f * C a = (f.sum single) * C a : by rw [sum_single]
   ... = f.sum (λi c, single i c * C a) : finset.sum_mul
-  ... = f.sum (λi c, single i (a * c)) : by simp [single_eq_X_pow, C_mul_C]
+  ... = f.sum (λi c, single i (a * c)) :
+    by simp [single_eq_X_pow, C_mul_C, mul_assoc, mul_comm, mul_left_comm]
 
 lemma mul_X_eq_sum {f : polynomial α} :
   f * X = f.sum (λi c, single (i + 1) c) :=
 calc f * X = (f.sum single) * X : by rw [sum_single]
   ... = f.sum (λi c, single i c * X) : finset.sum_mul
-  ... = f.sum (λi c, single (i + 1) c) : by simp [single_eq_X_pow, pow_add]
+  ... = f.sum (λi c, single (i + 1) c) :
+    by simp [single_eq_X_pow, pow_add, pow_one, mul_assoc, mul_comm, mul_left_comm]
 
 lemma derivative_mul_C {f : polynomial α} :
   derivative (f * C a) = derivative f * C a :=
 have ∀i c, derivative (single i (a * c)) = derivative (single i c) * C a,
-  by intros i c; cases i; simp [C, single_mul_single],
+  by intros i c; cases i; simp [C, single_mul_single, mul_comm, mul_left_comm, mul_assoc],
 calc derivative (f * C a) = derivative (f.sum (λi c, single i (a * c))) :
     by rw [mul_C_eq_sum]
   ... = f.sum (λi c, derivative (single i (a * c))) : derivative_sum
@@ -350,8 +353,8 @@ calc derivative (f * C a) = derivative (f.sum (λi c, single i (a * c))) :
 
 lemma derivative_mul_X {f : polynomial α} :
   derivative (f * X) = derivative f * X + f:=
-  have temp: derivative f * X = f.sum (λi c, single i (c * i)), from 
-have ∀ a (b : α ),(  finsupp.sum (derivative._match_1 b a) (λ (i : ℕ), single (i + 1)) = single a (b * a) ),from 
+  have temp: derivative f * X = f.sum (λi c, single i (c * i)), from
+have ∀ a (b : α ),(  finsupp.sum (derivative._match_1 b a) (λ (i : ℕ), single (i + 1)) = single a (b * a) ),from
 begin
   intros,
   cases a,
@@ -376,7 +379,7 @@ calc derivative (f * X) = derivative (f.sum (λi c, single (i + 1) c)) :
   ... = f.sum (λi c, single i (c * i) + single i c) : by simp [single_add, mul_add]
   ... = f.sum (λi c, single i (c * i)) + f: by simp [sum_add, sum_single]
   ... = derivative f * X + f : by rw [temp]
- 
+
 
 
 
@@ -384,53 +387,50 @@ lemma derivative_mul {f : polynomial α} :
   ∀{g}, derivative (f * g) = derivative f * g + f * derivative g :=
 begin
   apply f.induction_on,
-     { simp [derivative_mul_C] },
-  {simp[derivative_mul_X]},
+  { simp [derivative_mul_C, mul_assoc, mul_comm, mul_left_comm] },
+  { simp[derivative_mul_X, mul_assoc, mul_comm, mul_left_comm] },
   { simp [add_mul, mul_add] {contextual := tt} },
-  { simp [add_mul, mul_add] {contextual := tt} }
-
-  end
+  { simp [add_mul, mul_add, mul_assoc, mul_comm, mul_left_comm] {contextual := tt} }
+end
 
 end comm_semiring
 
 section ring
 variable [ring α]
 
-instance : ring (polynomial α) := finsupp.ring
+instance : ring (polynomial α) := finsupp.to_ring
 
 lemma neg_apply_poly (a : polynomial α) (n : ℕ):  (- a) n = - (a n) :=
 begin intros, simp [coe_fn], simp [has_coe_to_fun.coe], simp [has_neg.neg, add_group.neg, add_comm_group.neg, ring.neg] ,
-simp [map_range], simp [(∘)], apply rfl
-end  
+simp [map_range, mul_assoc, mul_comm, mul_left_comm], simp [(∘)], apply rfl
+end
 
 
 lemma degree_neg {f : polynomial α} : degree f = degree (-f):=
-begin
-simp [degree],  rw [neg_support]
-end
+by simp [degree]
 
 end ring
 
 section comm_ring
 variable [comm_ring α]
 
-instance : comm_ring (polynomial α) := finsupp.comm_ring
+instance : comm_ring (polynomial α) := finsupp.to_comm_ring
 end comm_ring
 --set_option pp.all true
 section integral_domain
 variable [integral_domain α]
 lemma zero_ne_one : (0:polynomial α) ≠ 1:=
-begin 
+begin
   intro h,
   have : (0 : polynomial α) 0 = (1 : polynomial α) 0, by rw [h],
   simp * at *
 end
 
 instance {α : Type u} [integral_domain α] : zero_ne_one_class (polynomial α):=
-{ zero_ne_one := zero_ne_one, .. polynomial.comm_ring } 
+{ zero_ne_one := zero_ne_one, .. polynomial.comm_ring }
 
 lemma eq_zero_or_eq_zero_of_mul_eq_zero_tmp {a b : α} (h : a * b = 0) : a = 0 ∨ b = 0 :=
-begin 
+begin
 
 end
 
