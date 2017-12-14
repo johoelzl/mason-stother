@@ -5,8 +5,12 @@
 import poly
 import euclidean_domain
 import data.finsupp
+import algebraically_closed_field
 noncomputable theory
-
+local infix ^ := monoid.pow 
+open polynomial
+open classical
+local attribute [instance] prop_decidable
 
 
 universe u
@@ -15,7 +19,6 @@ universe u
 variable {α : Type u}
 variables [comm_semiring α]
 
-namespace polynomial
 
 
 def is_gcd (a b d : polynomial α) :=  d∣a ∧  d∣b ∧  (∀x, x∣a →  x∣b → x∣d)
@@ -29,13 +32,14 @@ def gcd [comm_semiring α] [has_gcd α] : α → α → α := has_gcd.gcd
 
 @[instance] constant polynomial.has_gcd : has_gcd (polynomial α) 
 --Convert units to a set
+def is_unit (a : polynomial α) : Prop := ∃b, a * b = 1 ∧ b * a = 1
+
 --Assume has_gcd on polynomials
-def rel_prime (a b : polynomial α) := (gcd a b) ∈ set.range (units.val : _ → polynomial α) 
+def rel_prime (a b : polynomial α) := is_unit (gcd a b) --∈ set.range (units.val : _ → polynomial α) 
+
 
 --We need to define the radical and the number of distinct roots of a polynomial
 --First define roots
-
-def root_of (a : polynomial α) (b : α) := polynomial.eval a b = 0
 
 
 structure roots_of (a : polynomial α):= --Can this be made as a set directly?
@@ -48,15 +52,13 @@ def roots_of_as_set (a : polynomial α) := set_of (root_of a)
 
 --Proof linear factor iff root, makes use of the division algorithm. Hence that polynomials are a euclidian ring.
 
-end polynomial
-
 
 
 section field
 
 variable β : Type u
 variable [field β]
-open polynomial
+
 open finsupp
 
 def lin_fac {β : Type u} [field β ] (q : β) : polynomial β := (X + (- C q))
@@ -122,11 +124,36 @@ end field
 
 
 variable {β : Type u}
-variables [field β] -- Should be an instance of algebraically closed.
-axiom roots (p : polynomial β) : (polynomial β) →₀ ℕ  
-axiom eq_prod_lin_fac_roots (p : polynomial β)
+variables [field β]
+variables  [algebraically_closed_field β] -- Should be an instance of algebraically closed.
+axiom roots (p : polynomial β) : (β) →₀ ℕ 
+axiom eq_prod_lin_fac_roots (p : polynomial β) : ∃ c : β , p = C c * (finsupp.prod (roots p) (λ k n, ( (X - C k ) ^n) )  )
 
+open classical
 section algebraically_closed
+def c_fac (p : polynomial β) : β  := some ( eq_prod_lin_fac_roots p)
+
+def rad (p : polynomial β) : polynomial β  := finsupp.prod (roots p) (λ k n,  (X - C k ) ) --The radiacal
+def n₀ (p : polynomial β) : ℕ  := finsupp.sum (roots p) (λ k n, 1) --The number of distinct roots
+
+lemma Mason_storhers_lemma 
+(f : polynomial β) : degree f ≤ degree (gcd f (derivative f )) + n₀ f :=
+begin 
+  --have h_fac : ∃ c : β , f = C c * (finsupp.prod (roots f) (λ k n, ( (X - C k ) ^n) )  ), from eq_prod_lin_fac_roots f,
+  have h_fac :f = C (c_fac f) * (finsupp.prod (roots f) (λ k n, ( (X - C k ) ^n) )  ), from some_spec ( eq_prod_lin_fac_roots f),
+  have h_f' : derivative f = C (c_fac f) * (finsupp.sum (roots f) (λ k n, derivative ( (X - C k ) ^n) *  (finsupp.prod (finset.erase ((roots f).support /- goes wrong, now we lose the multiplicities-/) k) (λ k n, ( (X - C k ) ^n) )  )    )) -- derivative (s.prod f) = s.sum ( (λ b, (derivative (f b))* (erase s b).prod f) ) 
+end
+
+
+theorem Mason_Stothers 
+(a b c : polynomial β)
+(h_rel_prime_ab : rel_prime a b)
+(h_rel_prime_bc : rel_prime b c)
+(h_rel_prime_ca : rel_prime c a)
+(h1 : a + b = c)
+(h2 : ¬ (derivative a = 0 ∧ derivative b = 0 ∧ derivative c = 0)) :
+degree c ≤ n₀ (a*b*c) - 1 := 
+sorry
 
 
 
