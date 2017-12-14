@@ -161,6 +161,12 @@ have h4: degree f = 0, calc degree f = degree 0 : by rw [h3] ... = 0 : degree_ze
 apply a h4
  end -- Contradiction not needed
 
+
+
+def root_of (a : polynomial α) (b : α) := polynomial.eval a b = 0
+
+
+
 lemma less_degree_imp {f : polynomial α} {k : ℕ} : k < degree f → ∃m, m>k ∧f m ≠ 0:=
 begin
 intro,
@@ -314,6 +320,8 @@ begin
   exact assume x y, derivative_add
 end
 
+
+
 lemma C_mul_C {a b : α} : C (a * b) = C a * C b :=
 by simp [C, single_mul_single]
 
@@ -323,6 +331,7 @@ section comm_semiring
 variable [comm_semiring α]
 
 instance : comm_semiring (polynomial α) := finsupp.to_comm_semiring
+
 
 lemma mul_C_eq_sum {f : polynomial α} {a : α} :
   f * C a = f.sum (λi c, single i (a * c)) :=
@@ -393,6 +402,21 @@ begin
   { simp [add_mul, mul_add, mul_assoc, mul_comm, mul_left_comm] {contextual := tt} }
 end
 
+open finset
+
+--Needs to be finished
+lemma derivative_product {β : Type w} {s : finset β} {f : β → polynomial α} : --It wanted a comm_monoid, but it should have a comm_monoid for addition?
+  derivative (s.prod f) = s.sum ( (λ b, (derivative (f b))* (erase s b).prod f) ) :=
+begin
+  apply finset.induction_on s,
+  {simp},
+  {intros a s h1 h2, simp [prod_insert h1, derivative_mul, h2,sum_insert h1, erase_insert h1],admit } --, sum_insert h1, erase_insert h1
+end
+
+lemma derivative_product_over_finsupp {γ : Type u}{β : Type w} [has_zero β] {s : γ →₀ β } {f : γ → β → polynomial α } :
+  derivative (s.prod f) = ?
+
+
 end comm_semiring
 
 section ring
@@ -447,8 +471,6 @@ instance {α : Type u} [integral_domain α]: integral_domain (polynomial α) :=
 end integral_domain
 
 
-
-
 instance {α : Type u} [field α] : euclidean_domain (polynomial α) :=
 { eq_zero_or_eq_zero_of_mul_eq_zero := sorry,
   zero_ne_one := sorry,
@@ -456,5 +478,9 @@ instance {α : Type u} [field α] : euclidean_domain (polynomial α) :=
   h1 := sorry,
   h_norm := sorry,
   .. polynomial.comm_ring }
+
+
+
+
 
 end polynomial

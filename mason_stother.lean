@@ -4,14 +4,19 @@
 --Defining the gcd
 import poly
 import euclidean_domain
-import finsupp
+import data.finsupp
 noncomputable theory
+
+
 
 universe u
 
 
 variable {α : Type u}
 variables [comm_semiring α]
+
+namespace polynomial
+
 
 def is_gcd (a b d : polynomial α) :=  d∣a ∧  d∣b ∧  (∀x, x∣a →  x∣b → x∣d)
 
@@ -43,7 +48,7 @@ def roots_of_as_set (a : polynomial α) := set_of (root_of a)
 
 --Proof linear factor iff root, makes use of the division algorithm. Hence that polynomials are a euclidian ring.
 
-
+end polynomial
 
 
 
@@ -68,7 +73,7 @@ have one_le_deg : 1 ≤ degree (X + (- C q)), from
         ((X : polynomial β) + (- C q)) 1 = 1 : h1
         ... ≠ 0 : one_ne_zero,
     le_degree this, 
-have (0 ≠ (1 : β)), from zero_ne_one,
+have ((0 : β ) ≠ (1 : β)), from zero_ne_one,
 have h_deg_X : degree X = 1, from  degree_X this,
 have degree (C q) = 0, from degree_C,
 have h_deg_neg_C :degree (- C q) = 0, by rw [(eq.symm degree_neg), this],
