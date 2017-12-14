@@ -80,7 +80,7 @@ have M_single : ∀n c, M (single n c),
 begin
 assume n a, simp [single_eq_X_pow ],
 induction n, have htmp : C a * X ^ 0 = C a, simp [pow_zero], simp [pow_zero], exact M_C _, simp [pow_succ'],
-have htmp3 : (C a * (X ^ a_1 * X)) = (C a * (X ^ a_1) * X), simp [mul_assoc], rw [htmp3], apply M_mul_X, assumption
+have htmp3 : (C a * (X ^ n_n * X)) = (C a * (X ^ n_n) * X), simp [mul_assoc], rw [htmp3], apply M_mul_X, assumption
 end,
 have M_sum : ∀{s:finset ℕ} {f : ℕ → polynomial α}, (∀a∈s, M (f a)) → M (s.sum f),
   from assume s f, finset.induction_on s (by simp [M_0]) (by simp * {contextual := tt}),
@@ -124,7 +124,7 @@ by simp [degree, this]; refl
 lemma degree_single {a : α} {n : ℕ} : degree (single n a) ≤ n :=
 calc degree (single n a) = (single n a).support.Sup_fin id : by simp [degree]
   ... ≤ (finset.singleton n).Sup_fin id : finset.Sup_fin_mono finsupp.support_single_subset
-  ... ≤ _ : by simp
+  ... ≤ _ : by simp [finset.Sup_fin_singleton]
 
 @[simp] lemma degree_X (h : 0 ≠ (1:α)) : degree (X : polynomial α) = 1 :=
 le_antisymm
@@ -401,8 +401,7 @@ variable [ring α]
 instance : ring (polynomial α) := finsupp.to_ring
 
 lemma neg_apply_poly (a : polynomial α) (n : ℕ):  (- a) n = - (a n) :=
-begin intros, simp [coe_fn], simp [has_coe_to_fun.coe], simp [has_neg.neg, add_group.neg, add_comm_group.neg, ring.neg] ,
-simp [map_range, mul_assoc, mul_comm, mul_left_comm], simp [(∘)], apply rfl
+begin intros, simp [coe_fn], simp [has_coe_to_fun.coe], simp [has_neg.neg, add_group.neg, add_comm_group.neg, ring.neg] , apply rfl
 end
 
 
