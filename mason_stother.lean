@@ -7,49 +7,20 @@ import euclidean_domain
 import finsupp
 noncomputable theory
 
-#check classical.prop_decidable
 universe u
+
+
 variable {α : Type u}
-variables [comm_semiring α] --(a b c : α)
-
---example (a b d : α  ) (h1: (d∣a)) (h2:d∣b):= nat.zero
-
-namespace gcd1
-
-structure gcd (a b : α) :  Type u :=
-(d : α) (h1: d∣a) (h2 : d∣b) (h3 : ∀x, x∣a →  x∣b → x∣d)
-
-
-def test : gcd polynomial.X (@polynomial.X α  _) := begin fapply (gcd.mk polynomial.X (dvd_refl _) (dvd_refl _) ), {intro, simp} end
-
-
-
-
-instance gcd_to_polynomial (a b : polynomial α): has_coe (gcd a b) (polynomial α) := 
-⟨gcd.d⟩ 
-
--- ↑ is arrow up
---#check ((↑test) + (0:polynomial α))
-
-
-
-
-end gcd1
-/- Different definiton of gcd -/
-
-namespace gcd2
+variables [comm_semiring α]
 
 def is_gcd (a b d : polynomial α) :=  d∣a ∧  d∣b ∧  (∀x, x∣a →  x∣b → x∣d)
 
-
-constant ax1 : ∀ a b : polynomial α,( ∃( d : polynomial α ), (is_gcd a b d))
+axiom gcd_ax : ∀ a b : polynomial α,( ∃( d : polynomial α ), (is_gcd a b d))
 
 class has_gcd (α : Type u) [comm_semiring α] :=
 (gcd : α → α → α) (gcd_right : ∀ a b, ( (gcd a b) ∣ b )) (gcd_left : ∀ a b, (gcd a b) ∣ a) (gcd_min : ∀ a b g, g∣a → g∣b → g∣ (gcd a b))
 
 def gcd [comm_semiring α] [has_gcd α] : α → α → α := has_gcd.gcd
-
-
 
 @[instance] constant polynomial.has_gcd : has_gcd (polynomial α) 
 --Convert units to a set
@@ -73,91 +44,19 @@ def roots_of_as_set (a : polynomial α) := set_of (root_of a)
 --Proof linear factor iff root, makes use of the division algorithm. Hence that polynomials are a euclidian ring.
 
 
+
+
+
+section field
+
 variable β : Type u
 variable [field β]
--- variable [euclidian_domain (polynomial β)]
---@[instance] constant axPolyInteg : integral_domain (polynomial β)
 open polynomial
 open finsupp
 
 def lin_fac {β : Type u} [field β ] (q : β) : polynomial β := (X + (- C q))
 
-/-
-set_option pp.all  false
-
-
-lemma test : ite (1 = 1) (1: β) 0  = 1:= rfl
-example (q : β ): ite (0 = 1) q (0: β ) = 0:= rfl
-
-#print decidable.no_confusion
-lemma decidable_ext :∀ a b : Prop, a = b →   decidable a = decidable b 
-   | x y (eq.refl _) := ⟨_⟩ 
-lemma decidable_ext2 {p : Prop}: ∀ a b : decidable p, a = b 
-| (is_true a)  (is_true b)  := rfl
-| (is_true a)  (is_false b)  := by contradiction
-| (is_false a)  (is_true b)  := by contradiction
-| (is_false a)  (is_false b)  := rfl
-
-#check classical.prop_decidable (1=1)
-#check nat.decidable_eq 1 1
-lemma l11 : classical.prop_decidable (1=1) = nat.decidable_eq 1 1 := decidable_ext2 (classical.prop_decidable (1=1)) (nat.decidable_eq 1 1)
-lemma l01 : classical.prop_decidable (0=1) = nat.decidable_eq 0 1 := decidable_ext2 (classical.prop_decidable (0=1)) (nat.decidable_eq 0 1)
--/
-
---assume q : β,
---have help : ite ((1:ℕ )= 1) (1: β)  0 = 1 := rfl,
-/-
-lemma deg_ln_fac_help {q : β} : 1 ≤ degree (X + (- C q)) :=
-have h1: ((X : polynomial β) + (- C q)) 1 = (1:β),  -- Type annotation is needed here, otherwise + will fail.
-begin simp [add_apply, neg_apply_poly], 
-  simp [coe_fn, has_coe_to_fun.coe], 
-  simp [X, C, single, single_apply],
-  have h2 :  ite ((1:ℕ) = 1) (1:β) (0:β)  = (1:β), from rfl,
-  have h3: ite (0 = 1) q (0: β ) = 0, from  rfl,
-  exact calc 
-    @ite (1 = 1) (classical.prop_decidable (1=1)) _ 1 0 + -(@ite (0 = 1) (classical.prop_decidable (0=1)) _ q 0)  
-     = @ite (1 = 1) (nat.decidable_eq 1 1) _ 1 0 + -(@ite (0 = 1) (classical.prop_decidable (0=1)) _ q 0): by simp
-    ... =   @ite (1 = 1) (nat.decidable_eq 1 1) _ 1 0 + -(@ite (0 = 1) (nat.decidable_eq 0 1) _ q 0): by simp
-    ... = 1 + 0 : by simp
-    ... = 1 : by simp
-  end,
-have ((X : polynomial β) + (- C q)) 1 ≠ 0, from calc
-    ((X : polynomial β) + (- C q)) 1 = 1 : h1
-    ... ≠ 0 : one_ne_zero,
-le_degree this
--/
 lemma deg_ln_fac {q : β} : degree (X + (- C q)) = 1 :=
-have one_le_deg : 1 ≤ degree (X + (- C q)), from
-    have h1: ((X : polynomial β) + (- C q)) 1 = (1:β),  -- Type annotation is needed here, otherwise + will fail.
-    begin simp [add_apply, neg_apply_poly], 
-    simp [coe_fn, has_coe_to_fun.coe], 
-    simp [X, C, single, single_apply, if_pos, if_neg],
-    have h2 :  ite ((1:ℕ) = 1) (1:β) (0:β)  = (1:β), from rfl,
-    have h3: ite (0 = 1) q (0: β ) = 0, from  rfl,
-    exact calc 
-        @ite (1 = 1) (classical.prop_decidable (1=1)) _ 1 0 + -(@ite (0 = 1) (classical.prop_decidable (0=1)) _ q 0)  
-        = @ite (1 = 1) (nat.decidable_eq 1 1) _ 1 0 + -(@ite (0 = 1) (classical.prop_decidable (0=1)) _ q 0): by simp
-        ... =   @ite (1 = 1) (nat.decidable_eq 1 1) _ 1 0 + -(@ite (0 = 1) (nat.decidable_eq 0 1) _ q 0): by simp
-        ... = 1 + 0 : by simp
-        ... = 1 : by simp
-    end,
-    have ((X : polynomial β) + (- C q)) 1 ≠ 0, from calc
-        ((X : polynomial β) + (- C q)) 1 = 1 : h1
-        ... ≠ 0 : one_ne_zero,
-    le_degree this, 
-have (0 ≠ (1 : β)), from zero_ne_one,
-have h_deg_X : degree X = 1, from  degree_X this,
-have degree (C q) = 0, from degree_C,
-have h_deg_neg_C :degree (- C q) = 0, by rw [(eq.symm degree_neg), this],
-have ha: degree (X + (- C q)) ≤ 1, from 
-  calc 
-    degree (X + (- C q)) ≤ max (degree (X)) (degree (- C q)) : degree_add
-    ... ≤ max 1 0 : by rw [h_deg_X, h_deg_neg_C ]
-    ... ≤ 1 : dec_trivial,
-have 1 ≤ degree (X + (- C q)), from (one_le_deg), 
-show degree (X + (- C q)) = 1, from le_antisymm ha this
-
-lemma deg_ln_fac2 {q : β} : degree (X + (- C q)) = 1 :=
 have one_le_deg : 1 ≤ degree (X + (- C q)), from
     have h1: ((X : polynomial β) + (- C q)) 1 = (1:β),  -- Type annotation is needed here, otherwise + will fail.
     begin 
@@ -182,16 +81,7 @@ have 1 ≤ degree (X + (- C q)), from (one_le_deg),
 show degree (X + (- C q)) = 1, from le_antisymm ha this
 
 
-
-
---set_option pp.all true
---set_option pp.implicit false
-
-
 open euclidean_domain
-#print euclidean_domain.h_norm
-
-
 
 lemma degree_ne_zero_ne_zero2 {f : polynomial β } : degree f ≠ 0 → f ≠ 0 :=--I want to apply normal by_cpntradiction here, but I don't know how to apply that, due to ambiguous overload.
 begin intro, apply (@classical.by_contradiction (f ≠ 0) _), intro,
@@ -199,10 +89,7 @@ have h3: (f = 0), from iff.elim_left (@not_not _ (classical.prop_decidable _)) a
 have h4: degree f = 0, calc degree f = degree 0 : by rw [h3] ... = 0 : degree_zero,
 apply a h4
  end
-#check degree_ne_zero_ne_zero
-#check  degree_ne_zero_ne_zero2
-set_option pp.all false
-set_option pp.implicit false
+
 
 --Why is there no instance for has subtract?
 lemma root_iff_lin_fac : ∀ p : polynomial β, ∀ k: β,  ( root_of p k) ↔ ((X + (- (C k)))  ∣p) :=
@@ -220,10 +107,26 @@ begin intros, apply iff.intro,
   --Er gaat gebeurt iets geks met de type universes, want degree h2, zit in type universe max 1 (u+1), en de andere zir in (u+1).
   --Of mogelijk heeft het te maken met field, integral_domain enzovoort. Maar snapt ie zelf dan niet dat max 1 (1+u) = 1 + u?
   --Mogelijk gaat het fout door het gebruik van de classical axioms, en dat je dat dan overal moet doen?? Zie maar degree_ne_zero2
+admit
 } , {admit} end
 
 
-lemma finite_roots {a : polynomial β} : set.finite (roots_of_as_set a):= --How do we do an induction on the degree?
+lemma finite_roots {a : polynomial β} : set.finite (roots_of_as_set a):= sorry --How do we do an induction on the degree?
+
+end field
 
 
-end gcd2
+variable {β : Type u}
+variables [field β] -- Should be an instance of algebraically closed.
+axiom roots (p : polynomial β) : (polynomial β) →₀ ℕ  
+axiom eq_prod_lin_fac_roots (p : polynomial β)
+
+section algebraically_closed
+
+
+
+
+
+
+end algebraically_closed
+

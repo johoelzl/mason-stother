@@ -1,0 +1,9 @@
+
+
+
+namespace gcd1
+structure gcd (a b : α) :  Type u :=
+(d : α) (h1: d∣a) (h2 : d∣b) (h3 : ∀x, x∣a →  x∣b → x∣d)
+instance gcd_to_polynomial (a b : polynomial α): has_coe (gcd a b) (polynomial α) := 
+⟨gcd.d⟩ 
+end gcd1
