@@ -13,6 +13,10 @@ open classical
 local attribute [instance] prop_decidable
 
 
+-- TODO: there is some problem with the module instances for module.to_add_comm_group ...
+-- force ring.to_add_comm_group to be stronger
+attribute [instance] ring.to_add_comm_group
+
 universe u
 
 
@@ -23,6 +27,7 @@ variables [comm_semiring α]
 
 def is_gcd (a b d : polynomial α) :=  d∣a ∧  d∣b ∧  (∀x, x∣a →  x∣b → x∣d)
 
+-- so every polynomial has a GCD? Shouldn't there be some restriction on α
 axiom gcd_ax : ∀ a b : polynomial α,( ∃( d : polynomial α ), (is_gcd a b d))
 
 class has_gcd (α : Type u) [comm_semiring α] :=
@@ -52,8 +57,6 @@ def roots_of_as_set (a : polynomial α) := set_of (root_of a)
 
 --Proof linear factor iff root, makes use of the division algorithm. Hence that polynomials are a euclidian ring.
 
-
-
 section field
 
 variable β : Type u
@@ -67,9 +70,8 @@ lemma deg_ln_fac {q : β} : degree (X + (- C q)) = 1 :=
 have one_le_deg : 1 ≤ degree (X + (- C q)), from
     have h1: ((X : polynomial β) + (- C q)) 1 = (1:β),  -- Type annotation is needed here, otherwise + will fail.
     begin
-        simp [add_apply, neg_apply_poly],
-        simp [coe_fn, has_coe_to_fun.coe],
-        simp [X, C, single, single_apply, if_pos, if_neg]
+      show (X : polynomial β) 1 + - (C q : polynomial β) 1 = (1:β),
+      rw [X, single_eq_same, C, single_eq_of_ne]; simp
     end,
     have ((X : polynomial β) + (- C q)) 1 ≠ 0, from calc
         ((X : polynomial β) + (- C q)) 1 = 1 : h1
@@ -83,7 +85,7 @@ have ha: degree (X + (- C q)) ≤ 1, from
   calc
     degree (X + (- C q)) ≤ max (degree (X)) (degree (- C q)) : degree_add
     ... ≤ max 1 0 : by rw [h_deg_X, h_deg_neg_C ]
-    ... ≤ 1 : dec_trivial,
+    ... = 1 : max_eq_left zero_le_one,
 have 1 ≤ degree (X + (- C q)), from (one_le_deg),
 show degree (X + (- C q)) = 1, from le_antisymm ha this
 
@@ -97,15 +99,14 @@ have h4: degree f = 0, calc degree f = degree 0 : by rw [h3] ... = 0 : degree_ze
 apply a h4
  end
 
-
 --Why is there no instance for has subtract?
-lemma root_iff_lin_fac : ∀ p : polynomial β, ∀ k: β,  ( root_of p k) ↔ ((X + (- (C k)))  ∣p) :=
+lemma root_iff_lin_fac : ∀p : polynomial β, ∀k:β, (root_of p k) ↔ (X - C k ∣ p) :=
 begin intros, apply iff.intro,
 {intro, --apply (exists.elim a), intros,
   -- have h1 : 1 ≠ 0, from dec_trivial,
   have h2 :  degree (X + (- (C k ))) ≠ 0,
   from calc degree (X + (- (C k))) = 1 : @deg_ln_fac _ _ k
-  ... ≠ 0 : dec_trivial,
+  ... ≠ 0 : one_ne_zero,
   have h3 : (X + (- (C k))) ≠ 0, from degree_ne_zero_ne_zero h2,--Mogelijk gaat deze fout omdat het lemma niet was gedefinieerd voor een integral domain.
   --Lemma is gedefinieerd voor semiring, maar mogelijk is het niet zo dat de integral domain kan worden omgezet in een semiring?
   -- Ik zie dat er wel een instance is met naar comm_semi_ring vanaf comm_ring. En een comm_semiring is een ring.
@@ -131,28 +132,29 @@ axiom eq_prod_lin_fac_roots (p : polynomial β) : ∃ c : β , p = C c * (finsup
 
 open classical
 section algebraically_closed
-def c_fac (p : polynomial β) : β  := some ( eq_prod_lin_fac_roots p)
+def c_fac (p : polynomial β) : β := some ( eq_prod_lin_fac_roots p)
 
-def rad (p : polynomial β) : polynomial β  := finsupp.prod (roots p) (λ k n,  (X - C k ) ) --The radiacal
-def n₀ (p : polynomial β) : ℕ  := finsupp.sum (roots p) (λ k n, 1) --The number of distinct roots
+def rad (p : polynomial β) : polynomial β := finsupp.prod (roots p) (λ k n,  (X - C k ) ) --The radiacal
+def n₀ (p : polynomial β) : ℕ  := (roots p).support.card --The number of distinct roots
 
-lemma Mason_storhers_lemma
+lemma Mason_Stothers_lemma
 (f : polynomial β) : degree f ≤ degree (gcd f (derivative f )) + n₀ f :=
 begin
   --have h_fac : ∃ c : β , f = C c * (finsupp.prod (roots f) (λ k n, ( (X - C k ) ^n) )  ), from eq_prod_lin_fac_roots f,
   have h_fac :f = C (c_fac f) * (finsupp.prod (roots f) (λ k n, ( (X - C k ) ^n) )  ), from some_spec ( eq_prod_lin_fac_roots f),
-  have h_f' : derivative f = C (c_fac f) * (finsupp.sum (roots f) (λ k n, derivative ( (X - C k ) ^n) *  (finsupp.prod (finset.erase ((roots f).support /- goes wrong, now we lose the multiplicities-/) k) (λ k n, ( (X - C k ) ^n) )  )    )) -- derivative (s.prod f) = s.sum ( (λ b, (derivative (f b))* (erase s b).prod f) )
+  have h_f' : derivative f = C (c_fac f) * (finsupp.sum (roots f) (λ k n, derivative ( (X - C k ) ^n) *
+    (finsupp.prod (finset.erase ((roots f).support /- goes wrong, now we lose the multiplicities-/) k) (λ k n, ( (X - C k ) ^n) )  )    )) -- derivative (s.prod f) = s.sum ( (λ b, (derivative (f b))* (erase s b).prod f) )
 end
 
 
 theorem Mason_Stothers
-(a b c : polynomial β)
-(h_rel_prime_ab : rel_prime a b)
-(h_rel_prime_bc : rel_prime b c)
-(h_rel_prime_ca : rel_prime c a)
-(h1 : a + b = c)
-(h2 : ¬ (derivative a = 0 ∧ derivative b = 0 ∧ derivative c = 0)) :
-degree c ≤ n₀ (a*b*c) - 1 :=
+  (a b c : polynomial β)
+  (h_rel_prime_ab : rel_prime a b)
+  (h_rel_prime_bc : rel_prime b c)
+  (h_rel_prime_ca : rel_prime c a)
+  (h1 : a + b = c)
+  (h2 : ¬ (derivative a = 0 ∧ derivative b = 0 ∧ derivative c = 0)) :
+  degree c ≤ n₀ (a*b*c) - 1 :=
 sorry
 
 
