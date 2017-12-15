@@ -9,6 +9,14 @@ local attribute [instance] finsupp.to_comm_semiring
 local attribute [instance] finsupp.to_semiring
 local infix ^ := monoid.pow
 
+namespace finset
+
+lemma erase_insert_eq_insert_erase {α : Type u} {s : finset α} {a b : α} (h : a ≠ b) :
+  erase (insert a s) b = insert a (erase s b) :=
+finset.ext.mpr begin intro c, by_cases c = a; by_cases c = b; simp [h, *] at * end
+
+end finset
+
 -- TODO: relax semiring to semi-algebra?
 def polynomial (α : Type u) [semiring α] := ℕ →₀ α
 
@@ -397,7 +405,7 @@ lemma derivative_mul {f : polynomial α} :
 begin
   apply f.induction_on,
   { simp [derivative_mul_C, mul_assoc, mul_comm, mul_left_comm] },
-  { simp[derivative_mul_X, mul_assoc, mul_comm, mul_left_comm] },
+  { simp [derivative_mul_X, mul_assoc, mul_comm, mul_left_comm] },
   { simp [add_mul, mul_add] {contextual := tt} },
   { simp [add_mul, mul_add, mul_assoc, mul_comm, mul_left_comm] {contextual := tt} }
 end
@@ -405,12 +413,26 @@ end
 open finset
 
 --Needs to be finished
-lemma derivative_product {β : Type w} {s : finset β} {f : β → polynomial α} : --It wanted a comm_monoid, but it should have a comm_monoid for addition?
-  derivative (s.prod f) = s.sum ( (λ b, (derivative (f b))* (erase s b).prod f) ) :=
+lemma derivative_prod {β : Type w} {s : finset β} {f : β → polynomial α} :
+  derivative (s.prod f) = s.sum (λb, derivative (f b) * (erase s b).prod f) :=
 begin
   apply finset.induction_on s,
-  {simp},
-  {intros a s h1 h2, simp [prod_insert h1, derivative_mul, h2,sum_insert h1, erase_insert h1],admit } --, sum_insert h1, erase_insert h1
+  { simp },
+  { intros a s has ih,
+    have : ∀b∈s, ((insert a s).erase b).prod f = f a * (s.erase b).prod f,
+    begin
+      assume b hb,
+      have : a ≠ b, { assume h, simp * at * },
+      rw [erase_insert_eq_insert_erase, finset.prod_insert]; simp *
+    end,
+    have : s.sum (λb, derivative (f b) * (erase (insert a s) b).prod f) =
+      f a * s.sum (λb, derivative (f b) * (erase s b).prod f),
+    from calc s.sum (λb, derivative (f b) * (erase (insert a s) b).prod f) =
+      s.sum (λb, f a * (derivative (f b) * (s.erase b).prod f)) :
+        sum_congr rfl $ by simp [this, mul_assoc, mul_comm, mul_left_comm] {contextual := tt}
+      ... = f a * s.sum (λb, derivative (f b) * (erase s b).prod f) :
+        by rw [mul_sum],
+    simp [ih, has, finset.prod_insert, derivative_mul, sum_insert, erase_insert, this] }
 end
 
 lemma derivative_product_over_finsupp {γ : Type u}{β : Type w} [has_zero β] {s : γ →₀ β } {f : γ → β → polynomial α } :
