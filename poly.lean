@@ -175,7 +175,7 @@ def root_of (a : polynomial α) (b : α) := polynomial.eval a b = 0
 
 
 
-lemma less_degree_imp {f : polynomial α} {k : ℕ} : k < degree f → ∃m, m>k ∧f m ≠ 0:=
+lemma less_degree_imp {f : polynomial α} {k : ℕ} : k < degree f → ∃m, m>k ∧ f m ≠ 0:=
 begin
 intro,
 apply classical.by_contradiction,
@@ -444,7 +444,8 @@ end comm_semiring
 section ring
 variable [ring α]
 
-instance : ring (polynomial α) := finsupp.to_ring
+@[priority 1100] instance : ring (polynomial α) := finsupp.to_ring
+@[priority 1100] instance : add_comm_group (polynomial α) := by apply_instance
 
 lemma neg_apply_poly (a : polynomial α) (n : ℕ):  (- a) n = - (a n) :=
 begin intros, simp [coe_fn], simp [has_coe_to_fun.coe], simp [has_neg.neg, add_group.neg, add_comm_group.neg, ring.neg] , apply rfl
@@ -500,9 +501,5 @@ instance {α : Type u} [field α] : euclidean_domain (polynomial α) :=
   h1 := sorry,
   h_norm := sorry,
   .. polynomial.comm_ring }
-
-
-
-
 
 end polynomial

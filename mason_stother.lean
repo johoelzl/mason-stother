@@ -7,7 +7,7 @@ import euclidean_domain
 import data.finsupp
 import algebraically_closed_field
 noncomputable theory
-local infix ^ := monoid.pow 
+local infix ^ := monoid.pow
 open polynomial
 open classical
 local attribute [instance] prop_decidable
@@ -30,12 +30,12 @@ class has_gcd (α : Type u) [comm_semiring α] :=
 
 def gcd [comm_semiring α] [has_gcd α] : α → α → α := has_gcd.gcd
 
-@[instance] constant polynomial.has_gcd : has_gcd (polynomial α) 
+@[instance] constant polynomial.has_gcd : has_gcd (polynomial α)
 --Convert units to a set
 def is_unit (a : polynomial α) : Prop := ∃b, a * b = 1 ∧ b * a = 1
 
 --Assume has_gcd on polynomials
-def rel_prime (a b : polynomial α) := is_unit (gcd a b) --∈ set.range (units.val : _ → polynomial α) 
+def rel_prime (a b : polynomial α) := is_unit (gcd a b) --∈ set.range (units.val : _ → polynomial α)
 
 
 --We need to define the radical and the number of distinct roots of a polynomial
@@ -46,7 +46,7 @@ structure roots_of (a : polynomial α):= --Can this be made as a set directly?
 (val : α)(h1 : root_of a val)
 
 def roots_of_as_set (a : polynomial α) := set_of (root_of a)
---Can we proof this set is finite? 
+--Can we proof this set is finite?
 
 --Can I define the radical?
 
@@ -61,30 +61,30 @@ variable [field β]
 
 open finsupp
 
-def lin_fac {β : Type u} [field β ] (q : β) : polynomial β := (X + (- C q))
+def lin_fac {β : Type u} [field β] (q : β) : polynomial β := X - C q
 
 lemma deg_ln_fac {q : β} : degree (X + (- C q)) = 1 :=
 have one_le_deg : 1 ≤ degree (X + (- C q)), from
     have h1: ((X : polynomial β) + (- C q)) 1 = (1:β),  -- Type annotation is needed here, otherwise + will fail.
-    begin 
-        simp [add_apply, neg_apply_poly], 
-        simp [coe_fn, has_coe_to_fun.coe], 
+    begin
+        simp [add_apply, neg_apply_poly],
+        simp [coe_fn, has_coe_to_fun.coe],
         simp [X, C, single, single_apply, if_pos, if_neg]
     end,
     have ((X : polynomial β) + (- C q)) 1 ≠ 0, from calc
         ((X : polynomial β) + (- C q)) 1 = 1 : h1
         ... ≠ 0 : one_ne_zero,
-    le_degree this, 
+    le_degree this,
 have ((0 : β ) ≠ (1 : β)), from zero_ne_one,
 have h_deg_X : degree X = 1, from  degree_X this,
 have degree (C q) = 0, from degree_C,
 have h_deg_neg_C :degree (- C q) = 0, by rw [(eq.symm degree_neg), this],
-have ha: degree (X + (- C q)) ≤ 1, from 
-  calc 
+have ha: degree (X + (- C q)) ≤ 1, from
+  calc
     degree (X + (- C q)) ≤ max (degree (X)) (degree (- C q)) : degree_add
     ... ≤ max 1 0 : by rw [h_deg_X, h_deg_neg_C ]
     ... ≤ 1 : dec_trivial,
-have 1 ≤ degree (X + (- C q)), from (one_le_deg), 
+have 1 ≤ degree (X + (- C q)), from (one_le_deg),
 show degree (X + (- C q)) = 1, from le_antisymm ha this
 
 
@@ -100,8 +100,8 @@ apply a h4
 
 --Why is there no instance for has subtract?
 lemma root_iff_lin_fac : ∀ p : polynomial β, ∀ k: β,  ( root_of p k) ↔ ((X + (- (C k)))  ∣p) :=
-begin intros, apply iff.intro, 
-{intro, --apply (exists.elim a), intros, 
+begin intros, apply iff.intro,
+{intro, --apply (exists.elim a), intros,
   -- have h1 : 1 ≠ 0, from dec_trivial,
   have h2 :  degree (X + (- (C k ))) ≠ 0,
   from calc degree (X + (- (C k))) = 1 : @deg_ln_fac _ _ k
@@ -126,7 +126,7 @@ end field
 variable {β : Type u}
 variables [field β]
 variables  [algebraically_closed_field β] -- Should be an instance of algebraically closed.
-axiom roots (p : polynomial β) : (β) →₀ ℕ 
+axiom roots (p : polynomial β) : (β) →₀ ℕ
 axiom eq_prod_lin_fac_roots (p : polynomial β) : ∃ c : β , p = C c * (finsupp.prod (roots p) (λ k n, ( (X - C k ) ^n) )  )
 
 open classical
@@ -136,23 +136,23 @@ def c_fac (p : polynomial β) : β  := some ( eq_prod_lin_fac_roots p)
 def rad (p : polynomial β) : polynomial β  := finsupp.prod (roots p) (λ k n,  (X - C k ) ) --The radiacal
 def n₀ (p : polynomial β) : ℕ  := finsupp.sum (roots p) (λ k n, 1) --The number of distinct roots
 
-lemma Mason_storhers_lemma 
+lemma Mason_storhers_lemma
 (f : polynomial β) : degree f ≤ degree (gcd f (derivative f )) + n₀ f :=
-begin 
+begin
   --have h_fac : ∃ c : β , f = C c * (finsupp.prod (roots f) (λ k n, ( (X - C k ) ^n) )  ), from eq_prod_lin_fac_roots f,
   have h_fac :f = C (c_fac f) * (finsupp.prod (roots f) (λ k n, ( (X - C k ) ^n) )  ), from some_spec ( eq_prod_lin_fac_roots f),
-  have h_f' : derivative f = C (c_fac f) * (finsupp.sum (roots f) (λ k n, derivative ( (X - C k ) ^n) *  (finsupp.prod (finset.erase ((roots f).support /- goes wrong, now we lose the multiplicities-/) k) (λ k n, ( (X - C k ) ^n) )  )    )) -- derivative (s.prod f) = s.sum ( (λ b, (derivative (f b))* (erase s b).prod f) ) 
+  have h_f' : derivative f = C (c_fac f) * (finsupp.sum (roots f) (λ k n, derivative ( (X - C k ) ^n) *  (finsupp.prod (finset.erase ((roots f).support /- goes wrong, now we lose the multiplicities-/) k) (λ k n, ( (X - C k ) ^n) )  )    )) -- derivative (s.prod f) = s.sum ( (λ b, (derivative (f b))* (erase s b).prod f) )
 end
 
 
-theorem Mason_Stothers 
+theorem Mason_Stothers
 (a b c : polynomial β)
 (h_rel_prime_ab : rel_prime a b)
 (h_rel_prime_bc : rel_prime b c)
 (h_rel_prime_ca : rel_prime c a)
 (h1 : a + b = c)
 (h2 : ¬ (derivative a = 0 ∧ derivative b = 0 ∧ derivative c = 0)) :
-degree c ≤ n₀ (a*b*c) - 1 := 
+degree c ≤ n₀ (a*b*c) - 1 :=
 sorry
 
 
