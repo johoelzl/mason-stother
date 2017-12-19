@@ -434,7 +434,37 @@ begin
         by rw [mul_sum],
     simp [ih, has, finset.prod_insert, derivative_mul, sum_insert, erase_insert, this] }
 end
---set_option pp.notation false
+
+lemma derivative_power {n : ℕ} {p : polynomial α}:
+   derivative (p^n) = ite (n = 0) 0 (n*p^(n-1)*derivative p) :=
+begin
+  induction n with n h,
+  {simp},
+  {
+    simp,
+    have : ¬ nat.succ n = 0, from nat.succ_ne_zero _,  
+    simp [if_neg, *], 
+    rw [pow_succ'],
+    simp [derivative_mul],
+    rw [h],
+    cases n,
+    simp,
+    have : ¬ nat.succ n = 0, from nat.succ_ne_zero _,  
+    simp [if_neg, *],
+    rw [pow_succ'],
+    exact calc p ^ n * p * derivative p + (1 + ↑n) * p ^ n * derivative p * p = 
+    1 * p ^ n * p * derivative p + (1 + ↑n) * p ^ n * derivative p * p : by simp
+    ... = 1 * p ^ n * p * derivative p + (1 + ↑n) * p ^ n * (derivative p * p) : by simp [mul_assoc]
+    ... = 1 * p ^ n * p * derivative p + (1 + ↑n) * p ^ n * (p * derivative p) : by simp [mul_comm]
+    ... = 1 * p ^ n * p * derivative p + (1 + ↑n) * p ^ n * p * derivative p   : by simp [mul_assoc]
+    ... = 1 * (p ^ n * p * derivative p) + (1 + ↑n) * (p ^ n * p * derivative p)   : by simp [mul_assoc]
+    ... = (1 + (1 + ↑n)) * (p ^ n * p * derivative p): by rw [←( add_mul 1 (1 + ↑n) (p ^ n * p * derivative p))]
+    ... = (1 + (1 + ↑n)) * (p ^ n * p) * derivative p : by simp [mul_assoc]
+  }
+
+end
+
+
 lemma dvd_sum {β : Type w}{p : polynomial α}{s : finset β}{f : β → polynomial α} :
    (∀ x ∈ s, p ∣ f x) → p ∣ (s.sum f) :=
 begin
