@@ -412,7 +412,7 @@ end
 
 open finset
 
---Needs to be finished
+
 lemma derivative_prod {β : Type w} {s : finset β} {f : β → polynomial α} :
   derivative (s.prod f) = s.sum (λb, derivative (f b) * (erase s b).prod f) :=
 begin
@@ -434,9 +434,33 @@ begin
         by rw [mul_sum],
     simp [ih, has, finset.prod_insert, derivative_mul, sum_insert, erase_insert, this] }
 end
-
-lemma derivative_product_over_finsupp {γ : Type u}{β : Type w} [has_zero β] {s : γ →₀ β } {f : γ → β → polynomial α } :
-  derivative (s.prod f) = ?
+--set_option pp.notation false
+lemma dvd_sum {β : Type w}{p : polynomial α}{s : finset β}{f : β → polynomial α} :
+   (∀ x ∈ s, p ∣ f x) → p ∣ (s.sum f) :=
+begin
+  apply finset.induction_on s,
+  {simp},
+  {
+    intros a s h1 h2 h3,
+    simp [finset.sum_insert h1],
+    have htmp: (∀ (x : β), x ∈ s → p ∣ f x),
+    {
+      intros y h4,
+      have : y ∈ insert a s, 
+      rw [finset.mem_insert],
+      simp [h4],
+      exact h3 y this,
+    },
+    have ha_mem : a ∈ insert a s,
+    rw [finset.mem_insert],
+    simp,
+    have ha: p ∣ f a,
+    exact h3 a ha_mem,
+    have hsum: p ∣ sum s f,
+    exact h2 htmp,
+    simp [dvd_add ha hsum]
+  }
+end
 
 
 end comm_semiring
