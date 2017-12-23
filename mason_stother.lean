@@ -8,6 +8,12 @@ import data.finsupp
 import algebraically_closed_field
 noncomputable theory
 local infix ^ := monoid.pow
+local notation `d[`a`]` := polynomial.derivative a
+local notation Σ := finset.sum
+local notation Π := finset.prod
+local notation `Π₀` := finsupp.prod
+local notation `~`a:=polynomial a
+
 open polynomial
 open classical
 local attribute [instance] prop_decidable
@@ -35,10 +41,15 @@ class has_gcd (α : Type u) [comm_semiring α] :=
 
 def gcd [comm_semiring α] [has_gcd α] : α → α → α := has_gcd.gcd
 
+
+
+
 @[instance] constant polynomial.has_gcd : has_gcd (polynomial α)
 --Convert units to a set
-def is_unit (a : polynomial α) : Prop := ∃b, a * b = 1 ∧ b * a = 1
+def is_unit {t : Type u}[has_mul t] [has_one t](a : t) : Prop := ∃b, a * b = 1 ∧ b * a = 1
 
+
+def monic (p : polynomial α) : Prop := leading_coeff p = 1
 --Assume has_gcd on polynomials
 def rel_prime (a b : polynomial α) := is_unit (gcd a b) --∈ set.range (units.val : _ → polynomial α)
 
@@ -123,27 +134,83 @@ lemma finite_roots {a : polynomial β} : set.finite (roots_of_as_set a):= sorry 
 
 end field
 
-
 variable {β : Type u}
 variables [field β]
 variables  [algebraically_closed_field β] -- Should be an instance of algebraically closed.
-axiom roots (p : polynomial β) : (β) →₀ ℕ
-axiom eq_prod_lin_fac_roots (p : polynomial β) : ∃ c : β , p = C c * (finsupp.prod (roots p) (λ k n, ( (X - C k ) ^n) )  )
+open finsupp
+def irreducible (p : polynomial β): Prop := p ≠ 0 ∧ ¬ is_unit p ∧ ∀d, d∣p → is_unit d
 
+
+
+--axiom roots (p : polynomial β) : β →₀ ℕ Problem, because the 0 polynomial can have infinite roots.
+--axiom eq_prod_lin_fac_roots (p : polynomial β) : ∃ c : β , p = C c * (finsupp.prod (roots p) (λ k n, ( (X - C k ) ^n) )  )
+
+--The more general setting, avoids problem with the roots of the zero polynomial
+axiom monic_irr (p : polynomial β) : polynomial β →₀ ℕ
+axiom irr_poly_irreducible (p : polynomial β) : ∀x ∈ (monic_irr p).support, irreducible x
+axiom irr_poly_monic (p : polynomial β) : ∀x ∈ (monic_irr p).support, monic x
+axiom unique_factorization (p : polynomial β) : ∃ c : β , p = C c * ((finsupp.prod (monic_irr p) (λ k n, k ^n) ) )
+def c_fac (p : polynomial β) : β := some ( unique_factorization p)
+axiom c_fac_unit (p : polynomial β) :  @is_unit β _ _ (c_fac p)
+
+def facs_to_pow (p : polynomial β →₀ ℕ ) : finset (polynomial β):= p.support.image (λ a, a^(p a))
+/-
+lemma pows (p : polynomial β →₀ ℕ ) : finsupp.prod p (λ k n, k^n) = finset.prod (facs_to_pow p) id
+:=
+begin
+  simp [facs_to_pow, finsupp.prod],
+  refine ( eq.symm (finset.prod_image _)),
+  {
+    intros,
+    by_contradiction,
+    
+  }
+
+end
+
+lemma factorization_eq {f : polynomial β →₀ ℕ }: finsupp.prod f (λ k n, k ^n) = finset.prod (f.support.image (λ a, a^(f a))) id
+:=
+begin
+simp [finsupp.prod]
+end
+-/
 open classical
 section algebraically_closed
-def c_fac (p : polynomial β) : β := some ( eq_prod_lin_fac_roots p)
 
-def rad (p : polynomial β) : polynomial β := finsupp.prod (roots p) (λ k n,  (X - C k ) ) --The radiacal
-def n₀ (p : polynomial β) : ℕ  := (roots p).support.card --The number of distinct roots
+
+
+def rad (p : polynomial β) : polynomial β := finset.prod (finsupp.support (monic_irr p)) id --The radiacal
+--def n₀ (p : polynomial β) : ℕ  := (roots p).support.card --The number of distinct roots
 
 lemma Mason_Stothers_lemma
-(f : polynomial β) : degree f ≤ degree (gcd f (derivative f )) + n₀ f :=
+(f : polynomial β) : f ≠ 0 →  degree f ≤ degree (gcd f (derivative f )) + degree (rad f) := --I made degree radical from this one
 begin
   --have h_fac : ∃ c : β , f = C c * (finsupp.prod (roots f) (λ k n, ( (X - C k ) ^n) )  ), from eq_prod_lin_fac_roots f,
-  have h_fac :f = C (c_fac f) * (finsupp.prod (roots f) (λ k n, ( (X - C k ) ^n) )  ), from some_spec ( eq_prod_lin_fac_roots f),
-  have h_f' : derivative f = C (c_fac f) * (finsupp.sum (roots f) (λ k n, derivative ( (X - C k ) ^n) *
-    (finsupp.prod (finset.erase ((roots f).support /- goes wrong, now we lose the multiplicities-/) k) (λ k n, ( (X - C k ) ^n) )  )    )) -- derivative (s.prod f) = s.sum ( (λ b, (derivative (f b))* (erase s b).prod f) )
+  have h_tmp : ((finsupp.prod (monic_irr f) (λ k n, k ^n) ) ) = (monic_irr f).support.prod (λa, (λ k n, k ^n) a ((monic_irr f) a)),
+  simp [finsupp.prod],
+  have h_der : derivative ((monic_irr f).support.prod (λa, (λ k n, k ^n) a ((monic_irr f) a))) 
+  = (monic_irr f).support.sum (λb, derivative ((λa, (λ k n, k ^n) a ((monic_irr f) a)) b) * (finset.erase (monic_irr f).support b).prod (λa, (λ k n, k ^n) a ((monic_irr f) a))),
+  simp [derivative_prod],
+
+  have h_der2 : ∀x ∈ (support (monic_irr f)), x∣(derivative ((monic_irr f).support.prod (λa, (λ k n, k ^n) a ((monic_irr f) a))) ),--
+  {
+    intros, 
+    rw h_der,
+    simp []
+
+
+  },
+
+  have h_fac : f = C (c_fac f) * ((finsupp.prod (monic_irr f) (λ k n, k ^n) ) ), from some_spec ( unique_factorization f),
+  --have h_f' : derivative f = C (c_fac f) *
+
+
+--derivative (s.prod p) = s.sum (λb, derivative (p b) * (erase s b).prod p) 
+
+--((finsupp.prod (monic_irr f) (λ k n, k ^n) ) ) = 
+--finset.prod (support f) (λ (a : polynomial β), a ^ ⇑f a) =
+--derivative (s.prod f) = s.sum (λb, derivative (f b) * (erase s b).prod f) 
+-- (monic_irr f).support.prod (λa, (λ k n, k ^n) a ((monic_irr f) a))
 end
 
 
