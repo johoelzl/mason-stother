@@ -370,6 +370,11 @@ calc derivative (f * C a) = derivative (f.sum (λi c, single i (a * c))) :
   ... = derivative (f.sum single) * C a : by simp [finsupp.sum, derivative_sum]
   ... = _ : by rw [sum_single]
 
+lemma derivative_C_mul {f : polynomial α} : 
+  derivative (C a * f) = C a * (derivative f) :=
+   by rw [mul_comm,derivative_mul_C,mul_comm]
+ 
+
 
 lemma derivative_mul_X {f : polynomial α} :
   derivative (f * X) = derivative f * X + f:=
