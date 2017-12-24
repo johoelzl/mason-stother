@@ -154,6 +154,7 @@ def c_fac (p : polynomial β) : β := some ( unique_factorization p)
 axiom c_fac_unit (p : polynomial β) :  @is_unit β _ _ (c_fac p)
 
 def facs_to_pow (p : polynomial β →₀ ℕ ) : finset (polynomial β):= p.support.image (λ a, a^(p a))
+def facs_to_pow_min_one (p : polynomial β →₀ ℕ ) : finset (polynomial β):= p.support.image (λ a, a^(p a - 1))
 /-
 lemma pows (p : polynomial β →₀ ℕ ) : finsupp.prod p (λ k n, k^n) = finset.prod (facs_to_pow p) id
 :=
@@ -192,11 +193,35 @@ begin
   = (monic_irr f).support.sum (λb, derivative ((λa, (λ k n, k ^n) a ((monic_irr f) a)) b) * (finset.erase (monic_irr f).support b).prod (λa, (λ k n, k ^n) a ((monic_irr f) a))),
   simp [derivative_prod],
 
-  have h_der2 : ∀x ∈ (support (monic_irr f)), x∣(derivative ((monic_irr f).support.prod (λa, (λ k n, k ^n) a ((monic_irr f) a))) ),--
+  have h_der2 : ∀x ∈ (support (monic_irr f)), (x^((monic_irr f) x -1))∣(derivative ((monic_irr f).support.prod (λa, (λ k n, k ^n) a ((monic_irr f) a))) ),--
   {
+    
     intros, 
     rw h_der,
-    simp []
+    refine dvd_sum _,
+    intros y hy,
+    by_cases (x = y),
+    {
+      have : x ^ ((monic_irr f) x - 1) ∣
+    d[(λ (a : ~β), (λ (k : ~β) (n : ℕ), k ^ n) a ((monic_irr f) a)) y],
+      rw derivative_pow,
+      have : (monic_irr f) y ≠  0,
+      simp [iff.elim_left (mem_support_iff _) hy],
+      simp only [if_neg this],
+      refine dvd.intro (↑((monic_irr f) y) * d[y]) _,
+      rw [h],
+      exact calc
+      y ^ ((monic_irr f) y - 1) * (↑((monic_irr f) y) * d[y]) =
+      y ^ ((monic_irr f) y - 1) * ↑((monic_irr f) y) * d[y] : by rw mul_assoc
+      ... = ↑((monic_irr f) y) * y ^ ((monic_irr f) y - 1) * d[y] : by rw [(mul_comm (y ^ ((monic_irr f) y - 1)) ( ↑((monic_irr f) y)))],
+      exact dvd_mul_of_dvd_left this _
+    },
+    {
+      have : x ^ ((monic_irr f) x - 1) ∣ (finset.prod (finset.erase (support (monic_irr f)) y) (λ (a : ~β), a ^ (monic_irr f) a)),
+      have : x ∈ (finset.erase (support (monic_irr f)) y),
+      exact finset.mem_erase_of_ne_of_mem h H,
+
+    }
 
 
   },
@@ -221,7 +246,7 @@ theorem Mason_Stothers
   (h_rel_prime_ca : rel_prime c a)
   (h1 : a + b = c)
   (h2 : ¬ (derivative a = 0 ∧ derivative b = 0 ∧ derivative c = 0)) :
-  degree c ≤ n₀ (a*b*c) - 1 :=
+  degree c ≤ degree ( rad (a*b*c)) - 1 :=
 sorry
 
 
