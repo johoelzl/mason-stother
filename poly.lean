@@ -435,7 +435,7 @@ begin
     simp [ih, has, finset.prod_insert, derivative_mul, sum_insert, erase_insert, this] }
 end
 
-lemma derivative_power {n : ℕ} {p : polynomial α}:
+lemma derivative_pow {n : ℕ} {p : polynomial α}:
    derivative (p^n) = ite (n = 0) 0 (n*p^(n-1)*derivative p) :=
 begin
   induction n with n h,
@@ -464,8 +464,8 @@ begin
 
 end
 
-
-lemma dvd_sum {β : Type w}{p : polynomial α}{s : finset β}{f : β → polynomial α} :
+--Naming correct or dvd_sum_of_forall_mem_dvd
+lemma dvd_sum {β : Type w}{p : polynomial α}{s : finset β}{f : β → polynomial α} :--should be placed in finset.
    (∀ x ∈ s, p ∣ f x) → p ∣ (s.sum f) :=
 begin
   apply finset.induction_on s,
@@ -490,6 +490,17 @@ begin
     exact h2 htmp,
     simp [dvd_add ha hsum]
   }
+end
+
+lemma dvd_prod_of_dvd_mem {β : Type w}{p : polynomial α}{s : finset β}{x : β}{h_mem :  x ∈ s}{f : β → polynomial α}{h_div : p ∣ f x} :
+p∣ s.prod f :=
+begin
+  have : insert x (erase s x) = s,
+  exact insert_erase h_mem,
+  rw ←this,
+  rw finset.prod_insert,
+  apply dvd_mul_of_dvd_left h_div (finset.prod (erase s x) f),
+  simp
 end
 
 
