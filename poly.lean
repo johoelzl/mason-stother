@@ -333,6 +333,9 @@ end
 lemma C_mul_C {a b : α} : C (a * b) = C a * C b :=
 by simp [C, single_mul_single]
 
+
+
+
 end semiring
 
 section comm_semiring
@@ -501,6 +504,17 @@ begin
   rw finset.prod_insert,
   apply dvd_mul_of_dvd_left h_div (finset.prod (erase s x) f),
   simp
+end
+
+
+lemma dvd_pow_sub_one_pow --naming correct?/
+{p : polynomial α} {n : ℕ} : monoid.pow p (n - 1) ∣ (monoid.pow p n) :=
+begin
+  cases n,
+  simp,
+  rw nat.succ_sub_one,
+  refine  dvd_of_mul_left_eq p _,
+  exact rfl,
 end
 
 
