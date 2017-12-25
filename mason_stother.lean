@@ -253,7 +253,7 @@ begin
     apply hy,
     apply h_dvd_der y,
     apply hy
-  }
+  } --For the next lemma some notions of UFD need to be made.
   
   --have h_f' : derivative f = C (c_fac f) *
 
