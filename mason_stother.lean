@@ -40,8 +40,7 @@ class has_gcd (α : Type u) [comm_semiring α] :=
 (gcd : α → α → α) (gcd_right : ∀ a b, ( (gcd a b) ∣ b )) (gcd_left : ∀ a b, (gcd a b) ∣ a) (gcd_min : ∀ a b g, g∣a → g∣b → g∣ (gcd a b))
 
 def gcd [comm_semiring α] [has_gcd α] : α → α → α := has_gcd.gcd
-def gcd_min [comm_semiring α] [h : has_gcd α] : ∀ a b g, g∣a → g∣b → g∣ (h.gcd a b) := h.gcd_min
-
+def gcd_min [comm_semiring α] [h : has_gcd α]  := h.gcd_min --Correct???
 
 
 @[instance] constant polynomial.has_gcd : has_gcd (polynomial α)
@@ -248,7 +247,12 @@ begin
   },
   have h_dvd_gcd_f_der : ∀x ∈ (support (monic_irr f)), (x^((monic_irr f) x -1))∣ (gcd f (derivative f)),
   {
-    apply gcd.gcd_min,
+    intros y hy,
+    apply gcd_min,
+    apply h_dvd_f y,
+    apply hy,
+    apply h_dvd_der y,
+    apply hy
   }
   
   --have h_f' : derivative f = C (c_fac f) *
