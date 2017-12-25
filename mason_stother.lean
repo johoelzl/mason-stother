@@ -40,7 +40,7 @@ class has_gcd (α : Type u) [comm_semiring α] :=
 (gcd : α → α → α) (gcd_right : ∀ a b, ( (gcd a b) ∣ b )) (gcd_left : ∀ a b, (gcd a b) ∣ a) (gcd_min : ∀ a b g, g∣a → g∣b → g∣ (gcd a b))
 
 def gcd [comm_semiring α] [has_gcd α] : α → α → α := has_gcd.gcd
-
+def gcd_min [comm_semiring α] [h : has_gcd α] : ∀ a b g, g∣a → g∣b → g∣ (h.gcd a b) := h.gcd_min
 
 
 
@@ -182,7 +182,8 @@ section algebraically_closed
 
 def rad (p : polynomial β) : polynomial β := finset.prod (finsupp.support (monic_irr p)) id --The radiacal
 --def n₀ (p : polynomial β) : ℕ  := (roots p).support.card --The number of distinct roots
-
+--set_option pp.notation false
+--set_option pp.implicit false
 lemma Mason_Stothers_lemma
 (f : polynomial β) : f ≠ 0 →  degree f ≤ degree (gcd f (derivative f )) + degree (rad f) := --I made degree radical from this one
 begin
@@ -194,8 +195,7 @@ begin
   simp [derivative_prod],
 
   have h_der2 : ∀x ∈ (support (monic_irr f)), (x^((monic_irr f) x -1))∣(derivative ((monic_irr f).support.prod (λa, (λ k n, k ^n) a ((monic_irr f) a))) ),--
-  {
-    
+  {   
     intros, 
     rw h_der,
     refine dvd_sum _,
@@ -220,13 +220,37 @@ begin
       have : x ^ ((monic_irr f) x - 1) ∣ (finset.prod (finset.erase (support (monic_irr f)) y) (λ (a : ~β), a ^ (monic_irr f) a)),
       have : x ∈ (finset.erase (support (monic_irr f)) y),
       exact finset.mem_erase_of_ne_of_mem h H,
-
+      apply dvd_prod_of_dvd_mem,
+      exact this,
+      exact dvd_pow_sub_one_pow,
+      refine dvd_mul_of_dvd_right this _
     }
-
-
   },
 
   have h_fac : f = C (c_fac f) * ((finsupp.prod (monic_irr f) (λ k n, k ^n) ) ), from some_spec ( unique_factorization f),
+  have h_dvd_der : ∀x ∈ (support (monic_irr f)), (x^((monic_irr f) x -1))∣ (derivative f),
+  {
+    intros y hy,
+    rw (congr_arg derivative h_fac),
+    rw h_tmp,
+    rw derivative_C_mul,
+    apply dvd_mul_of_dvd_right (h_der2 y hy)
+  },
+  have h_dvd_f : ∀x ∈ (support (monic_irr f)), (x^((monic_irr f) x -1))∣ f,
+  {
+    intros y hy,
+    conv in (f) {rw h_fac}, --Nice using the conv could be very handy.
+    rw h_tmp,
+    refine dvd_mul_of_dvd_right _ (C (c_fac f)),
+    apply dvd_prod_of_dvd_mem,
+    apply hy,
+    apply dvd_pow_sub_one_pow
+  },
+  have h_dvd_gcd_f_der : ∀x ∈ (support (monic_irr f)), (x^((monic_irr f) x -1))∣ (gcd f (derivative f)),
+  {
+    apply gcd.gcd_min,
+  }
+  
   --have h_f' : derivative f = C (c_fac f) *
 
 
