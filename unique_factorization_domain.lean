@@ -1,8 +1,11 @@
-import mason_stother
+import mason_stother 
+import algebra.ring
 
 local infix ^ := monoid.pow
 
 noncomputable theory
+
+open classical
 
 universe u
 variable {α : Type u}
@@ -36,15 +39,55 @@ inductive associated_list : list α → list α → Prop
 | mk  :  
 -/
 
-def associated [integral_domain α] (x y : α) : Prop:=
-∃u, is_unit u ∧ x = u * y
+@[reducible] def associated [integral_domain α] (x y : α) : Prop:=
+∃u : units α, x = u * y
 
 local notation a`~ᵤ`b := associated a b
 
-example [integral_domain α] : is_unit_2 (1 : α ) := --existential in is unit is anoying.
+lemma is_unit_one [integral_domain α] : is_unit (1 : α ) := --existential in is unit is anoying.
 ⟨1, rfl⟩ 
+
 @[refl] protected lemma associated.refl [integral_domain α] : ∀ (x : α), x ~ᵤ x :=
-assume x, ⟨ 1, (by simp)⟩ 
+assume x, ⟨ 1, (by simp) ⟩ 
+
+set_option trace.check true
+
+@[symm] protected lemma associated.symm [integral_domain α] {x y : α} (p : x ~ᵤ y) : y ~ᵤ x :=
+begin 
+  fapply exists.intro,
+  exact units.inv' (some p ),
+  have h1 : x = ↑(some p) * y, from some_spec p,
+  have h1a : (↑(units.inv' (some p))) * (↑(some p)) = (1 : α),
+    exact units.inv_mul (some p),
+  have h2 : (↑(units.inv' (some p))) * x = y, 
+  exact calc
+  (↑(units.inv' (some p))) * x = (↑(units.inv' (some p))) * (↑(some p) * y) : by rw ←h1
+  ... = (↑(units.inv' (some p))) * (↑(some p)) * y : by rw mul_assoc
+  ... = 1*y : by rw h1a
+  ... = y : by simp,
+  simp [mul_comm, h2]
+end 
+
+
+
+@[symm] protected lemma associated.trans [integral_domain α] {x y z: α} (h1 : x ~ᵤ y)(h2 : y ~ᵤ z): x ~ᵤ z :=
+begin 
+  fapply exists.intro,
+  exact (some h1) * (some h2),
+  have h1a: x = ↑(some h1) * y, from some_spec h1,
+  have h2a: y = ↑(some h2) * z, from some_spec h2,
+  have h3 : x = ↑(some h1) * (↑(some h2) * z), 
+  from calc x = ↑(some h1) * y : h1a
+  ... = ↑(some h1) * (↑(some h2) * z) : by rw ←h2a,
+  have h4 : ↑(some h1) * (↑(some h2) * z) = (↑(some h1) * ↑(some h2)) * z, simp [mul_assoc],
+  exact calc  x = ↑(some h1) * (↑(some h2) * z) : h3
+  ... = (↑(some h1) * ↑(some h2)) * z : h4
+  ... = ↑(some h1 * some h2) * z : by simp [units.mul_coe]
+end 
+
+lemma associated.eqv (α : Type) [integral_domain α]: equivalence (@associated α _) :=
+mk_equivalence (@associated α _) (@associated.refl α _) (@associated.symm α _) (@associated.trans α _)
+
 
 def associated_list [has_mul α] [has_one α]: list α → list α → Prop
 | [] [] := true
