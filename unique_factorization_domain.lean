@@ -21,7 +21,7 @@ def pow_prod [comm_monoid α](p : α →₀ ℕ ) : α := p.prod (λ a n, a^n)
 --With quotient.out a representative can be obtained.
 --Now a coercion to multiset.
 --Append is associative but not commutative? --Problem
-def to_list {x : α →₀ ℕ} : list α := list.foldl (λ y z,  append y (list.repeat z (x z))) list.nil  (quotient.out x.support.val) --Or I make a list directly by folding with repeat append and empty list?
+def to_list (x : α →₀ ℕ) : list α := list.foldl (λ y z,  append y (list.repeat z (x z))) list.nil  (quotient.out x.support.val) --Or I make a list directly by folding with repeat append and empty list?
 
 --Now the relation: permutation + mul by unit.
 /-
@@ -89,17 +89,37 @@ lemma associated.eqv (α : Type) [integral_domain α]: equivalence (@associated 
 mk_equivalence (@associated α _) (@associated.refl α _) (@associated.symm α _) (@associated.trans α _)
 
 
-def associated_list [has_mul α] [has_one α]: list α → list α → Prop
+def associated_list [integral_domain α]: list α → list α → Prop
 | [] [] := true
 | [] (h::t) := false
 | (h::t) [] := false
-| (h₁::t₁) (h₂::t₂) := ∃x, is_unit x ∧ h₁ = h₂ * x
+| (h₁::t₁) (h₂::t₂) := associated h₁ h₂ 
 
-@[refl] protected theorem perm.refl : ∀ (l : list α), l ~ l
-| []      := perm.nil
-| (x::xs) := skip x (perm.refl xs)
 
---The factorization could be factorizen as a subtype. Can subtypes be dependent?
 class unique_factorization_domain (α : Type u) extends integral_domain α :=
 (fac : ∀{x : α}, x ≠ 0 →  ∃ p : α →₀ ℕ, x = pow_prod p)
-(unique : ∀{x : α}, ∀{f g : α →₀ ℕ }, x = pow_prod f → x = pow_prod g → )
+(unique : ∀{x : α}, ∀{f g : α →₀ ℕ }, x = pow_prod f → x = pow_prod g → ∃ (l : list α) (q : list.perm (to_list g) l), associated_list (to_list f) l)
+
+--To prove, that a field is an instance of an unique_fac_dom
+
+/-
+first to prove that a field is an intergral domain:
+instance discrete_field.to_integral_domain [s : discrete_field α] : integral_domain α :=
+{ eq_zero_or_eq_zero_of_mul_eq_zero := discrete_field.eq_zero_or_eq_zero_of_mul_eq_zero,
+  ..s }
+-/
+
+--Practice
+instance field.to_integral_domain [s : field α] : integral_domain α :=
+{
+    eq_zero_or_eq_zero_of_mul_eq_zero := @eq_zero_or_eq_zero_of_mul_eq_zero _ _,
+    ..s
+}
+
+instance field.to_unique_factorization_domain [s : field α] : unique_factorization_domain α :=
+{ 
+    eq_zero_or_eq_zero_of_mul_eq_zero := @eq_zero_or_eq_zero_of_mul_eq_zero _ _, --Problem, will it now use the same as integral domain or again diamond problem?
+    fac := _,
+    unique := _,
+    ..s
+}
