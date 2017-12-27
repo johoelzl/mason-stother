@@ -46,7 +46,8 @@ def gcd_min [comm_semiring α] [h : has_gcd α]  := h.gcd_min --Correct???
 @[instance] constant polynomial.has_gcd : has_gcd (polynomial α)
 --Convert units to a set
 def is_unit {t : Type u}[has_mul t] [has_one t](a : t) : Prop := ∃b, a * b = 1 ∧ b * a = 1
-
+--If I do this I can't reuse the lemmas for units.
+def is_unit_2 {t : Type u}[semiring t] (a : t) : Prop := ∃b : units t, a = b
 
 def monic (p : polynomial α) : Prop := leading_coeff p = 1
 --Assume has_gcd on polynomials
@@ -137,7 +138,7 @@ variable {β : Type u}
 variables [field β]
 variables  [algebraically_closed_field β] -- Should be an instance of algebraically closed.
 open finsupp
-def irreducible (p : polynomial β): Prop := p ≠ 0 ∧ ¬ is_unit p ∧ ∀d, d∣p → is_unit d
+def irreducible {γ : Type u}[has_one γ][has_mul γ][has_zero γ][has_dvd γ](p : γ): Prop := p ≠ 0 ∧ ¬ is_unit p ∧ ∀d, d∣p → is_unit d
 
 
 
