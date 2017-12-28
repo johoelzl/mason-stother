@@ -45,7 +45,13 @@ def C (a : α) : polynomial α := finsupp.single 0 a
 
 @[simp] lemma C_1 : C 1 = (1:polynomial α) := rfl
 
+lemma C_apply {c : α } {n : ℕ}: ((C c) : ℕ → α) n = (if 0 = n then c else 0) :=
+rfl
+
 def X : polynomial α := finsupp.single 1 1
+
+lemma X_apply {n : ℕ}: ((X : polynomial α): ℕ → α) n = (if 1 = n then 1 else 0) :=
+rfl
 
 lemma single_eq_X_pow : ∀{n:ℕ}, single n a = C a * X ^ n
 | 0       := by simp [C]
@@ -255,7 +261,7 @@ begin
 end
 
 
-lemma constant_of_degree_eq_zero {p : polynomial α} : degree p = 0 → ∃c, p = C c :=
+lemma eq_const_of_degree_eq_zero {p : polynomial α} : degree p = 0 → ∃c, p = C c :=
 begin
   intro h,
   have h1 : support p = {0} ∨ support p = ∅,
@@ -278,17 +284,32 @@ begin
 end
 
 
-lemma constant_of_leading_coef_eq_zero {p : polynomial α} : leading_coeff p = 0 → ∃c : α, p = C c :=
+
+lemma eq_zero_of_leading_coef_eq_zero {p : polynomial α} : leading_coeff p = 0 → p = 0 :=
 begin
   intro h1,
-  by_cases  h :  p = 0,
+  unfold leading_coeff at h1 ,
+  by_cases h2 : (degree p = 0),
   {
-    fapply exists.intro,
-    apply (0 : α),
-    simp [h],
+    have h3: ∃c, p = C c,
+    from eq_const_of_degree_eq_zero h2,
+    have h4: p = C (some h3), 
+    from some_spec h3,
+    have h5: (some h3) = 0,
+    rw [h2, h4] at h1,
+    simp [C_apply] at h1,
+    assumption,
+    simp * at *
   },
   {
-    
+    have h3 : support p ≠ ∅,
+    admit,
+    have h4 : degree p ∈ support p,
+    from Sup_fin_mem_of_id_nat h3,
+    have h5 : p (degree p) ≠  0,
+    rw ←mem_support_iff p,
+    assumption,
+    contradiction
   }
 end
 
@@ -306,7 +327,7 @@ have : (degree p) ∈ (support p),
 dunfold degree, dunfold finset.Sup_fin,
 cases test : (support p),
 -/
-end
+
 
 
 def derivative (p : polynomial α) : polynomial α :=

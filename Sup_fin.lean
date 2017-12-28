@@ -99,12 +99,10 @@ end
 
 
 
-namespace finset
 
+open finset
 lemma Sup_fin_mem_of_id_nat {s : finset ℕ} : s ≠ ∅ → Sup_fin s id ∈ s :=
 finset.induction_on s
   (by contradiction)
   (by intros a s; by_cases s = ∅; cases le_total a (Sup_fin s id);
       simp [*, nat.sup_eq_max, max_eq_left, max_eq_right] {contextual := tt})
-
-end finset
