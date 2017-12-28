@@ -197,6 +197,72 @@ calc C c * X = single 0 c * single 1 1 : rfl
 ... = single (0 + 1) (c * 1) : single_mul_single
 ... = single 1 c : by simp
 
+--This lemma should be placed in finsupp
+lemma eq_zero_of_support_eq_empty {α : Type u} {β : Type v} [has_zero β] (s : α →₀ β): 
+s.support = ∅ → s = 0 :=
+begin 
+  intro h,
+  refine @finsupp.ext _ _ _ s 0 _,
+  intro q,
+  by_cases h1 : (q ∈ support s),
+  {
+    have : q ∉ ∅, from not_mem_empty q,
+    rw h at h1,
+    contradiction
+  },
+  { 
+    have h2: (s q ≠ 0) → (q ∈ s.support), from  iff.elim_right  (mem_support_iff s),
+    rw [←not_imp_not,not_not] at h2,
+    have : s q = 0, from h2 h1,
+    have : (0 : α →₀ β) q = 0, 
+    all_goals {simp * at *}
+  }
+end
+
+--This lemma should be placed in finsupp
+lemma eq_single_of_support_eq_singleton {α : Type u} {β : Type v} [has_zero β] (s : α →₀ β){q : α}:
+s.support = {q} → ∃w : β, s = single q w :=
+begin 
+  intro h1,
+  fapply exists.intro,
+  apply s q,
+  refine @finsupp.ext _ _ _ s (single q (s q)) _,
+  intro w,
+  by_cases h3 : (w = q),
+  {
+    simp * at *,
+  },
+  {
+    have h2 : q ∈ support s,
+    rw h1,
+    simp,
+    simp * at *,
+    have h4: w ∉ finset.singleton q,
+    from iff.elim_right not_imp_not (iff.elim_left finset.mem_singleton) h3,
+    rw ←h1 at h4,
+    have h5 : ¬ s w ≠ 0,
+    from iff.elim_right not_imp_not (iff.elim_right (finsupp.mem_support_iff s)) h4,
+    rw not_not at h5,
+    have h6: ((single q (s q)) : α → β) w = 0,
+    simp [single_apply],
+    apply if_neg,
+    simp [ne.symm h3],
+    simp * at *
+  },
+
+
+
+end
+
+
+lemma constant_of_degree_eq_zero_2 {p : polynomial α} : degree p = 0 → ∃c, p = C c :=
+begin
+  intro h,
+  have h1 : support p = {0} ∨ support p = ∅,
+  apply eq_singleton_or_eq_empty_of_sup_fin_eq_bot h,
+  cases h1,
+
+end
 
 lemma constant_of_degree_eq_zero (h_zero_ne_one : (0 : α) ≠ 1) {p : polynomial α} : degree p = 0 → ∃c, p = C c :=
 begin 
