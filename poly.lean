@@ -168,7 +168,7 @@ calc degree (f * g) ≤ _ : degree_sum
     calc _ ≤ b₁ + b₂ : degree_single
       ... ≤ degree f + degree g : add_le_add (finset.le_Sup_fin hb₁) (finset.le_Sup_fin hb₂)
 
-lemma degree_ne_zero_ne_zero {f : polynomial α} : degree f ≠ 0 → f ≠ 0 :=--I want to apply normal by_cpntradiction here, but I don't know how to apply that, due to ambiguous overload.
+lemma ne_zero_of_degree_ne_zero {f : polynomial α} : degree f ≠ 0 → f ≠ 0 :=--I want to apply normal by_cpntradiction here, but I don't know how to apply that, due to ambiguous overload.
 begin intro, apply (@classical.by_contradiction (f ≠ 0) _), intro,
 have h3: (f = 0), from iff.elim_left not_not a_1,
 have h4: degree f = 0, calc degree f = degree 0 : by rw [h3] ... = 0 : degree_zero,
@@ -204,6 +204,7 @@ calc C c * X = single 0 c * single 1 1 : rfl
 ... = single 1 c : by simp
 
 --This lemma should be placed in finsupp
+--Maybe only keep the iff version?
 lemma eq_zero_of_support_eq_empty {α : Type u} {β : Type v} [has_zero β] (s : α →₀ β): 
 s.support = ∅ → s = 0 :=
 begin 
@@ -223,6 +224,19 @@ begin
     have : (0 : α →₀ β) q = 0, 
     all_goals {simp * at *}
   }
+end
+
+--This lemma should be placed in finsupp
+lemma eq_zero_iff_support_eq_empty {α : Type u} {β : Type v} [has_zero β] (s : α →₀ β): 
+s = 0 ↔ s.support = ∅ :=
+begin
+  constructor,
+  {
+    intro h1,
+    rw h1,
+    simp,
+  },
+  exact eq_zero_of_support_eq_empty s
 end
 
 --This lemma should be placed in finsupp
@@ -303,7 +317,14 @@ begin
   },
   {
     have h3 : support p ≠ ∅,
-    admit,
+      have h3a : p ≠ 0,
+      from ne_zero_of_degree_ne_zero h2,
+      simp * at *,
+      have h3b: ¬p = 0 → ¬support p = ∅,
+      apply iff.elim_right not_imp_not,
+      exact iff.elim_right (eq_zero_iff_support_eq_empty p),
+      exact classical.prop_decidable _,
+      exact h3b h3a,
     have h4 : degree p ∈ support p,
     from Sup_fin_mem_of_id_nat h3,
     have h5 : p (degree p) ≠  0,
@@ -312,6 +333,20 @@ begin
     contradiction
   }
 end
+
+lemma leading_coef_zero_eq_zero : leading_coeff 0 = (0 : α):=
+by simp [leading_coeff]
+
+--Should we remove the sublemmas?
+lemma leading_coef_eq_zero_iff_eq_zero {p : polynomial α} : leading_coeff p = 0 ↔ p = 0 :=
+begin
+  constructor,
+  exact eq_zero_of_leading_coef_eq_zero,
+  intro h,
+  rw h,
+  exact leading_coef_zero_eq_zero
+end
+
 
 /--/
 lemma leading_coeff_ne_zero_of_ne_zero {p : polynomial α} : p ≠ 0 → (leading_coeff p) ≠ 0 := --incorrect!
