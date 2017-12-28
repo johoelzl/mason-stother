@@ -7,3 +7,14 @@ structure gcd (a b : α) :  Type u :=
 instance gcd_to_polynomial (a b : polynomial α): has_coe (gcd a b) (polynomial α) := 
 ⟨gcd.d⟩ 
 end gcd1
+
+
+lemma forall_eq_zero_of_sup_fin_eq_bot {s : finset ℕ} : Sup_fin s id = 0 → ∀x ∈ s, x = 0 :=
+begin
+  intros h x h2,
+  have : x ≤ 0,
+  exact calc x = id x : rfl
+  ... ≤ Sup_fin s id : finset.le_Sup_fin h2
+  ... = 0 : h,
+  exact nat.eq_zero_of_le_zero this
+end
