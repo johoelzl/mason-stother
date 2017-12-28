@@ -255,67 +255,27 @@ begin
 end
 
 
-lemma constant_of_degree_eq_zero_2 {p : polynomial α} : degree p = 0 → ∃c, p = C c :=
+lemma constant_of_degree_eq_zero {p : polynomial α} : degree p = 0 → ∃c, p = C c :=
 begin
   intro h,
   have h1 : support p = {0} ∨ support p = ∅,
   apply eq_singleton_or_eq_empty_of_sup_fin_eq_bot h,
   cases h1,
+  {
+    apply eq_single_of_support_eq_singleton,
+    assumption
+  },
+  {
+    have : p = 0,
+    apply eq_zero_of_support_eq_empty,
+    assumption,
+    fapply exists.intro,
+    apply (0 : α),
+    simp * at *,
+
+  }
 
 end
-
-lemma constant_of_degree_eq_zero (h_zero_ne_one : (0 : α) ≠ 1) {p : polynomial α} : degree p = 0 → ∃c, p = C c :=
-begin 
- fapply induction_on_X p,
- {
-   intros,
-   exact ⟨ a, rfl⟩ 
- },
- {
-   have : degree X = 1, from degree_X h_zero_ne_one,
-   intro,
-   have : @degree α _ X ≠ 0, simp [this],
-   contradiction,
- },
- {
-   intros p q hp hq hpq,
-   have : degree p = 0,
-   admit,
-   admit
- },
- {
-   intros p hp hpx,
-   have : degree p = 0,
-   admit,
-   have h_fac: (∃ (c : α), p = C c),
-   exact hp this,
-   have h_some: p = C (some h_fac), exact some_spec h_fac,
-   have hpX: p * X = single 1 (some h_fac),
-   exact calc p * X = C (some h_fac) * X : by rw [←h_some]
-   ... = single 1 (some h_fac) : C_mul_X,
-   by_cases h_cases : ((some h_fac) = 0),
-   {
-     have : p = 0,
-     rw h_cases at h_some,
-     simp [h_some],
-     exact ⟨0, by simp [this]⟩
-   },
-   {
-     
-     have : 1 ≤ @degree α _ (p * X),
-     fapply @le_degree α _ _ _ _,
-     rw [hpX], 
-     simp [h_cases],
-     have h1: (1 : ℕ) ≤ 0,
-     simp * at *,
-     have h2: ¬ (1 : ℕ) ≤ 0,
-     from nat.not_succ_le_zero 0,
-     contradiction
-   }
- }
-
-end
-
 
 
 lemma constant_of_leading_coef_eq_zero {p : polynomial α} : leading_coeff p = 0 → ∃c : α, p = C c :=
