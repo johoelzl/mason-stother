@@ -345,40 +345,283 @@ begin
   exact leading_coef_zero_eq_zero
 end
 
+
+--Should be in finsupp --can't add congr attribute, is this a proper congr lemma?
+lemma finsupp.sum_congr {α : Type u}{β : Type v}{γ : Type w} [has_zero β] [add_comm_monoid γ] {s₁ s₂ : α →₀ β}{f g : α → β → γ}(h : support s₁ = support s₂) : 
+(∀x ∈ support s₂, f x (s₁ x) = g x (s₂ x)) → s₁.sum f = s₂.sum g :=
+begin
+  exact finset.sum_congr h
+end
+
+--can't add congr attribute, is this a proper congr lemma?
+lemma finsupp.sum_congr_2 {α : Type u}{β : Type v}{γ : Type w} [has_zero β] [add_comm_monoid γ] {s₁ s₂ : α →₀ β}{f g : α → β → γ}(h : s₁ = s₂) : 
+(∀x ∈ support s₂, f x (s₁ x) = g x (s₂ x)) → s₁.sum f = s₂.sum g :=
+begin
+  have h1 : s₁.support = s₂.support,
+  simp [h],
+  exact finset.sum_congr h1
+end
+
+
+ 
+lemma eq_zero_of_gt_degree : ∀{h : polynomial α}, ∀{x : ℕ}, x > degree h → h x = 0 :=
+begin
+  intros h x h1,
+  by_contradiction h2,
+  have h9: x ≤ degree h,
+  from le_degree h2,
+  have : ¬ x ≤ degree h,
+  from not_le_of_gt h1,
+  contradiction,
+end
+
+
+--Should be placed in finset
+lemma finset.sum_ite {α : Type u} {β : Type v} [add_comm_monoid β] {x : α} {y : β} (s : finset α) : 
+s.sum (λ z, if (z = x) then y else 0) = if (x ∈ s) then y else 0:=
+begin 
+  fapply finset.induction_on s,
+  simp,
+  intros a s h1a h2,
+  have h1: finset.sum (insert a s) (λ (z : α), ite (z = x) y 0) =  (λ (z : α), ite (z = x) y 0) a + finset.sum (s) (λ (z : α), ite (z = x) y 0),
+  apply finset.sum_insert,
+  assumption,
+  rw h1,
+  rw h2,
+  simp,
+  by_cases h3 :(a = x),
+  {
+    simp [*, if_pos],
+    rw h3 at h1a,
+    simp [*, if_neg],
+  },
+  {
+    simp [*, if_neg],
+    by_cases h4 : (x ∈ s),
+    {
+      simp [*, if_pos]
+    },
+    {
+      simp [*, if_neg],
+      have : ¬ x = a,
+      intro h5,
+      rw h5 at h3,
+      have : a = a,
+      simp,
+      contradiction,
+      simp [*, if_neg]
+    }
+  }
+end
+
+--Should be placed in finset -should the more specific lemma be local?
+lemma finset.sum_ite_general {α : Type u} {β : Type v} [add_comm_monoid β] {x : α} {f : α → β} (s : finset α) : 
+s.sum (λ z, if (z = x) then f z else 0) = if (x ∈ s) then f x else 0:=
+begin
+  have :  s.sum (λ z, if (z = x) then f z else 0) = s.sum (λ z, if (z = x) then f x else 0),
+  apply finset.sum_congr,
+  simp,
+  intros y h1,
+  by_cases h2: (y = x),
+  {
+    simp [*, if_pos]
+  },
+  {
+    simp [*, if_neg]
+  },
+  rw this,
+  apply @finset.sum_ite _ _ _ x (f x) s,
+end
+
+
+
+-- should be placed in finsupp
+lemma finsupp.sum_ite {α : Type u}{β : Type v}{γ : Type w} [has_zero β] [add_comm_monoid γ] {x : α}{s : α →₀ β} {f : α → β → γ} :
+s.sum (λ a b, if (a = x) then f a b else 0) = if (x ∈ s.support) then f x (s x) else 0 :=
+begin
+  unfold finsupp.sum,
+  refine @finset.sum_ite_general _ _ _ x (λ y, f y (s y)) s.support
+end
+
+--should be placed in finsupp
+lemma finsupp.sum_mul {α : Type u}{β : Type v}{γ : Type w}  [semiring β] [semiring γ] {b : γ} {s : α →₀ β} {f : α → β → γ} :
+(s.sum f) * b = s.sum (λ a c, (f a (s a)) * b) :=
+by simp [finsupp.sum,finset.sum_mul]
+
+--should be placed in finsupp
+lemma finsupp.mul_sum {α : Type u}{β : Type v}{γ : Type w}  [semiring β] [semiring γ] {b : γ} {s : α →₀ β} {f : α → β → γ} :
+b * (s.sum f) = s.sum (λ a c, b * (f a (s a))) :=
+by simp [finsupp.sum,finset.mul_sum]
+
+
+
 --Naming?
 lemma mul_add_degree_eq_add_leading_coeff {f g : polynomial α} : (f * g) (degree f + degree g) = (leading_coeff f) * (leading_coeff g):=
 begin
-  /-
-  let fg := f * g,
-  have h1: fg = f * g, exact rfl,
-  rw ←h1,
-  rw [←@sum_const_mul_pow_X _ _ f, ←@sum_const_mul_pow_X _ _ g ] at h1,
-  rw h1,-/
-  
+  --local lemma
+  have add_lemma : ∀ {a b c d : ℕ}, a < c → a + b = c + d → b > d,-- should this be placed elsewhere?
+    intros a b c d h1 h2,
+    by_contradiction h3,
+    have h4 : b ≤ d,
+    from le_of_not_gt h3,
+    have : a + b < c + d,
+    calc a + b < c + b : add_lt_add_right h1 b
+      ... ≤ c + d : add_le_add_left h4 c,
+    have : a + b ≥ c + d,
+    simp [h2],
+    exact le_refl _,
+    have : ¬ a + b < c + d,
+    simp [*, not_lt_of_ge],
+    contradiction,
+
   rw mul_def, --I think we need a congrunce rule for sum,congr for the finsupp sum
   simp,
-  simp [single_apply],
- 
+  simp [single_apply], 
+  have h_sum : sum f
+      (λ (a₁ : ℕ) (b : α),
+         sum g (λ (a₁_1 : ℕ) (b_1 : α), ite (a₁ + a₁_1 = degree f + degree g) (b * b_1) 0)) =
+         sum f
+      (λ (a₁ : ℕ) (b : α),
+         sum g (λ (a₁_1 : ℕ) (b_1 : α), (ite (a₁ = degree f) (b) 0)*(ite (a₁_1 = degree g) (b_1) 0)    )),
+  apply finsupp.sum_congr,
+  simp,
+  intros x h1,
+  apply finsupp.sum_congr,
+  simp,
+  intros y h2,
+  by_cases h3 : (x = degree f),
+  {
+    by_cases h4 : (y = degree g),
+    {
+      rw [h3, h4], 
+      rw if_pos,
+      simp
+    },
+    {
+      rw h3,
+      simp,
+      rw if_neg,
+      rw if_neg,
+      simp,
+      assumption,
+      assumption,
+    }
+  },
+  {
+    by_cases h4 : (y = degree g),
+    {
+      rw h4,
+      simp,
+      rw if_neg,
+      rw if_neg,
+      simp,
+      assumption,
+      assumption,
+    },
+    {
+      by_cases h5 : (x + y = degree f + degree g),
+      {
+        rw if_pos,
+        rw if_neg,
+        rw if_neg,
+        by_cases h6 : (x < degree f),
+        {
+          have h7 : (y > degree g),
+          from add_lemma h6 h5,
+          have h8 : g y = 0,
+            from eq_zero_of_gt_degree h7,
+          simp *,
+        },
+        { 
+          have h7 : ¬ x ≤ degree f,
+            by_contradiction h7,
+            have h8 : x = degree f ∨ x < degree f,
+            from eq_or_lt_of_le h7,
+            cases h8 ; contradiction,
+          have h8 : x > degree f,
+          from lt_of_not_ge h7,
+          have h9 : f x = 0,
+          from eq_zero_of_gt_degree h8,
+          simp *
+        },
+        repeat {assumption},
+      },
+      {
+        rw if_neg,
+        rw if_neg,
+        rw if_neg,
+        simp,
+        repeat {assumption}
+      }
+    }
+  },
+  rw h_sum,
+  have h_sum_2:  sum f
+      (λ (a₁ : ℕ) (b : α),
+         sum g (λ (a₁_1 : ℕ) (b_1 : α), ite (a₁ = degree f) b 0 * ite (a₁_1 = degree g) b_1 0)) =
+     sum f
+      (λ (a₁ : ℕ) (b : α),
+         ite (a₁ = degree f) b 0 * sum g (λ (a₁_1 : ℕ) (b_1 : α), ite (a₁_1 = degree g) b_1 0)),
+  {
+    apply finsupp.sum_congr,
+    simp,
+    intros x h1,
+    exact eq.symm finset.mul_sum,
+  },
+  rw h_sum_2,
+  have h_sum_3 : sum f
+      (λ (a₁ : ℕ) (b : α),
+         ite (a₁ = degree f) b 0 * sum g (λ (a₁_1 : ℕ) (b_1 : α), ite (a₁_1 = degree g) b_1 0)) =
+      (sum f
+      (λ (a₁ : ℕ) (b : α),
+         ite (a₁ = degree f) b 0)) * sum g (λ (a₁_1 : ℕ) (b_1 : α), ite (a₁_1 = degree g) b_1 0),
+    apply (eq.symm (@finsupp.sum_mul _ _ _ _ _ ( sum g (λ (a₁_1 : ℕ) (b_1 : α), ite (a₁_1 = degree g) b_1 0)) f (λ (a₁ : ℕ) (b : α), ite (a₁ = degree f) b 0))),
+  rw h_sum_3, 
+  have h_sum_g: sum g (λ (a₁_1 : ℕ) (b_1 : α), ite (a₁_1 = degree g) b_1 0) = if (degree g ∈ g.support) then g (degree g) else 0,
+    apply finsupp.sum_ite,
+    rw h_sum_g,
+  have h_sum_f: sum f (λ (a₁_1 : ℕ) (b_1 : α), ite (a₁_1 = degree f) b_1 0) = if (degree f ∈ f.support) then f (degree f) else 0,
+    apply finsupp.sum_ite,
+    rw h_sum_f,
+  by_cases h1 : (f = 0),
+  {
+    have h2 : support f = ∅,
+    simp [h1],
+    exact support_zero,
+    have h3 : degree f ∉ support f,
+    simp *,
+    simp [*, if_neg, leading_coef_zero_eq_zero],
+  },
+  { 
 
-  --simp [single_apply],
-  --simp [single],
+    have h2 : support f ≠ ∅,
+    from iff.elim_right not_imp_not (eq_zero_of_support_eq_empty _) h1,
+    have h3: degree f ∈ support f,
+    from Sup_fin_mem_of_id_nat h2,
+    rw [if_pos],
+    by_cases h4 : (g = 0),
+    {
+      have h5 : support g = ∅,
+        simp [h4],
+        exact support_zero,
+        have h5 : degree g ∉ support g,
+        simp *,
+        simp [*, if_neg, leading_coef_zero_eq_zero],
+    },
+    {
+      have h5 : support g ≠ ∅,
+        from iff.elim_right not_imp_not (eq_zero_of_support_eq_empty _) h4,
+        have h6: degree g ∈ support g,
+        from Sup_fin_mem_of_id_nat h5,
+        rw [if_pos],
+        simp [leading_coeff],
+        assumption,
+
+    },
+    assumption,  
+  }
+
 end
-
-/--/
-lemma leading_coeff_ne_zero_of_ne_zero {p : polynomial α} : p ≠ 0 → (leading_coeff p) ≠ 0 := --incorrect!
-begin
-  rw not_imp_not,
-
-end
--/
-/-
-begin
-intro,
-have : (degree p) ∈ (support p),
-dunfold degree, dunfold finset.Sup_fin,
-cases test : (support p),
--/
-
 
 
 def derivative (p : polynomial α) : polynomial α :=
