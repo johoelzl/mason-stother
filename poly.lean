@@ -10,7 +10,7 @@ local attribute [instance] finsupp.to_semiring
 local infix ^ := monoid.pow
 
 namespace finset
-
+--Why is this here?
 lemma erase_insert_eq_insert_erase {α : Type u} {s : finset α} {a b : α} (h : a ≠ b) :
   erase (insert a s) b = insert a (erase s b) :=
 finset.ext.mpr begin intro c, by_cases c = a; by_cases c = b; simp [h, *] at * end
@@ -58,6 +58,20 @@ lemma single_eq_X_pow : ∀{n:ℕ}, single n a = C a * X ^ n
 | (n + 1) :=
   calc single (n + 1) a = single n a * X : by simp [X, single_mul_single]
     ... = C a * X ^ (n + 1) : by rw [@single_eq_X_pow n]; simp [pow_add, pow_one, mul_assoc]
+
+--naming?
+lemma sum_const_mul_pow_X  {f : polynomial α} : @finsupp.sum ℕ  α  (polynomial α) _ _ (f : ℕ →₀ α) (λ n a, C a * X ^ n) = f :=
+begin
+  have h1: f.sum single = f, from sum_single,
+  simp [finsupp.sum] at h1,
+  have h2 : finset.sum (support f) (λ (a : ℕ), single a (f a)) =  sum f (λ (n : ℕ) (a : α), C a * X ^ n),
+  apply finset.sum_congr,
+  simp,
+  intros x h2,
+  apply single_eq_X_pow,
+  rw ←h2,
+  exact h1
+end
 
 lemma induction_on {M : polynomial α → Prop} (p : polynomial α)
   (M_C : ∀(a : α), M (C a)) (M_X : M X)
@@ -181,22 +195,6 @@ def root_of (a : polynomial α) (b : α) := polynomial.eval a b = 0
 
 
 
-lemma less_degree_imp {f : polynomial α} {k : ℕ} : k < degree f → ∃m, m>k ∧ f m ≠ 0:=
-begin
-intro,
-apply classical.by_contradiction,
-intro,
-have :  ∀m, ¬(m > k ∧ f m ≠ 0),
-apply forall_not_of_not_exists a_1,
-have : ¬((degree f) > k ∧ f (degree f) ≠ 0),
-from (this (degree f)),
-have : ¬((degree f) > k) ∨ ¬ ( f (degree f) ≠ 0),
-rw ←not_and_distrib,
-exact this,
-cases this,
-{admit},
-{}--weer terug bij af.
-end
 
 lemma C_mul_X {c : α} : C c * X = single 1 c :=
 calc C c * X = single 0 c * single 1 1 : rfl
@@ -347,6 +345,24 @@ begin
   exact leading_coef_zero_eq_zero
 end
 
+--Naming?
+lemma mul_add_degree_eq_add_leading_coeff {f g : polynomial α} : (f * g) (degree f + degree g) = (leading_coeff f) * (leading_coeff g):=
+begin
+  /-
+  let fg := f * g,
+  have h1: fg = f * g, exact rfl,
+  rw ←h1,
+  rw [←@sum_const_mul_pow_X _ _ f, ←@sum_const_mul_pow_X _ _ g ] at h1,
+  rw h1,-/
+  
+  rw mul_def, --I think we need a congrunce rule for sum,congr for the finsupp sum
+  simp,
+  simp [single_apply],
+ 
+
+  --simp [single_apply],
+  --simp [single],
+end
 
 /--/
 lemma leading_coeff_ne_zero_of_ne_zero {p : polynomial α} : p ≠ 0 → (leading_coeff p) ≠ 0 := --incorrect!
