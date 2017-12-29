@@ -895,6 +895,7 @@ end
 instance {α : Type u} [integral_domain α] : zero_ne_one_class (polynomial α):=
 { zero_ne_one := zero_ne_one, .. polynomial.comm_ring }
 
+/-
 lemma eq_zero_or_eq_zero_of_mul_eq_zero_tmp {a b : α} (h : a * b = 0) : a = 0 ∨ b = 0 :=
 begin
   by_contradiction h,
@@ -903,23 +904,52 @@ begin
   simp [h],
 
 end
+-/
 
+lemma eq_zero_or_eq_zero_of_mul_eq_zero : ∀ f g : polynomial α, f * g = 0 → f = 0 ∨ g = 0 :=
+begin
+  intros f g h1,
+  by_contradiction h2,
+  rw not_or_distrib at h2,
+  have h3 : f ≠ 0,
+  simp [h2],
+  have h4 : g ≠ 0,
+  simp [h2],
+  have h5 : leading_coeff f ≠ 0,
+  simp [*, leading_coef_eq_zero_iff_eq_zero],
+  have h6 : leading_coeff g ≠ 0,
+  simp [*, leading_coef_eq_zero_iff_eq_zero],
+  have h7 : (leading_coeff f) * (leading_coeff g) ≠ 0,
+    by_contradiction h8,
+    rw not_not at h8,
+    have h9 : leading_coeff f = 0 ∨  leading_coeff g = 0,
+    from eq_zero_or_eq_zero_of_mul_eq_zero h8,
+    cases h9,
+    contradiction,
+    contradiction,
+  have h8 : (f * g) (degree f + degree g) ≠ 0,
+  calc  (f * g) (degree f + degree g) = (leading_coeff f) * (leading_coeff g) : mul_add_degree_eq_add_leading_coeff
+      ... ≠ 0 : h7,
+  rw h1 at h8,
+  simp [zero_apply] at h8,
+  contradiction
+end
 
 instance {α : Type u} [integral_domain α] : no_zero_divisors (polynomial α):=
-{eq_zero_or_eq_zero_of_mul_eq_zero := sorry
+{eq_zero_or_eq_zero_of_mul_eq_zero := eq_zero_or_eq_zero_of_mul_eq_zero
 
 .. polynomial.comm_ring}
 
 
 instance {α : Type u} [integral_domain α]: integral_domain (polynomial α) :=
-{ eq_zero_or_eq_zero_of_mul_eq_zero := sorry,
+{ eq_zero_or_eq_zero_of_mul_eq_zero := eq_zero_or_eq_zero_of_mul_eq_zero,
   .. polynomial.comm_ring, .. polynomial.zero_ne_one_class }
 
 end integral_domain
 
-
+--Still need to obtain an integral domain from field α 
 instance {α : Type u} [field α] : euclidean_domain (polynomial α) :=
-{ eq_zero_or_eq_zero_of_mul_eq_zero := sorry,
+{ eq_zero_or_eq_zero_of_mul_eq_zero := @polynomial.eq_zero_or_eq_zero_of_mul_eq_zero α ,
   zero_ne_one := sorry,
   norm := sorry,
   h1 := sorry,
