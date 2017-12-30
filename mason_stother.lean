@@ -4,6 +4,7 @@
 --Defining the gcd
 import poly
 import euclidean_domain
+import unique_factorization_domain
 import data.finsupp
 import algebraically_closed_field
 noncomputable theory
@@ -44,10 +45,6 @@ def gcd_min [comm_semiring α] [h : has_gcd α]  := h.gcd_min --Correct???
 
 
 @[instance] constant polynomial.has_gcd : has_gcd (polynomial α)
---Convert units to a set
-def is_unit {t : Type u}[has_mul t] [has_one t](a : t) : Prop := ∃b, a * b = 1 ∧ b * a = 1
---If I do this I can't reuse the lemmas for units.
-def is_unit_2 {t : Type u}[semiring t] (a : t) : Prop := ∃b : units t, a = b
 
 def monic (p : polynomial α) : Prop := leading_coeff p = 1
 --Assume has_gcd on polynomials
@@ -138,7 +135,7 @@ variable {β : Type u}
 variables [field β]
 variables  [algebraically_closed_field β] -- Should be an instance of algebraically closed.
 open finsupp
-def irreducible {γ : Type u}[has_one γ][has_mul γ][has_zero γ][has_dvd γ](p : γ): Prop := p ≠ 0 ∧ ¬ is_unit p ∧ ∀d, d∣p → is_unit d
+def irreducible {γ : Type u}[comm_semiring γ](p : γ): Prop := p ≠ 0 ∧ ¬ is_unit p ∧ ∀d, d∣p → is_unit d
 
 
 
@@ -151,7 +148,7 @@ axiom irr_poly_irreducible (p : polynomial β) : ∀x ∈ (monic_irr p).support,
 axiom irr_poly_monic (p : polynomial β) : ∀x ∈ (monic_irr p).support, monic x
 axiom unique_factorization (p : polynomial β) : ∃ c : β , p = C c * ((finsupp.prod (monic_irr p) (λ k n, k ^n) ) )
 def c_fac (p : polynomial β) : β := some ( unique_factorization p)
-axiom c_fac_unit (p : polynomial β) :  @is_unit β _ _ (c_fac p)
+axiom c_fac_unit (p : polynomial β) :  is_unit (c_fac p)
 
 def facs_to_pow (p : polynomial β →₀ ℕ ) : finset (polynomial β):= p.support.image (λ a, a^(p a))
 def facs_to_pow_min_one (p : polynomial β →₀ ℕ ) : finset (polynomial β):= p.support.image (λ a, a^(p a - 1))

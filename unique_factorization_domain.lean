@@ -1,4 +1,4 @@
-import mason_stother 
+import data.finsupp
 import algebra.ring
 
 local infix ^ := monoid.pow
@@ -9,6 +9,22 @@ open classical
 
 universe u
 variable {α : Type u}
+
+--Convert units to a set
+def is_unit_2 {t : Type u}[has_mul t] [has_one t](a : t) : Prop := ∃b, a * b = 1 ∧ b * a = 1
+--If I do this I can't reuse the lemmas for units.
+def is_unit {t : Type u}[semiring t] (a : t) : Prop := ∃b : units t, a = b
+
+def to_unit {t : Type u}[semiring t] {x : t} (h : is_unit x) : units t :=
+some h
+
+lemma  eq_to_unit_is_unit {t : Type u}[semiring t] {x : t} {h : is_unit x} : x = (@to_unit t _ x h):=
+some_spec h 
+--Can't we make units a typeclass? 
+
+
+
+
 
 def pow_prod [comm_monoid α](p : α →₀ ℕ ) : α := p.prod (λ a n, a^n)
 --We need a coercion from α →₀ ℕ to list. De support is een finset, does that have a coercion to list?

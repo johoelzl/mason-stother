@@ -1,4 +1,4 @@
-import  .Sup_fin data.finsupp order.lattice data.nat.cast .euclidean_domain
+import  .Sup_fin data.finsupp order.lattice data.nat.cast .euclidean_domain unique_factorization_domain
 universes u v w
 
 noncomputable theory
@@ -33,6 +33,7 @@ instance : has_add (polynomial α) := finsupp.has_add
 instance : has_mul (polynomial α) := finsupp.has_mul
 instance : semiring (polynomial α) := finsupp.to_semiring
 
+
 @[simp] lemma one_apply_zero : (1 : polynomial α) 0 = 1 :=
 single_eq_same
 
@@ -41,12 +42,39 @@ zero_apply
 
 def C (a : α) : polynomial α := finsupp.single 0 a
 
+--embed R in R[x]
+instance : has_coe (α) (polynomial α) := ⟨C⟩ -- Is this embedding correct?
+
+lemma embedding {a : α} : (a : polynomial α) = C a := rfl
+
 @[simp] lemma C_0 : C 0 = (0:polynomial α) := single_zero
 
 @[simp] lemma C_1 : C 1 = (1:polynomial α) := rfl
 
 lemma C_apply {c : α } {n : ℕ}: ((C c) : ℕ → α) n = (if 0 = n then c else 0) :=
 rfl
+
+
+--naming?
+lemma eq_zero_iff_embed_eq_zero {f : α} : f = 0 ↔ (f : polynomial α) = 0 :=
+begin 
+  rw embedding,
+  constructor,
+  {
+    intro h,
+    rw h,
+    simp, -- added to simp, why does simp not work? maybe because it doesn't backtrack?
+  },
+  {
+    intro h,
+    have : ((C f) : ℕ → α) 0 = f,
+    simp [C_apply],
+    rw h at this,
+    rw ←this,
+    simp
+  }
+
+end
 
 def X : polynomial α := finsupp.single 1 1
 
@@ -59,6 +87,11 @@ lemma single_eq_X_pow : ∀{n:ℕ}, single n a = C a * X ^ n
   calc single (n + 1) a = single n a * X : by simp [X, single_mul_single]
     ... = C a * X ^ (n + 1) : by rw [@single_eq_X_pow n]; simp [pow_add, pow_one, mul_assoc]
 
+lemma X_pow_eq_single {n:ℕ} : (X ^ n : polynomial α) = single n 1 :=
+begin  
+  calc (X ^ n : polynomial α) = C 1 * X ^ n : by simp [C_apply]
+  ... = single n 1 : eq.symm single_eq_X_pow,
+end
 --naming?
 lemma sum_const_mul_pow_X  {f : polynomial α} : @finsupp.sum ℕ  α  (polynomial α) _ _ (f : ℕ →₀ α) (λ n a, C a * X ^ n) = f :=
 begin
@@ -674,6 +707,9 @@ by simp [C, single_mul_single]
 
 end semiring
 
+
+
+
 section comm_semiring
 variable [comm_semiring α]
 
@@ -872,8 +908,13 @@ begin intros, simp [coe_fn], simp [has_coe_to_fun.coe], simp [has_neg.neg, add_g
 end
 
 
-lemma degree_neg {f : polynomial α} : degree f = degree (-f):=
+lemma degree_neg {f : polynomial α} : degree (-f) = degree f:=
 by simp [degree]
+
+lemma degree_sub {f g : polynomial α} : degree (f - g) ≤ max (degree f) (degree g) :=
+calc degree (f - g) = degree (f  + (- g)) : by simp
+     ... ≤ max (degree f) (degree (-g)) : degree_add
+     ...= max (degree f) (degree g) : by rw (@degree_neg _ _ g)
 
 end ring
 
@@ -945,15 +986,156 @@ instance {α : Type u} [integral_domain α]: integral_domain (polynomial α) :=
 { eq_zero_or_eq_zero_of_mul_eq_zero := eq_zero_or_eq_zero_of_mul_eq_zero,
   .. polynomial.comm_ring, .. polynomial.zero_ne_one_class }
 
+
+lemma mul_eq_zero_iff_mul_leading_coef_eq_zero {f g : polynomial α} : f * g = 0 ↔ (leading_coeff f) * (leading_coeff g) = 0 :=
+begin
+  constructor,
+  { 
+    intro h1,
+    rw ←mul_add_degree_eq_add_leading_coeff,
+    rw h1,
+    simp,
+  },
+  {
+    intro h1,
+    have h2 : leading_coeff f = 0 ∨ leading_coeff g = 0,
+    from _root_.eq_zero_or_eq_zero_of_mul_eq_zero  h1,
+    cases h2,
+    repeat {
+      rw leading_coef_eq_zero_iff_eq_zero at h2,
+      simp [h2],      
+    }
+  }
+
+end
+
+lemma degree_mul_integral_domain {f g : polynomial α} : f * g ≠ 0 → degree (f * g) = degree f + degree g :=
+begin
+
+  intro h1, 
+  have h2 : f ≠ 0,
+  from ne_zero_of_mul_ne_zero_right h1,
+  have h3 : g ≠ 0,
+  from ne_zero_of_mul_ne_zero_left h1,
+  have h4 : (f * g) (degree f + degree g) ≠ 0,
+  calc (f * g) (degree f + degree g) = (leading_coeff f) * (leading_coeff g) : mul_add_degree_eq_add_leading_coeff
+     ... ≠ 0 : by {simp,rw [←not_iff_not_of_iff mul_eq_zero_iff_mul_leading_coef_eq_zero], exact h1},
+  have h5 : (degree f + degree g) ≤ degree (f * g),
+  from le_degree h4,
+  have h6 : degree (f * g) ≤ (degree f + degree g),
+  from degree_mul,
+  apply le_antisymm; simp * at *
+
+end
+
 end integral_domain
+
+section field
+variable [field α]
+
+
+--naming!?
+lemma division_with_remainder_polynomials {f g : polynomial α} : g ≠ 0 → (∃ q r : polynomial α,( (f = q * g + r) ∧ ((r = 0)  ∨  ( (degree r ) < (degree g)) )  ) ) :=
+begin
+  by_cases h1 : (f = 0),
+  {
+    intro h2,
+    rw h1,
+    fapply exists.intro,
+    apply (0 : polynomial α),
+    fapply exists.intro,
+    apply (0 : polynomial α),
+    simp
+  },
+  {
+    intro h2,
+    let n := degree f,
+    induction h_n : n,
+    {
+      let m := degree g,
+      by_cases h3 : (n < m),
+      {
+        fapply exists.intro,
+        apply (0: polynomial α),
+        fapply exists.intro,
+        apply (f),
+        simp *
+      },
+      { --have defined the embedding of R in R[x]?
+         let a' := f - (((leading_coeff f) * (leading_coeff g)⁻¹) :  α) * X ^ (n - m) * g,
+         let a'' := ↑(((leading_coeff f) * (leading_coeff g)⁻¹) :  α) * X ^ (n - m) * g,
+         have h3a : f * g ≠ 0, 
+         from mul_ne_zero h1 h2,
+
+         have h3b : (X ^ (n - m) : polynomial α) ≠ 0,
+           rw X_pow_eq_single,
+           by_contradiction h3b2,
+           rw not_not at h3b2,
+           have : n - m = n - m,
+           trivial,
+           have h3b3: (single (n - m) 1 : polynomial α) (n - m) = 1,
+           calc (single (n - m) 1 : polynomial α) (n - m) = if ((n - m) = (n - m)) then 1 else 0 : single_apply
+              ... = 1 : by rw [if_pos this],
+           have h3b4: (single (n - m) 1 : polynomial α) (n - m) = 0,
+           rw h3b2,
+           exact @zero_apply _ _ (n - m),
+           rw h3b4 at h3b3,
+           have : (0 : α) ≠ 1,
+           exact _root_.zero_ne_one,
+           exact this h3b3,
+
+         have h3c : (↑(((leading_coeff f) * (leading_coeff g)⁻¹) :  α) : polynomial α) ≠ 0,
+           have h3a2: (leading_coeff f) ≠ 0,
+           simp [h1, leading_coef_eq_zero_iff_eq_zero],
+           have h3a3: (leading_coeff g) ≠ 0,
+             simp [h1, leading_coef_eq_zero_iff_eq_zero],
+             assumption,
+           have h3a4: (leading_coeff g)⁻¹ ≠ 0,
+           simp [h3a3, inv_ne_zero],
+           simp,
+           rw ←not_iff_not_of_iff eq_zero_iff_embed_eq_zero,
+           exact mul_ne_zero h3a2 h3a4,
+
+         have h3d : ↑(((leading_coeff f) * (leading_coeff g)⁻¹) :  α) * (X ^ (n - m) : polynomial α) ≠ 0,
+         exact mul_ne_zero h3c h3b,
+         have h3e : ↑(((leading_coeff f) * (leading_coeff g)⁻¹) :  α) * (X ^ (n - m) : polynomial α) * g ≠ 0,
+         exact mul_ne_zero h3d h2,
+         have h3f : degree (↑(((leading_coeff f) * (leading_coeff g)⁻¹)) * X ^ (n - m)) =
+               ( @degree α _ ↑(((leading_coeff f) * (leading_coeff g)⁻¹)) + @degree α _ X ^ (n - m) ),
+         rotate_left 1,
+
+         },
+         from  degree_mul_integral_domain h3d,
+         have h4 : degree a'' = n,
+         calc degree a'' = degree ( ↑(((leading_coeff f) * (leading_coeff g)⁻¹) :  α) * (X ^ (n - m) : polynomial α) * g ): rfl
+            ... = degree (↑(((leading_coeff f) * (leading_coeff g)⁻¹) :  α) * X ^ (n - m)) + degree g : degree_mul_integral_domain h3e
+            ... = ( degree ↑(((leading_coeff f) * (leading_coeff g)⁻¹) :  α) + degree X ^ (n - m) ) + degree g 
+            :
+            --... = ( @degree α _ ↑(((leading_coeff f) * (leading_coeff g)⁻¹) :  α) + degree X ^ (n - m) ) + degree g : _
+            ... = _ : _,
+         have h4 : degree a' < n,
+         ---calc degree a' ≤ max f ((((leading_coeff f) * (leading_coeff g)⁻¹) :  α) * X ^ (n - m) * g)
+         
+      }
+    },
+    {
+
+    }
+  }
+end
+
+#check @X
+
 
 --Still need to obtain an integral domain from field α 
 instance {α : Type u} [field α] : euclidean_domain (polynomial α) :=
-{ eq_zero_or_eq_zero_of_mul_eq_zero := @polynomial.eq_zero_or_eq_zero_of_mul_eq_zero α ,
-  zero_ne_one := sorry,
-  norm := sorry,
-  h1 := sorry,
+{ eq_zero_or_eq_zero_of_mul_eq_zero := eq_zero_or_eq_zero_of_mul_eq_zero,
+  zero_ne_one := zero_ne_one, --correct?
+  norm := degree,
+  h1 := degree_zero,
   h_norm := sorry,
   .. polynomial.comm_ring }
 
+
+end field
 end polynomial
