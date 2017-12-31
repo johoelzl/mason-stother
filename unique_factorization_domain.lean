@@ -125,14 +125,14 @@ instance discrete_field.to_integral_domain [s : discrete_field α] : integral_do
   ..s }
 -/
 
---Practice
-instance field.to_integral_domain [s : field α] : integral_domain α :=
+--Priority lowered,aim was to prevent diamond problem, div_ring to domain and integral_dom to domain
+@[priority 100] instance field.to_integral_domain [s : field α] : integral_domain α :=
 {
     eq_zero_or_eq_zero_of_mul_eq_zero := @eq_zero_or_eq_zero_of_mul_eq_zero _ _,
     ..s
 }
 
-instance field.to_unique_factorization_domain [s : field α] : unique_factorization_domain α :=
+lemma field.to_unique_factorization_domain [s : field α] : unique_factorization_domain α :=
 { 
     eq_zero_or_eq_zero_of_mul_eq_zero := @eq_zero_or_eq_zero_of_mul_eq_zero _ _, --Problem, will it now use the same as integral domain or again diamond problem?
     fac := _,

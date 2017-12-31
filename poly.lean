@@ -21,7 +21,7 @@ end finset
 def polynomial (α : Type u) [semiring α] := ℕ →₀ α
 
 namespace polynomial
-variables {α : Type u} {a a' a₁ a₂ : α} {n m : ℕ}
+variables {α : Type u} {a a' a₁ a₂ : α} --{n m : ℕ} --do we want n and m?
 
 section semiring
 variable [semiring α]
@@ -42,10 +42,10 @@ zero_apply
 
 def C (a : α) : polynomial α := finsupp.single 0 a
 
---embed R in R[x]
-instance : has_coe (α) (polynomial α) := ⟨C⟩ -- Is this embedding correct?
+--embed R in R[x] --use has_lift, because has_coe is heavy on performance
+instance : has_lift (α) (polynomial α) := ⟨C⟩ -- Is this embedding correct?
 
-lemma embedding {a : α} : (a : polynomial α) = C a := rfl
+lemma embedding {a : α} : ↑a = C a := rfl
 
 @[simp] lemma C_0 : C 0 = (0:polynomial α) := single_zero
 
@@ -56,7 +56,7 @@ rfl
 
 
 --naming?
-lemma eq_zero_iff_embed_eq_zero {f : α} : f = 0 ↔ (f : polynomial α) = 0 :=
+lemma eq_zero_iff_embed_eq_zero {f : α} : f = 0 ↔ (↑f : polynomial α) = 0 :=
 begin 
   rw embedding,
   constructor,
@@ -87,7 +87,7 @@ lemma single_eq_X_pow : ∀{n:ℕ}, single n a = C a * X ^ n
   calc single (n + 1) a = single n a * X : by simp [X, single_mul_single]
     ... = C a * X ^ (n + 1) : by rw [@single_eq_X_pow n]; simp [pow_add, pow_one, mul_assoc]
 
-lemma X_pow_eq_single {n:ℕ} : (X ^ n : polynomial α) = single n 1 :=
+lemma X_pow_eq_single {n:ℕ} : (X ^ (n) : polynomial α) = single n 1 :=
 begin  
   calc (X ^ n : polynomial α) = C 1 * X ^ n : by simp [C_apply]
   ... = single n 1 : eq.symm single_eq_X_pow,
@@ -151,10 +151,29 @@ begin
   exact (assume a ha, M_single _ _)
 end
 
-
 def eval (p : polynomial α) (a : α) : α := p.sum $ λn c, c * a ^ n
 
 def degree (p : polynomial α) : ℕ := p.support.Sup_fin id
+
+--test:
+lemma induction_on_degree {p : polynomial α → Prop}(f : polynomial α) (h : ∀n : ℕ, ∀g : polynomial α, degree g = n → p g): 
+ p f :=
+begin 
+  apply (h (degree f) f),
+  refl,
+end
+
+--test
+lemma induction_on_degree_2 {p : polynomial α → Prop}(f : polynomial α)(h : ∀n : ℕ, degree f = n → p f): 
+ p f :=
+begin 
+  apply (h (degree f)),
+  refl
+end
+
+--lemma induction_on_degree_3 {p : polynomial α → Prop}{f : polynomial α }{n : ℕ}(h1 : degree f = n)
+
+
 
 def leading_coeff (p : polynomial α) : α := p (degree p)
 
@@ -192,8 +211,22 @@ le_antisymm
   degree_single
   (le_degree $ show (single (1:ℕ) (1:α) : ℕ →₀ α) 1 ≠ 0, begin simp [h.symm] end)
 
+--correct simp?
+lemma degree_X_pow (h : 0 ≠ (1:α)) {n : ℕ} : degree ((X : polynomial α) ^ n) = n :=
+begin
+  rw X_pow_eq_single,
+  apply le_antisymm,
+    exact degree_single,
+    apply le_degree,
+    simp,
+    cc,
+end 
+
 @[simp] lemma degree_C {a : α} : degree (C a) = 0 :=
 nat.eq_zero_of_le_zero degree_single
+
+@[simp] lemma degree_one : degree (1: polynomial α)  = 0:=
+degree_C
 
 lemma degree_add {f g : polynomial α} : degree (f + g) ≤ max (degree f) (degree g) :=
 calc degree (f + g) ≤ (f.support ∪ g.support).Sup_fin id : finset.Sup_fin_mono finsupp.support_add
@@ -926,6 +959,19 @@ end comm_ring
 
 section integral_domain
 variable [integral_domain α]
+
+lemma X_pow_ne_zero {n : ℕ}: (X ^ n : polynomial α) ≠ 0 :=
+begin
+  rw X_pow_eq_single,
+  by_contradiction h2,
+  rw not_not at h2,
+  have h3: (single n 1 : polynomial α ) n = 1,
+  simp,
+  rw h2 at h3,
+  simp at h3,
+  exact h3,
+end
+
 lemma zero_ne_one : (0:polynomial α) ≠ 1:=
 begin
   intro h,
@@ -1033,6 +1079,200 @@ end integral_domain
 section field
 variable [field α]
 
+--should be only local?
+--local attribute [instance, priority 1100] field.to_integral_domain --correct?
+--@[priority 1100] instance : integral_domain (α) := field.to_integral_domain --should have lowest priority,
+--because we only want to use this for the lemmma mul_ne_of_ne
+
+set_option pp.implicit true
+set_option pp.numerals false
+
+#check @degree
+
+lemma division_with_remainder_polynomials {f g : polynomial α} : g ≠ 0 → (∃ q r : polynomial α,( (f = q * g + r) ∧ ((r = 0)  ∨  ( (degree r ) < (degree g)) )  ) ) :=
+begin
+  intro h1,
+  apply induction_on_degree f,
+  
+  intro qq,
+  apply nat.strong_induction_on qq,
+  intros n ih h h3,
+  let m : ℕ := degree g,
+  by_cases h4 : (h = 0),
+  {
+    rw h4,
+    fapply exists.intro,
+    apply (0 : polynomial α),
+    fapply exists.intro,
+    apply (0 : polynomial α),
+    simp
+  },
+  {
+    by_cases h5 : (n < m),
+      {
+        fapply exists.intro,
+        apply (0: polynomial α),
+        fapply exists.intro,
+        apply (h),
+        simp *,
+      },
+      {
+        -------
+         let a' := h - (C ((leading_coeff h) * (leading_coeff g)⁻¹)) * X ^ (n - m) * g,
+         let a'' := (C ((leading_coeff h) * (leading_coeff g)⁻¹)) * (X : polynomial α) ^ (n - m) * g,
+         have h3a : h * g ≠ 0,
+         rw ←ne.def at h4,
+         exact @mul_ne_zero (polynomial α) _ _ _ h4 h1, --can it find the right mul_ne_zero??
+
+         have h3b : (X ^ (n - m) : polynomial α) ≠ 0,
+         from X_pow_ne_zero,
+
+
+         have h3c : C ((leading_coeff h) * (leading_coeff g)⁻¹) ≠ 0,
+           have h3a2: (leading_coeff h) ≠ 0,
+           simp [h4, leading_coef_eq_zero_iff_eq_zero],
+           have h3a3: (leading_coeff g) ≠ 0,
+           simp [h1, leading_coef_eq_zero_iff_eq_zero],             
+           have h3a4: (leading_coeff g)⁻¹ ≠ 0,
+           simp [h3a3, inv_ne_zero],
+           simp,
+           rw [←embedding, ←not_iff_not_of_iff eq_zero_iff_embed_eq_zero],
+           exact mul_ne_zero h3a2 h3a4,
+
+         have h3d : (C ((leading_coeff h) * (leading_coeff g)⁻¹)) * (X ^ (n - m) : polynomial α) ≠ 0,
+         exact mul_ne_zero h3c h3b,
+         have h3e : (C ((leading_coeff h) * (leading_coeff g)⁻¹)) * (X ^ (n - m) : polynomial α) * g ≠ 0,
+         exact mul_ne_zero h3d h1,
+         have h3f : degree ((C ((leading_coeff h) * (leading_coeff g)⁻¹)) * X ^ (n - m)) =
+                degree  (C ((leading_coeff h) * (leading_coeff g)⁻¹)) + degree ( X ^ (n - m) ),    
+         from  degree_mul_integral_domain h3d,
+         have h6 : degree a'' = n,
+         calc degree a'' = degree ( (C ((leading_coeff h) * (leading_coeff g)⁻¹)) * (X : polynomial α) ^ (n - m) * g ): rfl
+            ... = degree ((C ((leading_coeff h) * (leading_coeff g)⁻¹)) * X ^ (n - m)) + degree g : degree_mul_integral_domain h3e
+            ... = ( degree (C ((leading_coeff h) * (leading_coeff g)⁻¹)) + degree ( X ^ (n - m) )) + degree g 
+            : by rw (degree_mul_integral_domain h3d)
+            --... = 0 + degree ( X ^ (n - m) ) + degree g : by rw [degree_C] --degree X_pow goes wrong
+            --... = 0 + @degree ( X ^ (n - m) ) + degree g : by simp * --itthinksthese m's are different? Is it becuase the namespace is cluthered?
+            --seems to problem with type classes: one uses integral_to_domain, and the other division ring to domain.
+            --problem: field can be reduced to division ring and integraldomain,and they can be moved down to,
+            --domain, but it doesn't see that these are the same. Diamond problem? 
+            ... = (n - m) + m : by simp *
+            ... = m + (n - m) : add_comm _ _
+            ... = n : nat.add_sub_of_le (le_of_not_gt h5),
+         have h4 : degree a' < n,
+         
+        -------
+      }
+  }
+  
+end
+
+--We will start with an induction on the degree of f next time!
+--They have to do a bit of a hasle to first handle the case of f = 0, because for that they did not define the degree.
+lemma division_with_remainder_polynomials {f g : polynomial α} : g ≠ 0 → (∃ q r : polynomial α,( (f = q * g + r) ∧ ((r = 0)  ∨  ( (degree r ) < (degree g)) )  ) ) :=
+begin
+  by_cases h1 : (f = 0),
+  {
+    intro h2,
+    rw h1,
+    fapply exists.intro,
+    apply (0 : polynomial α),
+    fapply exists.intro,
+    apply (0 : polynomial α),
+    simp
+  },
+  {
+    intro h2,
+    apply induction_on_degree f,
+    intro qq, -- needed for the richt format of strong_induction_on
+    apply nat.strong_induction_on qq,
+    intros k ih,
+    intros h h_deg,
+    let m : ℕ := degree g,
+    let n : ℕ := degree f,
+    by_cases h3 : (n < m),
+      {
+        fapply exists.intro,
+        apply (0: polynomial α),
+        fapply exists.intro,
+        apply (h),
+        simp *,
+      },
+      {                
+      --have defined the embedding of R in R[x]? --Did all below had to be h?
+      --But if all is h, than I can't prove that h*g ≠ 0?
+      --But if I don't use h, than what is the point of h?
+      --I did remove it in induction_on_degree_2,
+      --but there it seemed that I could never apply the inductive hypotheses?
+      -- I thing h is a dummy polynomial which is only needed to get the degree from?
+      -- And it seems that h is used in the base case
+        let a' := f - (C ((leading_coeff f) * (leading_coeff g)⁻¹)) * X ^ (n - m) * g,
+        let a'' := (C ((leading_coeff f) * (leading_coeff g)⁻¹)) * (X : polynomial α) ^ (n - m) * g,
+        have h3a : f * g ≠ 0, 
+        from mul_ne_zero h1 h2,
+
+        have h3b : (X ^ (n - m) : polynomial α) ≠ 0,
+          rw X_pow_eq_single,
+          by_contradiction h3b2,
+          rw not_not at h3b2,
+          have : n - m = n - m,
+          trivial,
+          have h3b3: (single (n - m) 1 : polynomial α) (n - m) = 1,
+          calc (single (n - m) 1 : polynomial α) (n - m) = if ((n - m) = (n - m)) then 1 else 0 : single_apply
+            ... = 1 : by rw [if_pos this],
+          have h3b4: (single (n - m) 1 : polynomial α) (n - m) = 0,
+          rw h3b2,
+          exact @zero_apply _ _ (n - m),
+          rw h3b4 at h3b3,
+          have : (0 : α) ≠ 1,
+          exact _root_.zero_ne_one,
+          exact this h3b3,
+
+        have h3c : C ((leading_coeff f) * (leading_coeff g)⁻¹) ≠ 0,
+          have h3a2: (leading_coeff f) ≠ 0,
+          simp [h1, leading_coef_eq_zero_iff_eq_zero],
+          have h3a3: (leading_coeff g) ≠ 0,
+            simp [h1, leading_coef_eq_zero_iff_eq_zero],
+            assumption,
+          have h3a4: (leading_coeff g)⁻¹ ≠ 0,
+          simp [h3a3, inv_ne_zero],
+          simp,
+          rw [←embedding, ←not_iff_not_of_iff eq_zero_iff_embed_eq_zero],
+          exact mul_ne_zero h3a2 h3a4,
+
+        have h3d : (C ((leading_coeff f) * (leading_coeff g)⁻¹)) * (X ^ (n - m) : polynomial α) ≠ 0,
+        exact mul_ne_zero h3c h3b,
+        have h3e : (C ((leading_coeff f) * (leading_coeff g)⁻¹)) * (X ^ (n - m) : polynomial α) * g ≠ 0,
+        exact mul_ne_zero h3d h2,
+        have h3f : degree ((C ((leading_coeff f) * (leading_coeff g)⁻¹)) * X ^ (n - m)) =
+              degree  (C ((leading_coeff f) * (leading_coeff g)⁻¹)) + degree ( X ^ (n - m) ),    
+        from  degree_mul_integral_domain h3d,
+        have h4 : degree a'' = n,
+        calc degree a'' = degree ( (C ((leading_coeff f) * (leading_coeff g)⁻¹)) * (X : polynomial α) ^ (n - m) * g ): rfl
+          ... = degree ((C ((leading_coeff f) * (leading_coeff g)⁻¹)) * X ^ (n - m)) + degree g : degree_mul_integral_domain h3e
+          ... = ( degree (C ((leading_coeff f) * (leading_coeff g)⁻¹)) + degree ( X ^ (n - m) )) + degree g 
+          : by rw (degree_mul_integral_domain h3d)
+          ... = (0 : ℕ) + degree ( X ^ (n - m) ) + degree g : by rw [degree_C]
+          ... = 0 + degree ( (X : polynomial α) ^ (n - m) ) + m : by rw (rfl : degree g = m)     
+          ... = 0 + (n - m) + m : by rw [degree_X_pow (zero_ne_one_class.zero_ne_one α)]
+          ... = (n - m) + m : nat.zero_add ((n - m) + m)
+          ... = m + (n - m) : add_comm _ _
+          ... = n : nat.add_sub_of_le (le_of_not_gt h3),
+        have h4 : degree a' < n,
+        ---calc degree a' ≤ max f ((((leading_coeff f) * (leading_coeff g)⁻¹) :  α) * X ^ (n - m) * g)
+        
+      }
+    
+
+  }
+
+end
+
+
+
+
+
+
 
 --naming!?
 lemma division_with_remainder_polynomials {f g : polynomial α} : g ≠ 0 → (∃ q r : polynomial α,( (f = q * g + r) ∧ ((r = 0)  ∨  ( (degree r ) < (degree g)) )  ) ) :=
@@ -1050,8 +1290,11 @@ begin
   {
     intro h2,
     let n := degree f,
-    induction h_n : n,
+    apply induction_on_degree_2 f,
+    intro k,
+    apply nat.strong_induction_on k, -- doesn't work, we need strong induction.
     {
+      
       let m := degree g,
       by_cases h3 : (n < m),
       {
@@ -1061,9 +1304,11 @@ begin
         apply (f),
         simp *
       },
-      { --have defined the embedding of R in R[x]?
-         let a' := f - (((leading_coeff f) * (leading_coeff g)⁻¹) :  α) * X ^ (n - m) * g,
-         let a'' := ↑(((leading_coeff f) * (leading_coeff g)⁻¹) :  α) * X ^ (n - m) * g,
+      { 
+         
+        --have defined the embedding of R in R[x]?
+         let a' := f - (C ((leading_coeff f) * (leading_coeff g)⁻¹)) * X ^ (n - m) * g,
+         let a'' := (C ((leading_coeff f) * (leading_coeff g)⁻¹)) * (X : polynomial α) ^ (n - m) * g,
          have h3a : f * g ≠ 0, 
          from mul_ne_zero h1 h2,
 
@@ -1084,7 +1329,7 @@ begin
            exact _root_.zero_ne_one,
            exact this h3b3,
 
-         have h3c : (↑(((leading_coeff f) * (leading_coeff g)⁻¹) :  α) : polynomial α) ≠ 0,
+         have h3c : C ((leading_coeff f) * (leading_coeff g)⁻¹) ≠ 0,
            have h3a2: (leading_coeff f) ≠ 0,
            simp [h1, leading_coef_eq_zero_iff_eq_zero],
            have h3a3: (leading_coeff g) ≠ 0,
@@ -1093,33 +1338,29 @@ begin
            have h3a4: (leading_coeff g)⁻¹ ≠ 0,
            simp [h3a3, inv_ne_zero],
            simp,
-           rw ←not_iff_not_of_iff eq_zero_iff_embed_eq_zero,
+           rw [←embedding, ←not_iff_not_of_iff eq_zero_iff_embed_eq_zero],
            exact mul_ne_zero h3a2 h3a4,
 
-         have h3d : ↑(((leading_coeff f) * (leading_coeff g)⁻¹) :  α) * (X ^ (n - m) : polynomial α) ≠ 0,
+         have h3d : (C ((leading_coeff f) * (leading_coeff g)⁻¹)) * (X ^ (n - m) : polynomial α) ≠ 0,
          exact mul_ne_zero h3c h3b,
-         have h3e : ↑(((leading_coeff f) * (leading_coeff g)⁻¹) :  α) * (X ^ (n - m) : polynomial α) * g ≠ 0,
+         have h3e : (C ((leading_coeff f) * (leading_coeff g)⁻¹)) * (X ^ (n - m) : polynomial α) * g ≠ 0,
          exact mul_ne_zero h3d h2,
-         have h3f : degree (↑(((leading_coeff f) * (leading_coeff g)⁻¹)) * X ^ (n - m)) =
-               ( @degree α _ ↑(((leading_coeff f) * (leading_coeff g)⁻¹)) + @degree α _ X ^ (n - m) ),
-         rotate_left 1,
-
-         },
+         have h3f : degree ((C ((leading_coeff f) * (leading_coeff g)⁻¹)) * X ^ (n - m)) =
+                degree  (C ((leading_coeff f) * (leading_coeff g)⁻¹)) + degree ( X ^ (n - m) ),    
          from  degree_mul_integral_domain h3d,
          have h4 : degree a'' = n,
-         calc degree a'' = degree ( ↑(((leading_coeff f) * (leading_coeff g)⁻¹) :  α) * (X ^ (n - m) : polynomial α) * g ): rfl
-            ... = degree (↑(((leading_coeff f) * (leading_coeff g)⁻¹) :  α) * X ^ (n - m)) + degree g : degree_mul_integral_domain h3e
-            ... = ( degree ↑(((leading_coeff f) * (leading_coeff g)⁻¹) :  α) + degree X ^ (n - m) ) + degree g 
-            :
-            --... = ( @degree α _ ↑(((leading_coeff f) * (leading_coeff g)⁻¹) :  α) + degree X ^ (n - m) ) + degree g : _
-            ... = _ : _,
+         calc degree a'' = degree ( (C ((leading_coeff f) * (leading_coeff g)⁻¹)) * (X : polynomial α) ^ (n - m) * g ): rfl
+            ... = degree ((C ((leading_coeff f) * (leading_coeff g)⁻¹)) * X ^ (n - m)) + degree g : degree_mul_integral_domain h3e
+            ... = ( degree (C ((leading_coeff f) * (leading_coeff g)⁻¹)) + degree ( X ^ (n - m) )) + degree g 
+            : by rw (degree_mul_integral_domain h3d)
+            
+            ... = (n - m) + m : by simp *
+            ... = m + (n - m) : add_comm _ _
+            ... = n : nat.add_sub_of_le (le_of_not_gt h3),
          have h4 : degree a' < n,
          ---calc degree a' ≤ max f ((((leading_coeff f) * (leading_coeff g)⁻¹) :  α) * X ^ (n - m) * g)
          
       }
-    },
-    {
-
     }
   }
 end
