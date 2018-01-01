@@ -92,6 +92,10 @@ begin
   calc (X ^ n : polynomial α) = C 1 * X ^ n : by simp [C_apply]
   ... = single n 1 : eq.symm single_eq_X_pow,
 end
+
+lemma X_pow_apply {n m : ℕ} : ((X  ^ n : polynomial α): ℕ → α) m = (if n = m then 1 else 0) :=
+by rw [X_pow_eq_single, single_apply]
+
 --naming?
 lemma sum_const_mul_pow_X  {f : polynomial α} : @finsupp.sum ℕ  α  (polynomial α) _ _ (f : ℕ →₀ α) (λ n a, C a * X ^ n) = f :=
 begin
@@ -177,6 +181,14 @@ end
 
 def leading_coeff (p : polynomial α) : α := p (degree p)
 
+lemma leading_coeff_def {p : polynomial α } : leading_coeff p = p (degree p) := rfl
+
+
+
+
+--correct?
+@[reducible] def monomial (p : polynomial α):= leading_coeff p = 1
+
 lemma ext : ∀{f g : polynomial α}, (∀a, f a = g a) → f = g:=
 begin
   apply @finsupp.ext
@@ -206,6 +218,7 @@ calc degree (single n a) = (single n a).support.Sup_fin id : by simp [degree]
   ... ≤ (finset.singleton n).Sup_fin id : finset.Sup_fin_mono finsupp.support_single_subset
   ... ≤ _ : by simp [finset.Sup_fin_singleton]
 
+--Should this be added to simp? Because the 0 ≠ 1, can cause problems I think: see the proof of division algorithm.
 @[simp] lemma degree_X (h : 0 ≠ (1:α)) : degree (X : polynomial α) = 1 :=
 le_antisymm
   degree_single
@@ -254,6 +267,32 @@ have h3: (f = 0), from iff.elim_left not_not a_1,
 have h4: degree f = 0, calc degree f = degree 0 : by rw [h3] ... = 0 : degree_zero,
 apply a h4
  end -- Contradiction not needed
+
+--application lemmas --correct?
+@[simp] lemma add_apply {g₁ g₂ : polynomial α} {a : ℕ} :
+  (g₁ + g₂) a = g₁ a + g₂ a := finsupp.add_apply
+
+/-leading coef lemmas here-/
+@[simp] lemma leading_coeff_C {a : α} : leading_coeff (C a) = a :=
+by simp [leading_coeff_def, degree_C, C_apply]
+
+@[simp] lemma leading_coeff_X : leading_coeff X = 1 :=
+by simp [leading_coeff_def, degree_X, X_apply]
+
+lemma leading_coeff_X_pow {n : ℕ} : leading_coeff ((X ^ n) : polynomial α) = (1 : α) :=
+begin
+  by_cases h1 : (0 = 1),
+  {
+     simp [leading_coeff_def, X], -- need X_pow_apply
+  },
+  {
+
+  }
+  simp [leading_coeff_def],
+  simp [degree_X_pow]
+  
+end
+
 
 
 
@@ -689,6 +728,51 @@ begin
 
 end
 
+--problem with unfolding monomial
+lemma degree_monomial_mul {f g : polynomial α }(h1 : monomial f) (h2 : (0 : α) ≠ 1)(h3 : g ≠ 0): degree (f * g) = (degree f) + (degree g) :=
+begin
+  rw monomial at h1, --anoying
+  have h4: (f * g) (degree f + degree g) ≠  0,
+  calc (f * g) (degree f + degree g) = leading_coeff f * leading_coeff g : mul_add_degree_eq_add_leading_coeff
+  ... = 1 * leading_coeff g : by rw h1
+  ... = leading_coeff g : one_mul _
+  ... ≠ 0 : iff.elim_right not_imp_not (iff.elim_left leading_coef_eq_zero_iff_eq_zero) h3,
+  have h5 : degree f + degree g ≤ degree (f * g),
+  from le_degree h4,
+  have h6: degree (f * g) ≤ degree f + degree g,
+  from degree_mul,
+  exact le_antisymm h6 h5
+end
+
+--correct simp?
+@[simp] lemma monomial_def {f : polynomial α} {h : monomial f} : leading_coeff f = 1 := h
+
+--naming?
+--Could be made more general --to work for an arbitrary monomial --what about zero_ne_one? --why is the type asscription done in the second argument in degree_X?
+lemma leading_coeff_monomial_mul{f g: polynomial α} {h1 : monomial f} (h2 : (0 : α) ≠ 1): leading_coeff (f * g) = leading_coeff g :=
+begin 
+  by_cases h3 : (g = 0),
+  {
+   simp *,
+  },
+  {
+        --let n : ℕ := degree (f * g),
+    have h4 : degree (f * g) = degree f + degree g,
+    
+    from degree_monomial_mul h1 h2 h3,
+    rw [leading_coeff],
+    rw h4,
+    rw mul_add_degree_eq_add_leading_coeff,
+    simp *, 
+  }
+    --conv (degree (f * g)) {rw [(rfl : (degree (f * g) = n))]},
+end
+
+
+
+
+
+
 
 def derivative (p : polynomial α) : polynomial α :=
 p.sum (λn a, match n with 0 := 0 | (n + 1) := single n (a * (n + 1)) end)
@@ -933,12 +1017,23 @@ end comm_semiring
 section ring
 variable [ring α]
 
-@[priority 1100] instance : ring (polynomial α) := finsupp.to_ring
-@[priority 1100] instance : add_comm_group (polynomial α) := by apply_instance
+--made priority local,but doesn't solve the problem..
+instance : ring (polynomial α) := finsupp.to_ring
+instance : add_comm_group (polynomial α) := by apply_instance
 
-lemma neg_apply_poly (a : polynomial α) (n : ℕ):  (- a) n = - (a n) :=
-begin intros, simp [coe_fn], simp [has_coe_to_fun.coe], simp [has_neg.neg, add_group.neg, add_comm_group.neg, ring.neg] , apply rfl
-end
+local attribute [priority 1100]  polynomial.ring
+local attribute [priority 1100]  polynomial.add_comm_group
+
+
+--application lemmas
+
+@[simp] lemma neg_apply  {g : polynomial α } {a : ℕ } : (- g) a = - g a := finsupp.neg_apply
+
+@[simp] lemma sub_apply {g₁ g₂ : polynomial α } {a : ℕ} : (g₁ - g₂) a = g₁ a - g₂ a := finsupp.sub_apply
+
+--lemma neg_apply_poly (a : polynomial α) (n : ℕ):  (- a) n = - (a n) :=
+----begin intros, simp [coe_fn], simp [has_coe_to_fun.coe], simp [has_neg.neg, add_group.neg, add_comm_group.neg, ring.neg] , apply rfl
+--end
 
 
 lemma degree_neg {f : polynomial α} : degree (-f) = degree f:=
@@ -1084,11 +1179,16 @@ variable [field α]
 --@[priority 1100] instance : integral_domain (α) := field.to_integral_domain --should have lowest priority,
 --because we only want to use this for the lemmma mul_ne_of_ne
 
-set_option pp.implicit true
+--set_option pp.implicit true
 set_option pp.numerals false
+--set_option trace.class_instances true
 
 #check @degree
 
+attribute [priority 2000] field.zero_ne_one
+
+--Some parts use that field is a division ring, and some parts use that it it an integral domain.
+--This causes a diamond problem, 
 lemma division_with_remainder_polynomials {f g : polynomial α} : g ≠ 0 → (∃ q r : polynomial α,( (f = q * g + r) ∧ ((r = 0)  ∨  ( (degree r ) < (degree g)) )  ) ) :=
 begin
   intro h1,
@@ -1118,7 +1218,7 @@ begin
       },
       {
         -------
-         let a' := h - (C ((leading_coeff h) * (leading_coeff g)⁻¹)) * X ^ (n - m) * g,
+         let a' := h - (C ((leading_coeff h) * (leading_coeff g)⁻¹)) * X ^ (n - m) * g, -- here we need that α is a division ring
          let a'' := (C ((leading_coeff h) * (leading_coeff g)⁻¹)) * (X : polynomial α) ^ (n - m) * g,
          have h3a : h * g ≠ 0,
          rw ←ne.def at h4,
@@ -1140,7 +1240,7 @@ begin
            exact mul_ne_zero h3a2 h3a4,
 
          have h3d : (C ((leading_coeff h) * (leading_coeff g)⁻¹)) * (X ^ (n - m) : polynomial α) ≠ 0,
-         exact mul_ne_zero h3c h3b,
+         exact mul_ne_zero h3c h3b, -- here we need α is an integral domain
          have h3e : (C ((leading_coeff h) * (leading_coeff g)⁻¹)) * (X ^ (n - m) : polynomial α) * g ≠ 0,
          exact mul_ne_zero h3d h1,
          have h3f : degree ((C ((leading_coeff h) * (leading_coeff g)⁻¹)) * X ^ (n - m)) =
@@ -1151,15 +1251,63 @@ begin
             ... = degree ((C ((leading_coeff h) * (leading_coeff g)⁻¹)) * X ^ (n - m)) + degree g : degree_mul_integral_domain h3e
             ... = ( degree (C ((leading_coeff h) * (leading_coeff g)⁻¹)) + degree ( X ^ (n - m) )) + degree g 
             : by rw (degree_mul_integral_domain h3d)
+            --... = (n - m) + m : by simp *
             --... = 0 + degree ( X ^ (n - m) ) + degree g : by rw [degree_C] --degree X_pow goes wrong
+           -- ... = degree ( X ^ (n - m) ) + degree g  : by simp only [zero_add]
+            --... = degree ( X ^ (n - m) ) + m : by simp only [m]
+           -- ... = (n - m) + m : by simp only [degree_X_pow (field.zero_ne_one α)] --Couldn't find the right zero_ne_one
+            ... = (n - m) + m : by simp only [degree_C, zero_add, m, degree_X_pow (field.zero_ne_one α)]
+            --... = (n - m) + m : by simp only [degree_X_pow _]
+            
             --... = 0 + @degree ( X ^ (n - m) ) + degree g : by simp * --itthinksthese m's are different? Is it becuase the namespace is cluthered?
             --seems to problem with type classes: one uses integral_to_domain, and the other division ring to domain.
             --problem: field can be reduced to division ring and integraldomain,and they can be moved down to,
             --domain, but it doesn't see that these are the same. Diamond problem? 
-            ... = (n - m) + m : by simp *
-            ... = m + (n - m) : add_comm _ _
+            --... = ( degree (C ((leading_coeff h) * (leading_coeff g)⁻¹)) + (n - m)) + degree g
+            --: by rw @degree_X_pow α _ (_root_.zero_ne_one : (0 : α) ≠ 1)
+            --... = degree (C ((leading_coeff h) * (leading_coeff g)⁻¹)) + (n - m) + m : by rw [(rfl : m = degree g)]
+            --... = 0 + (n - m) + m : by rw [degree_C]
+            --... = (n - m) + m : by rw [@zero_add α _]
+            ... = m + (n - m) : @add_comm ℕ _ _ _
             ... = n : nat.add_sub_of_le (le_of_not_gt h5),
-         have h4 : degree a' < n,
+         have h7 : leading_coeff a'' = leading_coeff h,
+           {
+             calc leading_coeff a'' = a'' (degree a'') : rfl
+             ... = a'' n : by rw h6
+             ... = ( C (leading_coeff h * (leading_coeff g)⁻¹) * (X ^ (n - m) * g)) n : by rw mul_assoc
+             ... =  (leading_coeff h * (leading_coeff g)⁻¹) * ( (X ^ (n - m) * g) n) : finsupp.smul_apply --should be a polynomial lemma
+
+             /-
+             unfold leading_coeff,
+             rw h6,
+             rw [(rfl : a'' = C (leading_coeff h * (leading_coeff g)⁻¹) * X ^ (n - m) * g)],
+             rw mul_assoc, --? what did it simplify?-/
+             
+           },
+         
+         have h8 : degree a' < n,
+           have h8 : a' n = 0,
+             rw [sub_apply],
+
+             --simp *, --should simplify?
+       /-  by_contradiction h8, --not needed
+           have h9 : degree a' ≤ n,
+           calc degree a' ≤ max (degree h) (degree a'') : degree_sub
+           ... = n : by simp [h3, h6],
+           --... = n : by simp,
+           have h10 : n ≤ degree a',
+           from le_of_not_lt h8,
+           have h11 : degree a' = n,
+           exact le_antisymm h9 h10,
+           have h12 : leading_coeff a' = 0,
+             dunfold leading_coeff,
+             rw h11,            
+             rw [(rfl : a' = h - C (leading_coeff h * (leading_coeff g)⁻¹) * X ^ (n - m) * g)],
+             rw sub_apply, --Why didn't simp work?
+             rw ←h3
+    -/
+
+
          
         -------
       }
