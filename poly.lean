@@ -281,16 +281,24 @@ by simp [leading_coeff_def, degree_X, X_apply]
 
 lemma leading_coeff_X_pow {n : ℕ} : leading_coeff ((X ^ n) : polynomial α) = (1 : α) :=
 begin
-  by_cases h1 : (0 = 1),
+  by_cases h1 : ((0 : α) = 1),
   {
-     simp [leading_coeff_def, X], -- need X_pow_apply
+    simp [leading_coeff_def, X_pow_apply],
+    by_cases h2 :  (n = degree ((X ^ n) : polynomial α)),
+    {
+      simp [if_pos h2],
+    },
+    {
+      simp [if_neg h2],
+      exact h1
+    }
   },
   {
-
+     simp [leading_coeff_def, X_pow_apply], -- need X_pow_apply
+     rw degree_X_pow h1,
+     simp [*, if_pos]
   }
-  simp [leading_coeff_def],
-  simp [degree_X_pow]
-  
+
 end
 
 
