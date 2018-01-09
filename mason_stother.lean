@@ -88,7 +88,7 @@ have one_le_deg : 1 ≤ degree (X + (- C q)), from
 have ((0 : β ) ≠ (1 : β)), from zero_ne_one,
 have h_deg_X : degree X = 1, from  degree_X this,
 have degree (C q) = 0, from degree_C,
-have h_deg_neg_C :degree (- C q) = 0, by rw [(eq.symm degree_neg), this],
+have h_deg_neg_C :degree (- C q) = 0, by rw [degree_neg, this],
 have ha: degree (X + (- C q)) ≤ 1, from
   calc
     degree (X + (- C q)) ≤ max (degree (X)) (degree (- C q)) : degree_add
@@ -135,7 +135,6 @@ variable {β : Type u}
 variables [field β]
 variables  [algebraically_closed_field β] -- Should be an instance of algebraically closed.
 open finsupp
-def irreducible {γ : Type u}[comm_semiring γ](p : γ): Prop := p ≠ 0 ∧ ¬ is_unit p ∧ ∀d, d∣p → is_unit d
 
 
 

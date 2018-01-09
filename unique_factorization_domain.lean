@@ -1,32 +1,35 @@
 import data.finsupp
 import algebra.ring
+import .to_finset
 
 local infix ^ := monoid.pow
 
 noncomputable theory
 
 open classical
+local attribute [instance] prop_decidable
 
 universe u
 variable {α : Type u}
 
---Convert units to a set
+--If I do this I can't reuse the lemmas for units.
 def is_unit_2 {t : Type u}[has_mul t] [has_one t](a : t) : Prop := ∃b, a * b = 1 ∧ b * a = 1
 --If I do this I can't reuse the lemmas for units.
+
+
 def is_unit {t : Type u}[semiring t] (a : t) : Prop := ∃b : units t, a = b
 
 def to_unit {t : Type u}[semiring t] {x : t} (h : is_unit x) : units t :=
 some h
 
-lemma  eq_to_unit_is_unit {t : Type u}[semiring t] {x : t} {h : is_unit x} : x = (@to_unit t _ x h):=
+def irreducible {γ : Type u}[comm_semiring γ](p : γ): Prop := p ≠ 0 ∧ ¬ is_unit p ∧ ∀d, d∣p → is_unit d
+
+lemma  eq_to_unit_is_unit {t : Type u}[semiring t] (x : t) {h : is_unit x} : x = (@to_unit t _ x h):=
 some_spec h 
 --Can't we make units a typeclass? 
 
 
 
-
-
-def pow_prod [comm_monoid α](p : α →₀ ℕ ) : α := p.prod (λ a n, a^n)
 --We need a coercion from α →₀ ℕ to list. De support is een finset, does that have a coercion to list?
 --The value of a finset is a multiset, and the multiset is a quotient with regards to permutations of lists.
 --def unique_factorization {α : Type u} {x : α} 
@@ -60,13 +63,32 @@ inductive associated_list : list α → list α → Prop
 
 local notation a`~ᵤ`b := associated a b
 
-lemma is_unit_one [integral_domain α] : is_unit (1 : α ) := --existential in is unit is anoying.
+
+
+lemma is_unit_one [semiring α] : is_unit (1 : α ) := --existential in is unit is anoying.
 ⟨1, rfl⟩ 
+
+lemma not_is_unit_zero [semiring α] (h : (0 : α) ≠ 1) : ¬ is_unit (0 : α) := --Do we need semiring?
+begin
+  by_contradiction h1,
+  let u := to_unit h1,
+  have h2: u.val*u.inv = 1,
+  from u.val_inv,
+  have h3: u.val*u.inv = (0 : α),
+  {
+    have : ↑u = (0 : α),
+    simp [u, h1],
+    rw [←eq_to_unit_is_unit (0 : α)],
+    have : u.val = (0 : α),
+    exact this,
+    simp [this],
+  },
+  rw h2 at h3,
+  exact h (eq.symm h3)
+end
 
 @[refl] protected lemma associated.refl [integral_domain α] : ∀ (x : α), x ~ᵤ x :=
 assume x, ⟨ 1, (by simp) ⟩ 
-
-set_option trace.check true
 
 @[symm] protected lemma associated.symm [integral_domain α] {x y : α} (p : x ~ᵤ y) : y ~ᵤ x :=
 begin 
@@ -105,16 +127,13 @@ lemma associated.eqv (α : Type) [integral_domain α]: equivalence (@associated 
 mk_equivalence (@associated α _) (@associated.refl α _) (@associated.symm α _) (@associated.trans α _)
 
 
-def associated_list [integral_domain α]: list α → list α → Prop
-| [] [] := true
-| [] (h::t) := false
-| (h::t) [] := false
-| (h₁::t₁) (h₂::t₂) := associated h₁ h₂ 
-
+inductive rel_multiset {α β : Type u} (r : α → β → Prop) : multiset α → multiset β → Prop
+| nil : rel_multiset {} {}
+| cons : ∀a b xs ys, r a b → rel_multiset xs ys → rel_multiset (a::xs) (b::ys)
 
 class unique_factorization_domain (α : Type u) extends integral_domain α :=
-(fac : ∀{x : α}, x ≠ 0 →  ∃ p : α →₀ ℕ, x = pow_prod p)
-(unique : ∀{x : α}, ∀{f g : α →₀ ℕ }, x = pow_prod f → x = pow_prod g → ∃ (l : list α) (q : list.perm (to_list g) l), associated_list (to_list f) l)
+(fac : ∀{x : α}, x ≠ 0 → ¬ is_unit x → ∃ p : multiset α, x = p.prod ∧ (∀x∈p, irreducible x))
+(unique : ∀{f g : multiset α}, (∀x∈f, irreducible x) → (∀x∈g, irreducible x) → f.prod = g.prod → rel_multiset associated f g)
 
 --To prove, that a field is an instance of an unique_fac_dom
 
@@ -125,17 +144,121 @@ instance discrete_field.to_integral_domain [s : discrete_field α] : integral_do
   ..s }
 -/
 
---Priority lowered,aim was to prevent diamond problem, div_ring to domain and integral_dom to domain
-@[priority 100] instance field.to_integral_domain [s : field α] : integral_domain α :=
+--Priority lowered (doesn't help),aim was to prevent diamond problem, div_ring to domain and integral_dom to domain
+instance field.to_integral_domain [s : field α] : integral_domain α :=
 {
     eq_zero_or_eq_zero_of_mul_eq_zero := @eq_zero_or_eq_zero_of_mul_eq_zero _ _,
     ..s
 }
 
+
+--is there a conversion from a division ring to a group over the multiplication? 
+
+lemma for_all_is_unit_of_not_zero [field α] : ∀{x : α}, x ≠ 0 → is_unit x :=
+begin
+  assume x h1,
+  rw [is_unit],
+  fapply exists.intro,
+  {
+    exact ⟨x, x⁻¹, mul_inv_cancel h1, inv_mul_cancel h1⟩
+  },
+  {
+    refl
+  }
+end
+
+lemma for_all_not_irreducible [field α] : ∀{x : α}, ¬irreducible x :=
+begin
+  {
+    simp [irreducible],
+    intros x h1 h2,
+    have : is_unit x,
+    from for_all_is_unit_of_not_zero h1,
+    contradiction
+  }
+end
+
+lemma eq_empty_of_forall_irreducible_of_mem [field α] {g : multiset α}: (∀ (x : α), x ∈ g → irreducible x) → g = ∅ :=
+begin
+  intro h1,
+  by_cases h2 : (g = ∅),
+  exact h2,
+  { 
+       let x := some (multiset.exists_mem_of_ne_zero h2),
+       have h3 : x ∈ g,
+       from some_spec (multiset.exists_mem_of_ne_zero h2),
+       have h4 : irreducible x,
+       from h1 x h3,
+       have : ¬ irreducible x,
+       from for_all_not_irreducible,
+       contradiction
+  }
+end
+
 lemma field.to_unique_factorization_domain [s : field α] : unique_factorization_domain α :=
 { 
     eq_zero_or_eq_zero_of_mul_eq_zero := @eq_zero_or_eq_zero_of_mul_eq_zero _ _, --Problem, will it now use the same as integral domain or again diamond problem?
-    fac := _,
-    unique := _,
+    fac := 
+    begin
+      assume x h1 h2,
+      have : is_unit x,
+      from for_all_is_unit_of_not_zero h1,
+      contradiction
+    end,
+    unique := 
+    begin
+      intros f g h1 h2 h3,
+      have hf : f = ∅,
+      from eq_empty_of_forall_irreducible_of_mem h1,
+      have hg : g = ∅,
+      from eq_empty_of_forall_irreducible_of_mem h2,
+      rw [hf, hg],
+      simp [rel_multiset.nil]    
+    end,
     ..s
+}
+
+--gcds
+class has_gcd (α : Type u) [comm_semiring α] :=
+(gcd : α → α → α) (gcd_right : ∀ a b, ( (gcd a b) ∣ b )) (gcd_left : ∀ a b, (gcd a b) ∣ a) (gcd_min : ∀ a b g, g∣a → g∣b → g∣ (gcd a b))
+
+def gcd [comm_semiring α] [has_gcd α] : α → α → α := has_gcd.gcd
+def gcd_min [comm_semiring α] [h : has_gcd α]  := h.gcd_min --Correct???
+
+lemma unique_factorization_domain.has_gcd [unique_factorization_domain α] : has_gcd α :=
+{
+  gcd := --Can this be done neather, with a match expression? Do I have unesisary cases?
+  begin
+    intros f g,
+    by_cases h1 : (f = 0),
+    {
+      exact g
+    },
+    {
+      by_cases h2 : (g = 0),
+      {
+        exact f
+      },
+      {
+        by_cases h3 : (is_unit f),
+        {
+          exact f
+        },
+        {
+          by_cases h4 : (is_unit g),
+          {
+            exact g,
+          },
+          {
+            let fac_f := some (unique_factorization_domain.fac h1 h3),
+            let fac_g := some (unique_factorization_domain.fac h2 h4),
+            exact (fac_f ∩ fac_g).prod
+          }
+        }
+      }
+    }
+  end,
+  gcd_right := sorry,
+  gcd_left := sorry,
+  gcd_min := sorry
 }
