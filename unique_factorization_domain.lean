@@ -225,6 +225,8 @@ class has_gcd (α : Type u) [comm_semiring α] :=
 def gcd [comm_semiring α] [has_gcd α] : α → α → α := has_gcd.gcd
 def gcd_min [comm_semiring α] [h : has_gcd α]  := h.gcd_min --Correct???
 
+def is_gcd [has_dvd α] (a b d :α) :=  d∣a ∧  d∣b ∧  (∀x, x∣a →  x∣b → x∣d)
+
 lemma unique_factorization_domain.has_gcd [unique_factorization_domain α] : has_gcd α :=
 {
   gcd := --Can this be done neather, with a match expression? Do I have unesisary cases?

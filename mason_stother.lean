@@ -7,6 +7,9 @@ import euclidean_domain
 import unique_factorization_domain
 import data.finsupp
 import algebraically_closed_field
+import poly_over_UFD
+
+
 noncomputable theory
 local infix ^ := monoid.pow
 local notation `d[`a`]` := polynomial.derivative a
@@ -28,27 +31,23 @@ universe u
 
 
 variable {α : Type u}
+
+attribute [instance] field.to_unique_factorization_domain --correct?
+
+
 variables [comm_semiring α]
 
 
 
-def is_gcd (a b d : polynomial α) :=  d∣a ∧  d∣b ∧  (∀x, x∣a →  x∣b → x∣d)
-
 -- so every polynomial has a GCD? Shouldn't there be some restriction on α
-axiom gcd_ax : ∀ a b : polynomial α,( ∃( d : polynomial α ), (is_gcd a b d))
-
-class has_gcd (α : Type u) [comm_semiring α] :=
-(gcd : α → α → α) (gcd_right : ∀ a b, ( (gcd a b) ∣ b )) (gcd_left : ∀ a b, (gcd a b) ∣ a) (gcd_min : ∀ a b g, g∣a → g∣b → g∣ (gcd a b))
-
-def gcd [comm_semiring α] [has_gcd α] : α → α → α := has_gcd.gcd
-def gcd_min [comm_semiring α] [h : has_gcd α]  := h.gcd_min --Correct???
+--axiom gcd_ax : ∀ a b : polynomial α,( ∃( d : polynomial α ), (is_gcd a b d))
 
 
-@[instance] constant polynomial.has_gcd : has_gcd (polynomial α)
+--@[instance] constant polynomial.has_gcd : has_gcd (polynomial α)
 
 def monic (p : polynomial α) : Prop := leading_coeff p = 1
 --Assume has_gcd on polynomials
-def rel_prime (a b : polynomial α) := is_unit (gcd a b) --∈ set.range (units.val : _ → polynomial α)
+ --∈ set.range (units.val : _ → polynomial α)
 
 
 --We need to define the radical and the number of distinct roots of a polynomial
@@ -68,7 +67,16 @@ def roots_of_as_set (a : polynomial α) := set_of (root_of a)
 section field
 
 variable β : Type u
-variable [field β]
+
+def rel_prime [unique_factorization_domain β] (a b : polynomial β) := is_unit (gcd a b)
+
+variable [field β] --Again an anoying diamond porblem with field to UFD
+
+#check @unique_factorization_domain.has_gcd
+
+
+
+
 
 open finsupp
 
@@ -174,7 +182,7 @@ end
 open classical
 section algebraically_closed
 
-
+def test [unique_factorization_domain β] := 0--test if the UFD can be obtained.
 
 def rad (p : polynomial β) : polynomial β := finset.prod (finsupp.support (monic_irr p)) id --The radiacal
 --def n₀ (p : polynomial β) : ℕ  := (roots p).support.card --The number of distinct roots
