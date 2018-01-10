@@ -181,8 +181,11 @@ end
 -/
 open classical
 section algebraically_closed
+set_option pp.numerals false
 
-def test [unique_factorization_domain β] := 0--test if the UFD can be obtained.
+--It might be good to remove the attribute to domain of integral domain?
+
+def test [unique_factorization_domain β] {f : β} {h1 : f ≠ 0} {h2 : ¬ is_unit f}:= @unique_factorization_domain.fac β _ f h1 h2 --test if the UFD can be obtained.
 
 def rad (p : polynomial β) : polynomial β := finset.prod (finsupp.support (monic_irr p)) id --The radiacal
 --def n₀ (p : polynomial β) : ℕ  := (roots p).support.card --The number of distinct roots

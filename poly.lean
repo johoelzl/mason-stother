@@ -182,7 +182,7 @@ lemma leading_coeff_def {p : polynomial α } : leading_coeff p = p (degree p) :=
 
 
 --correct?
-@[reducible] def monomial (p : polynomial α):= leading_coeff p = 1
+@[reducible] def monic (p : polynomial α):= leading_coeff p = 1
 
 lemma ext : ∀{f g : polynomial α}, (∀a, f a = g a) → f = g:=
 begin
@@ -271,6 +271,19 @@ apply a h4
 @[simp] lemma leading_coeff_C {a : α} : leading_coeff (C a) = a :=
 by simp [leading_coeff_def, degree_C, C_apply]
 
+@[simp] lemma leading_coeff_zero : leading_coeff (0 : polynomial α) = 0 :=
+begin
+  rw [←C_0],
+  exact leading_coeff_C
+end
+
+@[simp] lemma leading_coeff_one : leading_coeff (1 : polynomial α) = 1 :=
+begin
+  rw [←C_1],
+  exact leading_coeff_C
+end
+
+
 @[simp] lemma leading_coeff_X : leading_coeff (X : polynomial α) = 1 :=
 begin
   by_cases h1 : ((0 : α) = 1),
@@ -291,7 +304,7 @@ begin
   }
 end
 
-lemma monomial_X : monomial (X : polynomial α) := by {rw [monomial], exact leading_coeff_X}
+lemma monic_X : monic (X : polynomial α) := by {rw [monic], exact leading_coeff_X}
 
 lemma leading_coeff_X_pow {n : ℕ} : leading_coeff ((X ^ n) : polynomial α) = (1 : α) :=
 begin
@@ -315,7 +328,7 @@ begin
 
 end
 
-lemma monomial_X_pow {n : ℕ }: monomial ((X ^ n) : polynomial α) := by {rw monomial, exact leading_coeff_X_pow}
+lemma monic_X_pow {n : ℕ }: monic ((X ^ n) : polynomial α) := by {rw monic, exact leading_coeff_X_pow}
 
 
 
@@ -354,7 +367,7 @@ begin
 end
 
 
-
+--Must be corrected: single f!!!
 lemma eq_zero_of_leading_coef_eq_zero {p : polynomial α} : leading_coeff p = 0 → p = 0 :=
 begin
   intro h1,
@@ -590,10 +603,10 @@ begin
 
 end
 
---problem with unfolding monomial
-lemma degree_monomial_mul {f g : polynomial α }(h1 : monomial f) (h2 : (0 : α) ≠ 1)(h3 : g ≠ 0): degree (f * g) = (degree f) + (degree g) :=
+--problem with unfolding monic
+lemma degree_monic_mul {f g : polynomial α }(h1 : monic f) (h2 : (0 : α) ≠ 1)(h3 : g ≠ 0): degree (f * g) = (degree f) + (degree g) :=
 begin
-  rw monomial at h1, --anoying
+  rw monic at h1, --anoying
   have h4: (f * g) (degree f + degree g) ≠  0,
   calc (f * g) (degree f + degree g) = leading_coeff f * leading_coeff g : mul_add_degree_eq_add_leading_coeff
   ... = 1 * leading_coeff g : by rw h1
@@ -607,11 +620,11 @@ begin
 end
 
 --correct simp?
-@[simp] lemma monomial_def {f : polynomial α} {h : monomial f} : leading_coeff f = 1 := h
+@[simp] lemma monic_def {f : polynomial α} {h : monic f} : leading_coeff f = 1 := h
 
 --naming?
---Could be made more general --to work for an arbitrary monomial --what about zero_ne_one? --why is the type asscription done in the second argument in degree_X?
-lemma leading_coeff_monomial_mul{f g: polynomial α} {h1 : monomial f} (h2 : (0 : α) ≠ 1): leading_coeff (f * g) = leading_coeff g :=
+--Could be made more general --to work for an arbitrary monic--what about zero_ne_one? --why is the type asscription done in the second argument in degree_X?
+lemma leading_coeff_monic_mul{f g: polynomial α} {h1 : monic f} (h2 : (0 : α) ≠ 1): leading_coeff (f * g) = leading_coeff g :=
 begin 
   by_cases h3 : (g = 0),
   {
@@ -621,7 +634,7 @@ begin
         --let n : ℕ := degree (f * g),
     have h4 : degree (f * g) = degree f + degree g,
     
-    from degree_monomial_mul h1 h2 h3,
+    from degree_monic_mul h1 h2 h3,
     rw [leading_coeff],
     rw h4,
     rw mul_add_degree_eq_add_leading_coeff,
@@ -1012,7 +1025,7 @@ begin
 
 end
 
-lemma degree_mul_integral_domain {f g : polynomial α} : f * g ≠ 0 → degree (f * g) = degree f + degree g :=
+lemma degree_mul_eq_add_of_mul_ne_zero {f g : polynomial α} : f * g ≠ 0 → degree (f * g) = degree f + degree g :=
 begin
 
   intro h1, 
@@ -1030,6 +1043,28 @@ begin
   apply le_antisymm; simp * at *
 
 end
+
+lemma leading_coeff_mul_eq_mul_leading_coef {f g : polynomial α} : leading_coeff (f * g) = leading_coeff f * leading_coeff g :=
+begin
+  by_cases h1 : (f * g = 0),
+  {
+    simp * at *,
+    cases eq_zero_or_eq_zero_of_mul_eq_zero _ _ h1 with h2,
+    {
+      simp *,
+    },
+    {
+      simp *,
+    }
+  },
+  {
+    have : degree (f * g) = degree f + degree g,
+    from degree_mul_eq_add_of_mul_ne_zero h1,
+    simp [leading_coeff, this, mul_add_degree_eq_add_leading_coeff]
+  }    
+end
+
+
 
 end integral_domain
 

@@ -24,8 +24,13 @@ some h
 
 def irreducible {γ : Type u}[comm_semiring γ](p : γ): Prop := p ≠ 0 ∧ ¬ is_unit p ∧ ∀d, d∣p → is_unit d
 
-lemma  eq_to_unit_is_unit {t : Type u}[semiring t] (x : t) {h : is_unit x} : x = (@to_unit t _ x h):=
-some_spec h 
+--correct simp?
+@[simp] lemma  to_unit_is_unit_eq {t : Type u}[semiring t] {x : t} {h : is_unit x} : ↑(@to_unit t _ x h) = x :=
+eq.symm (some_spec h)
+
+@[simp] lemma  to_unit_is_unit_val_eq {t : Type u}[semiring t] {x : t} {h : is_unit x} : (@to_unit t _ x h).val = x :=
+eq.symm (some_spec h)
+
 --Can't we make units a typeclass? 
 
 
@@ -78,7 +83,7 @@ begin
   {
     have : ↑u = (0 : α),
     simp [u, h1],
-    rw [←eq_to_unit_is_unit (0 : α)],
+    --rw [to_unit_is_unit_eq (0 : α)],
     have : u.val = (0 : α),
     exact this,
     simp [this],
@@ -145,9 +150,9 @@ instance discrete_field.to_integral_domain [s : discrete_field α] : integral_do
 -/
 
 --Priority lowered (doesn't help),aim was to prevent diamond problem, div_ring to domain and integral_dom to domain
-instance field.to_integral_domain [s : field α] : integral_domain α :=
+instance field.to_integral_domain [s : field α] : integral_domain α := 
 {
-    eq_zero_or_eq_zero_of_mul_eq_zero := @eq_zero_or_eq_zero_of_mul_eq_zero _ _,
+    eq_zero_or_eq_zero_of_mul_eq_zero := @eq_zero_or_eq_zero_of_mul_eq_zero _ _, --How does it get the no_zero_divisors? -- division ring -> domain
     ..s
 }
 
@@ -195,7 +200,7 @@ begin
   }
 end
 
-lemma field.to_unique_factorization_domain [s : field α] : unique_factorization_domain α :=
+instance field.to_unique_factorization_domain [s : field α] : unique_factorization_domain α :=
 { 
     eq_zero_or_eq_zero_of_mul_eq_zero := @eq_zero_or_eq_zero_of_mul_eq_zero _ _, --Problem, will it now use the same as integral domain or again diamond problem?
     fac := 
@@ -227,13 +232,13 @@ def gcd_min [comm_semiring α] [h : has_gcd α]  := h.gcd_min --Correct???
 
 def is_gcd [has_dvd α] (a b d :α) :=  d∣a ∧  d∣b ∧  (∀x, x∣a →  x∣b → x∣d)
 
-lemma unique_factorization_domain.has_gcd [unique_factorization_domain α] : has_gcd α :=
+instance unique_factorization_domain.has_gcd [unique_factorization_domain α] : has_gcd α :=
 {
   gcd := --Can this be done neather, with a match expression? Do I have unesisary cases?
   begin
     intros f g,
-    by_cases h1 : (f = 0),
-    {
+    by_cases h1 : (f = 0), --!!! Wrong didn't take associates of irreducible elements into account.
+    { --Intersection can be taken after quotient over associates
       exact g
     },
     {
@@ -264,3 +269,29 @@ lemma unique_factorization_domain.has_gcd [unique_factorization_domain α] : has
   gcd_left := sorry,
   gcd_min := sorry
 }
+
+#check @to_unit
+
+--Lemma that every element not zero can be represented as a product of a unit with prod primes.
+lemma factorization [unique_factorization_domain α]: ∀{x : α}, x ≠ 0 → ∃ u : units α, ∃ p : multiset α, x = u*p.prod ∧ (∀x∈p, irreducible x) :=
+begin
+  intros x h1,
+  by_cases h2 : (is_unit x),
+  {
+    fapply exists.intro,
+    exact to_unit h2,
+    fapply exists.intro,
+    exact 0,
+    simp
+  },
+  { 
+    let f := some (unique_factorization_domain.fac h1 h2),
+    fapply exists.intro,
+    exact to_unit is_unit_one,
+    fapply exists.intro,
+    exact f,
+    simp,
+    exact some_spec (unique_factorization_domain.fac h1 h2)
+  }
+  
+end
