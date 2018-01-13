@@ -12,6 +12,10 @@ local attribute [instance] prop_decidable
 universe u
 variable {α : Type u}
 
+--Would it have been smart to define units as a type that lives in Prop??
+--Or would this have been pointless because a Prop cannot contain data? It could have been made with exisential quatifier, but than we are in the same situation that we are in now.
+
+
 --If I do this I can't reuse the lemmas for units.
 def is_unit_2 {t : Type u}[has_mul t] [has_one t](a : t) : Prop := ∃b, a * b = 1 ∧ b * a = 1
 --If I do this I can't reuse the lemmas for units.
@@ -22,7 +26,6 @@ def is_unit {t : Type u}[semiring t] (a : t) : Prop := ∃b : units t, a = b
 def to_unit {t : Type u}[semiring t] {x : t} (h : is_unit x) : units t :=
 some h
 
-def irreducible {γ : Type u}[comm_semiring γ](p : γ): Prop := p ≠ 0 ∧ ¬ is_unit p ∧ ∀d, d∣p → is_unit d
 
 --correct simp?
 @[simp] lemma  to_unit_is_unit_eq {t : Type u}[semiring t] {x : t} {h : is_unit x} : ↑(@to_unit t _ x h) = x :=
@@ -30,6 +33,7 @@ eq.symm (some_spec h)
 
 @[simp] lemma  to_unit_is_unit_val_eq {t : Type u}[semiring t] {x : t} {h : is_unit x} : (@to_unit t _ x h).val = x :=
 eq.symm (some_spec h)
+
 
 --Can't we make units a typeclass? 
 
@@ -68,7 +72,103 @@ inductive associated_list : list α → list α → Prop
 
 local notation a`~ᵤ`b := associated a b
 
+--Correct???? Should be unit or associate.
+def irreducible {γ : Type u}[integral_domain γ](p : γ): Prop := p ≠ 0 ∧ ¬ is_unit p ∧ ∀d, d∣p → (is_unit d ∨ (d ~ᵤ p))
 
+def irreducible' {γ : Type u}[integral_domain γ](p : γ): Prop := p ≠ 0 ∧ ¬ is_unit p ∧ ∀ a b :γ, p = a * b → (is_unit a ∨ is_unit b)
+
+lemma irreducible_iff_irreducible' {γ : Type u}[integral_domain γ]{p : γ} : irreducible p ↔ irreducible' p :=
+begin
+  apply iff.intro,
+  {
+    intro h1,
+    have h2 : (p ≠ 0),
+    from and.elim_left h1,
+    have h3 : (¬ is_unit p),
+    from and.elim_left (and.elim_right h1),
+    have h4 : ∀d, d∣p → (is_unit d ∨ (d ~ᵤ p)),
+    from and.elim_right (and.elim_right h1),
+    constructor,
+    exact h2,
+    constructor,
+    exact h3,
+    intros a b h5,
+    have h6 : a∣p,
+    {simp *},
+    have h7 : (is_unit a ∨ (a ~ᵤ p)),
+    from h4 a h6,
+    cases h7,
+    {
+      simp *
+    },
+    {
+      rw associated at h7,
+      let u := some h7,
+      have h8 : a = ↑u * p,
+      from some_spec h7,
+      rw h8 at h5,
+      rw [mul_comm _ p, mul_assoc] at h5,
+      have h9 : p * 1 = p * (↑u * b),
+      {
+        rw [←h5],
+        simp
+      },
+      have h10 : 1 = (↑u * b),
+      from eq_of_mul_eq_mul_left h2 h9,
+      have h11 : is_unit b,
+      {
+        constructor,
+        swap,
+        exact u⁻¹ * 1,
+        simp [h10],
+        have : ↑u⁻¹ * 1 = ↑u⁻¹ * (↑u * b),
+        {simp [h10]},
+        rw [←mul_assoc, units.inv_mul] at this,
+        simp at this,
+        exact eq.symm this
+      },
+      simp [h11]
+    }
+  },
+  {
+    intro h1,
+    have h2 : (p ≠ 0),
+    from and.elim_left h1,
+    have h3 : (¬ is_unit p),
+    from and.elim_left (and.elim_right h1),
+    have h4 : ∀ a b :γ, p = a * b → (is_unit a ∨ is_unit b),
+    from and.elim_right (and.elim_right h1), 
+    constructor,
+    exact h2,
+    constructor,
+    exact h3,
+    intros a h5, 
+    simp only [has_dvd.dvd] at h5,
+    let b := some h5,
+    have h6 : p = a * b,
+    from some_spec h5,
+    have h7 : is_unit a ∨ is_unit b,
+    from h4 _ _ h6,
+    cases h7,
+    {
+      simp [h7]
+    },
+    {
+      have h8 : (a ~ᵤ p),
+      {
+        simp only [associated],
+        let bᵤ := to_unit h7,
+        fapply exists.intro,
+        exact bᵤ⁻¹,
+        rw [mul_comm _ _] at h6,
+        rw [h6, ←mul_assoc, ←@to_unit_is_unit_val_eq _ _ b _, ←units.val_coe],
+        rw [units.inv_mul],
+        simp
+      },
+      simp [h8]
+    }
+  }
+end
 
 lemma is_unit_one [semiring α] : is_unit (1 : α ) := --existential in is unit is anoying.
 ⟨1, rfl⟩ 
@@ -92,6 +192,57 @@ begin
   exact h (eq.symm h3)
 end
 
+lemma ne_zero_of_is_unit [semiring α] {a : α} (h : (0 : α) ≠ 1) : is_unit a → a ≠ 0 :=
+begin
+  intro h1,
+  by_contradiction h2,
+  simp at h2,
+  rw h2 at h1,
+  have : ¬ is_unit (0 : α),
+  from not_is_unit_zero h,
+  contradiction
+end
+
+lemma is_unit_unit_mul_unit {a b : α} [semiring α] (h1 : is_unit a) (h2 : is_unit b) : is_unit (a * b) :=
+begin
+  let aᵤ := to_unit h1,
+  let bᵤ := to_unit h2,
+  simp only [is_unit],
+  fapply exists.intro,
+  exact (aᵤ*bᵤ),
+  simp
+end
+
+lemma not_unit_of_irreducible {a : α}[integral_domain α](h : irreducible a) : ¬ (is_unit a) :=
+begin
+  exact and.elim_left (and.elim_right h)
+end
+
+lemma dvd_irreducible_of_dvd_mul_unit_irreducible {a b c: α}[integral_domain α](h2 : is_unit b)(h3 : irreducible c)(h4 : a ∣ (b * c)) : a ∣ c :=
+begin
+  simp [has_dvd.dvd] at h4,
+  let bᵤ := to_unit h2,
+  let d := some h4,
+  have h5 : b * c = a * d,
+  from some_spec h4,
+  simp [has_dvd.dvd],
+  fapply exists.intro,
+  exact d*bᵤ.inv,
+  {
+    --rw ←@to_unit_is_unit_val_eq _ _ b h2 at h5,
+    calc c = 1 * c : by simp
+    ... = (↑bᵤ⁻¹* ↑bᵤ) * c : by rw [←units.inv_mul _]
+    ... = ↑bᵤ⁻¹ * (↑bᵤ * c) : by simp [mul_assoc]
+    ... = ↑bᵤ⁻¹ * (b * c): by rw [to_unit_is_unit_eq]
+    ... = ↑bᵤ⁻¹ * (a * d): by rw h5
+    ... = bᵤ.inv * (a * d): by rw [units.inv_coe]
+    ... = (a * d) * bᵤ.inv : by simp [mul_assoc, mul_comm]
+    ... = a * (d * bᵤ.inv) : by simp [mul_assoc]
+  }
+end
+
+
+
 @[refl] protected lemma associated.refl [integral_domain α] : ∀ (x : α), x ~ᵤ x :=
 assume x, ⟨ 1, (by simp) ⟩ 
 
@@ -112,8 +263,8 @@ begin
 end 
 
 
-
-@[symm] protected lemma associated.trans [integral_domain α] {x y z: α} (h1 : x ~ᵤ y)(h2 : y ~ᵤ z): x ~ᵤ z :=
+--Why protected??
+@[trans] protected lemma associated.trans [integral_domain α] {x y z: α} (h1 : x ~ᵤ y)(h2 : y ~ᵤ z): x ~ᵤ z :=
 begin 
   fapply exists.intro,
   exact (some h1) * (some h2),
@@ -130,6 +281,107 @@ end
 
 lemma associated.eqv (α : Type) [integral_domain α]: equivalence (@associated α _) :=
 mk_equivalence (@associated α _) (@associated.refl α _) (@associated.symm α _) (@associated.trans α _)
+
+
+--Problem with 'a' in the namespace
+lemma irreducible_of_associated {γ : Type u}[integral_domain γ]{p b : γ}(h1 : irreducible p)(h2 : p ~ᵤ b) : irreducible b :=
+begin
+  --rw [associated] at h2,
+  let u:= some h2,
+  have h3 : p = ↑u * b,
+  from some_spec h2,
+
+  have h4 : (p ≠ 0),
+  from and.elim_left h1,
+  have h5 : (¬ is_unit p),
+  from and.elim_left (and.elim_right h1),
+  have h6 : (∀c, (c∣p → (is_unit c ∨ (c ~ᵤ p)))),
+  from and.elim_right (and.elim_right h1),
+
+  have h7 : (b ≠ 0),
+  {
+    by_contradiction h5,
+    simp at h5,
+    have : p = 0,
+    {simp [h5, h3]},
+    contradiction,
+  },
+  have h8 : (¬ is_unit b),
+  {
+    by_contradiction,
+    have : is_unit ↑u,
+    {
+      constructor,
+      swap,
+      exact u,
+      simp
+    },
+    have h9 : is_unit (↑u * b),
+    from is_unit_unit_mul_unit this a,
+    rw ←h3 at h9,
+    contradiction,
+  },
+  have h9 : (∀c, (c∣b → (is_unit c ∨ (c ~ᵤ b)))),
+  {
+    intros c h9,
+    by_cases h10 : is_unit c,
+    {
+      simp [h10],
+    },
+    {
+      simp [has_dvd.dvd] at h9,
+      let d := some h9,
+      have h11 : b = c * d,
+      from some_spec h9,
+      have h12 :↑(u⁻¹) * p = b,
+      {
+        rw [h3, ←mul_assoc, units.inv_mul],
+        simp
+      },
+      rw ←h12 at h11,
+      have h13 : p = ↑u * (c * d),
+      {
+        rw [←h11, ←mul_assoc, units.mul_inv],
+        simp
+      },
+      have h14 : c ∣ p,
+      {
+        rw [←mul_assoc, mul_comm _ c, mul_assoc] at h13,
+        simp [h13],
+      },
+      have h15 : (c~ᵤ p),
+      {
+        have h16: is_unit c ∨ (c~ᵤ p),
+        from h6 c h14,
+        cases h16,
+        {contradiction},
+        {
+          assumption,
+        }
+        
+      },
+      have h16 : (c~ᵤ b),
+      {exact h15.trans h2},
+      simp [h16],
+    }
+  },
+  exact ⟨h7,h8,h9⟩, 
+end
+
+lemma unit_mul_irreducible_is_irreducible'  {γ : Type u}[integral_domain γ]{a b : γ}(h1 : is_unit a)(h2 : irreducible b) : irreducible (a * b) :=
+begin
+  let aᵤ := to_unit h1,
+  have h3 : (b ~ᵤ (a*b)),
+  {
+    constructor,
+    swap,
+    exact aᵤ⁻¹,
+    rw [←mul_assoc, ←@to_unit_is_unit_val_eq _ _ a _, ←units.val_coe, units.inv_mul],
+    simp
+  },
+  exact irreducible_of_associated h2 h3
+end
+
 
 
 inductive rel_multiset {α β : Type u} (r : α → β → Prop) : multiset α → multiset β → Prop
@@ -269,8 +521,6 @@ instance unique_factorization_domain.has_gcd [unique_factorization_domain α] : 
   gcd_left := sorry,
   gcd_min := sorry
 }
-
-#check @to_unit
 
 --Lemma that every element not zero can be represented as a product of a unit with prod primes.
 lemma factorization [unique_factorization_domain α]: ∀{x : α}, x ≠ 0 → ∃ u : units α, ∃ p : multiset α, x = u*p.prod ∧ (∀x∈p, irreducible x) :=

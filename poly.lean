@@ -696,7 +696,6 @@ by simp [C, single_mul_single]
 
 
 
-
 end semiring
 
 
@@ -707,6 +706,21 @@ variable [comm_semiring α]
 
 instance : comm_semiring (polynomial α) := finsupp.to_comm_semiring
 
+--set_option pp.numerals false
+--set_option pp.implicit true
+
+lemma C_prod_eq_prod_C {f : multiset α} : C (f.prod) = (f.map C).prod :=
+begin
+  fapply multiset.induction_on f, -- Don't understand the induction tactic yet.
+  {
+    simp
+  },
+  {
+    intros a s h1,
+    simp [C_mul_C, *]
+  }
+
+end
 
 lemma mul_C_eq_sum {f : polynomial α} {a : α} :
   f * C a = f.sum (λi c, single i (a * c)) :=
