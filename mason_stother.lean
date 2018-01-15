@@ -45,7 +45,7 @@ variables [comm_semiring α]
 
 --@[instance] constant polynomial.has_gcd : has_gcd (polynomial α)
 
-def monic (p : polynomial α) : Prop := leading_coeff p = 1
+--def monic (p : polynomial α) : Prop := leading_coeff p = 1
 --Assume has_gcd on polynomials
  --∈ set.range (units.val : _ → polynomial α)
 
@@ -141,7 +141,7 @@ end field
 
 variable {β : Type u}
 variables [field β]
-variables  [algebraically_closed_field β] -- Should be an instance of algebraically closed.
+--variables  [algebraically_closed_field β] -- Should be an instance of algebraically closed.
 open finsupp
 
 
@@ -157,7 +157,8 @@ axiom unique_factorization (p : polynomial β) : ∃ c : β , p = C c * ((finsup
 def c_fac (p : polynomial β) : β := some ( unique_factorization p)
 axiom c_fac_unit (p : polynomial β) :  is_unit (c_fac p)
 
-def facs_to_pow (p : polynomial β →₀ ℕ ) : finset (polynomial β):= p.support.image (λ a, a^(p a))
+--def facs_to_pow (p : polynomial β →₀ ℕ ) : finset (polynomial β):= p.support.image (λ a, a^(p a))
+--def to_finsupp_pow_min_one (p : polynomial β →₀ ℕ) : polynomial β →₀ ℕ := map_range  (λ n, n - 1) (by {simp}) p
 def facs_to_pow_min_one (p : polynomial β →₀ ℕ ) : finset (polynomial β):= p.support.image (λ a, a^(p a - 1))
 /-
 lemma pows (p : polynomial β →₀ ℕ ) : finsupp.prod p (λ k n, k^n) = finset.prod (facs_to_pow p) id
@@ -181,19 +182,152 @@ end
 -/
 open classical
 section algebraically_closed
-set_option pp.numerals false
+--set_option pp.numerals false
 
 --It might be good to remove the attribute to domain of integral domain?
 
-def test [unique_factorization_domain β] {f : β} {h1 : f ≠ 0} {h2 : ¬ is_unit f}:= @unique_factorization_domain.fac β _ f h1 h2 --test if the UFD can be obtained.
-
 def rad (p : polynomial β) : polynomial β := finset.prod (finsupp.support (monic_irr p)) id --The radiacal
+
+lemma rad_ne_zero {p : polynomial β} : rad p ≠ 0 :=
+begin
+  rw [rad],
+  apply prod_ne_zero_of_forall_mem_ne_zero,
+  intros x h1,
+  have h2 : irreducible x,
+  {apply irr_poly_irreducible p, exact h1},
+  exact and.elim_left h2,
+end
+
+lemma degree_rad_eq_sum_support_degree {f : polynomial β} : degree (rad f) = (finset.sum (finsupp.support (monic_irr f)) degree ) :=
+begin 
+  rw rad,
+  have h1 : finset.prod (support (monic_irr f)) id ≠ 0,
+  {
+    apply prod_ne_zero_of_forall_mem_ne_zero,
+    intros x h1,
+    have : irreducible x,
+    from irr_poly_irreducible f x h1,
+    exact and.elim_left this,
+  },
+  rw degree_prod_eq_sum_degree_of_prod_ne_zero h1
+end
+
+
+lemma prod_pow_min_on_ne_zero [unique_factorization_domain β]{f : polynomial β}: finsupp.prod (to_finsupp_pow_min_one (monic_irr f)) (λ (x : ~β) (y : ℕ), x ^ y) ≠ 0 :=
+begin
+  rw [finsupp.prod],
+  apply prod_ne_zero_of_forall_mem_ne_zero',
+  {
+    intros x h2,
+    exact pow_ne_zero _ h2,
+  },
+  exact _root_.zero_ne_one,
+  {
+    intros x h2,
+    have h3: x ∈ support (monic_irr f),
+    from finset.mem_of_subset support_pow_min_one_subset_support h2,
+    have h4 : irreducible x,
+    from irr_poly_irreducible f x h3,
+    exact and.elim_left h4
+  }
+end
+
+--Made a general instance fot this in poly
+--lemma degree_monic_irr_eq {f : polynomial β} : degree (finsupp.prod (monic_irr f) (λ x n, x^n)) = finsupp.sum (monic_irr f) (λ x n, n*(degree x))
+
+--lemma degree_monic_monic_irr_pow_min_one {f : polynomial β} : degree ()
+
+lemma degree_eq_add_degree_rad_degree_pow_min_one {f : polynomial β} : degree (finsupp.prod (monic_irr f) (λ x n, x^n)) = degree (finsupp.prod (to_finsupp_pow_min_one (monic_irr f)) (λ (x : ~β) (y : ℕ), x ^ y)) + (degree (rad f)) :=
+begin
+--!!!!! we need to add 'in' when using conv.
+  have h1 : (support (to_finsupp_pow_min_one (monic_irr f))) ⊆ support (monic_irr f),
+  {
+    from support_pow_min_one_subset_support,
+  },
+  have h2 : (support (to_finsupp_pow_min_one (monic_irr f))) ∪ (support (monic_irr f) \ (support (to_finsupp_pow_min_one (monic_irr f)))) = support (monic_irr f),
+  from finset.union_sdiff_of_subset h1,
+  have h3 : ∀x, x ∈ support (monic_irr f) \ support (to_finsupp_pow_min_one (monic_irr f)) ↔ (monic_irr f) x = 1,
+  from  mem_sdiff_support_support_pow_min_one_iff_eq_one, 
+  have h4 : finset.prod (support (to_finsupp_pow_min_one (monic_irr f)))(λ (x : ~β), x ^ (to_finsupp_pow_min_one (monic_irr f)) x * x) =
+         finset.prod (support (to_finsupp_pow_min_one (monic_irr f)))
+         (λ (x : ~β), x ^ (monic_irr f) x),
+  {
+    apply finset.prod_congr,
+    exact rfl,
+    intros x h4,
+    rw [mul_comm _ x, ←pow_succ, to_finsupp_pow_min_one, finsupp.map_range_apply],
+    have h5 : (monic_irr f) x ≠ 0,
+    {
+      have h5 : x ∈ support (monic_irr f),
+      from finset.mem_of_subset h1 h4,
+      rw [finsupp.mem_support_iff] at h5,
+      exact h5,
+    },
+    have h6 : (monic_irr f) x ≥ 1,
+    {
+      have h6 : 0 < (monic_irr f) x,
+      from nat.pos_of_ne_zero h5,
+      have h7 : nat.succ 0 ≤ (monic_irr f) x,
+      from nat.succ_le_of_lt h6,
+      exact h7
+    },
+    rw [nat.sub_add_cancel h6],
+  },
+  have h5 :  finset.prod (support (monic_irr f) \ support (to_finsupp_pow_min_one (monic_irr f))) (λ (x : ~β), x) = finset.prod (support (monic_irr f) \ support (to_finsupp_pow_min_one (monic_irr f))) (λ (x : ~β), x ^ (monic_irr f) x) ,
+  {
+    apply finset.prod_congr,
+    exact rfl,
+    intro x,
+    rw h3 x,
+    intro h5,
+    rw h5,
+    simp only [pow_one x],  
+  },
+  have h6 : Π₀ (to_finsupp_pow_min_one (monic_irr f)) (λ (x : ~β) (y : ℕ), x ^ y) * rad f ≠ 0,
+  {
+    apply mul_ne_zero,
+    exact prod_pow_min_on_ne_zero,
+    exact rad_ne_zero
+  },
+  have h7 : support (to_finsupp_pow_min_one (monic_irr f)) ∩
+    (support (monic_irr f) \ support (to_finsupp_pow_min_one (monic_irr f))) = ∅,
+  {simp},
+
+  conv 
+  {
+    to_rhs,
+    rw [←degree_mul_eq_add_of_mul_ne_zero h6, rad, finsupp.prod, ←h2, finset.prod_union h7, ←mul_assoc, ←finset.prod_mul_distrib],
+    simp,
+    rw [h4, h5, ←finset.prod_union h7, finset.union_comm _ _, finset.sdiff_union_of_subset h1, ←finsupp.prod],
+  }
+end
+
+/-
+lemma degree_eq_add_degree_rad_degree_pow_min_one {f : polynomial β} : degree (finsupp.prod (monic_irr f) (λ x n, x^n)) = degree (finsupp.prod (to_finsupp_pow_min_one (monic_irr f)) (λ (x : ~β) (y : ℕ), x ^ y)) + (degree (rad f)) :=
+begin
+  rw [degree_finsupp_prod, degree_finsupp_prod, degree_rad_eq_sum_support_degree, finsupp.sum, finsupp.sum, to_finsupp_pow_min_one],
+  have  h1 : (support (map_range (λ (n : ℕ), n - 1) to_finsupp_pow_min_one._proof_1 (monic_irr f))) ⊆ support (monic_irr f),
+  from support_pow_min_one_subset_support,
+  have h2 : (support (map_range (λ (n : ℕ), n - 1) to_finsupp_pow_min_one._proof_1 (monic_irr f))) ∪ ((support (monic_irr f)) \ (support (map_range (λ (n : ℕ), n - 1) to_finsupp_pow_min_one._proof_1 (monic_irr f))))  = (support (monic_irr f)),
+  from finset.union_sdiff_of_subset h1,
+  rw [←finset.sum_add_distrib],
+end-/
+ 
 --def n₀ (p : polynomial β) : ℕ  := (roots p).support.card --The number of distinct roots
 --set_option pp.notation false
 --set_option pp.implicit false
+
+
+
 lemma Mason_Stothers_lemma
-(f : polynomial β) : f ≠ 0 →  degree f ≤ degree (gcd f (derivative f )) + degree (rad f) := --I made degree radical from this one
+(f : polynomial β) : degree f ≤ degree (gcd f (derivative f )) + degree (rad f) := --I made degree radical from this one
 begin
+  by_cases hf : (f = 0),
+  {
+    rw [hf],
+    simp,
+    exact nat.zero_le _,
+  },
   --have h_fac : ∃ c : β , f = C c * (finsupp.prod (roots f) (λ k n, ( (X - C k ) ^n) )  ), from eq_prod_lin_fac_roots f,
   have h_tmp : ((finsupp.prod (monic_irr f) (λ k n, k ^n) ) ) = (monic_irr f).support.prod (λa, (λ k n, k ^n) a ((monic_irr f) a)),
   simp [finsupp.prod],
@@ -261,8 +395,74 @@ begin
     apply hy,
     apply h_dvd_der y,
     apply hy
-  } --For the next lemma some notions of UFD need to be made.
-  
+  }, --For the next lemma some notions of UFD need to be made.
+  have h_prod_dvd_gcd_f_der :(to_finsupp_pow_min_one (monic_irr f)).prod (λ x y, x ^ y) ∣ gcd f d[f],
+  {  
+    apply facs_to_pow_prod_dvd,
+    rw [to_finsupp_pow_min_one],
+    dunfold to_finsupp_pow_min_one._proof_1,
+    intros x h1,
+    have h2 : x ∈ support (monic_irr f),
+    {
+      have :(support (map_range (λ (n : ℕ), n - has_one.one ℕ) _ (monic_irr f))) ⊆ ( support (monic_irr f)),
+      from support_pow_min_one_subset_support,
+      exact finset.mem_of_subset this h1
+    },
+    have h3 : irreducible x,
+    from irr_poly_irreducible f x h2,
+    have h4 : x ^ ((map_range (λ (n : ℕ), n - has_one.one ℕ) _ (monic_irr f)) x) ∣ gcd f d[f],
+    {
+        rw map_range_apply,
+        exact h_dvd_gcd_f_der x h2
+    },
+    have h5 : ∀ (y : ~β),
+        y ∈ support (map_range (λ (n : ℕ), n - has_one.one ℕ) _ (monic_irr f)) → x ≠ y → ¬associated x y,
+        {
+          intros y h5,
+          have h6 : y ∈ support (monic_irr f),
+          {--duplicate code here
+            have :(support (map_range (λ (n : ℕ), n - has_one.one ℕ) _ (monic_irr f))) ⊆ ( support (monic_irr f)),
+            from support_pow_min_one_subset_support,
+            exact finset.mem_of_subset this h5
+          },
+          have h7 : monic x,
+          from  irr_poly_monic f x h2,
+          have h8 : monic y,
+          from irr_poly_monic f y h6,
+          intro h9,
+          rw associated_iff_eq h7 h8,
+          exact h9,
+        },
+        exact ⟨h3 ,h4 ,h5 ⟩,
+  },
+  {
+    have h_gcd : gcd f d[f] ≠ 0,
+    {
+      rw [ne.def, gcd_eq_zero_iff_eq_zero_and_eq_zero],
+      simp [hf]
+    },
+    have h1 : degree (finsupp.prod (to_finsupp_pow_min_one (monic_irr f)) (λ (x : ~β) (y : ℕ), x ^ y)) ≤ degree (gcd f d[f]),
+    from degree_dvd h_prod_dvd_gcd_f_der h_gcd,
+    have h2 : degree f = degree (finsupp.prod (to_finsupp_pow_min_one (monic_irr f)) (λ (x : ~β) (y : ℕ), x ^ y)) + (degree (rad f)),
+    {
+      have h2: (C (c_fac f) * finsupp.prod (monic_irr f) (λ (k : ~β) (n : ℕ), k ^ n) ≠ 0),
+      {
+        rw [←h_fac],
+        exact hf
+      },
+      conv 
+      {
+        to_lhs,
+        rw [h_fac, degree_mul_eq_add_of_mul_ne_zero h2],
+        simp,
+        rw [degree_eq_add_degree_rad_degree_pow_min_one],
+      }
+    },
+    rw h2,
+    apply add_le_add_right,
+    exact h1 
+  },
+
   --have h_f' : derivative f = C (c_fac f) *
 
 

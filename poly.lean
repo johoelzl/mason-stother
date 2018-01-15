@@ -1055,8 +1055,122 @@ begin
   have h6 : degree (f * g) ≤ (degree f + degree g),
   from degree_mul,
   apply le_antisymm; simp * at *
+end
+
+lemma prod_ne_zero_of_forall_mem_ne_zero {f : finset (polynomial α)} : (∀ x ∈ f, x ≠ (0 : polynomial α)) → f.prod id ≠ 0 :=
+begin
+  apply finset.induction_on f,
+  {
+    simp *,
+  },
+  {
+    intros a s h1 h2 h3,
+    have h4 : (∀ (x : polynomial α), x ∈ s → x ≠ 0),
+    {
+      intros x h4,
+      apply h3 x,
+      simp *,
+    },
+    rw finset.prod_insert h1,
+    have h5 : finset.prod s id ≠ 0,
+    from h2 h4,
+    have h6 : a ≠ 0,
+    {
+      apply h3,
+      simp,
+    },
+    simp,
+    exact mul_ne_zero h6 h5,
+  }
+end
+
+lemma degree_prod {β : Type u} {s : finset β} {f : β → polynomial α} : finset.prod s f ≠ 0 → degree (s.prod f) = s.sum (degree ∘ f) :=
+begin
+  fapply finset.induction_on s,
+  {
+    simp *,
+  },
+  {
+    intros a s h1 h2 h3,
+    simp *,
+    have h4 : finset.prod s f ≠ 0,
+    {
+      rw [finset.prod_insert h1] at h3,
+      exact ne_zero_of_mul_ne_zero_left h3,      
+    },
+    have h5 : degree (finset.prod s f) = finset.sum s (degree ∘ f),
+    from h2 h4,
+    rw [degree_mul_eq_add_of_mul_ne_zero, h5],
+    rw [finset.prod_insert h1] at h3,
+    exact h3,
+  },
 
 end
+
+lemma degree_prod_eq_sum_degree_of_prod_ne_zero {f : finset (polynomial α)} : (f.prod id ≠ 0) → degree (f.prod id) = f.sum (degree) :=
+begin
+  fapply finset.induction_on f,
+  {
+    simp *
+  },
+  {
+    intros a s h1 h2 h3,
+    simp,
+    rw [finset.prod_insert h1, finset.sum_insert h1],
+    have h4: finset.prod (s) id ≠ 0,
+    {
+      rw finset.prod_insert at h3,
+      exact ne_zero_of_mul_ne_zero_left h3,
+      exact h1,
+    },
+    have h5: degree (finset.prod s id) = finset.sum s degree,
+    from h2 h4,
+    simp at h5,
+    have h6 : a * finset.prod s (λ (x : polynomial α), x) ≠ 0,
+    {
+      rw finset.prod_insert h1 at h3,
+      simp at h3,
+      exact h3    
+    },
+    rw degree_mul_eq_add_of_mul_ne_zero h6,
+    rw h5
+  }
+end
+
+#check add_monoid.smul
+
+lemma degree_pow {x : polynomial α}{n : ℕ} : degree (x ^ n) = n * degree x :=
+begin
+  
+  induction n with n h1,
+  {
+    simp *,
+  },
+  {
+    by_cases h : (x = 0),
+    {
+      simp * at *,
+      simp [pow_succ]
+    },
+    {
+      rw [pow_succ, degree_mul_eq_add_of_mul_ne_zero, h1],
+      exact calc degree x + n * degree x = 1 * degree x + n * degree x : by simp
+          ... = n * degree x + 1 * degree x : by rw add_comm (1 * degree x) (n * degree x)
+          ... = (n + 1) * degree x : by rw [add_mul]
+          ... = nat.succ n * degree x : rfl,
+      have : (x ^ n ≠ 0),
+      from pow_ne_zero _ h,
+      exact mul_ne_zero h this,
+    },   
+  }
+end
+
+lemma degree_finsupp_prod {f : polynomial α →₀ ℕ} (h1 : finsupp.prod f (λ x n, x^n) ≠ 0): degree (finsupp.prod f (λ x n, x^n)) = finsupp.sum f (λ x n, n*(degree x)):=
+begin
+  rw [finsupp.prod, degree_prod h1, finsupp.sum],
+  simp [(∘), * , degree_pow],
+end
+
 
 lemma leading_coeff_mul_eq_mul_leading_coef {f g : polynomial α} : leading_coeff (f * g) = leading_coeff f * leading_coeff g :=
 begin

@@ -181,5 +181,22 @@ lemma erase_insert_eq_insert_erase {α : Type u} {s : finset α} {a b : α} (h :
   erase (insert a s) b = insert a (erase s b) :=
 finset.ext.mpr begin intro c, by_cases c = a; by_cases c = b; simp [h, *] at * end
 
+--finsupp as multiset
+open finsupp
+def to_finsupp_pow_min_one {α : Type u} (p : α →₀ ℕ) : α →₀ ℕ := map_range  (λ n, n - 1) (by {simp}) p
 
+--Easily made more general
+lemma support_pow_min_one_subset_support {α : Type u} {f : α →₀ ℕ} : (finsupp.support ((finsupp.map_range (λ (n : ℕ), n - 1)(by {simp}) f))) ⊆ (finsupp.support f) :=
+begin
+  simp only [has_subset.subset],
+  intros a h1,
+  rw [mem_support_iff] at h1,
+  rw mem_support_iff,
+  simp at h1,
+  by_contradiction h2,
+  simp at h2,
+  rw h2 at h1,
+  rw [nat.zero_sub 1] at h1,
+  exact h1 rfl,
+end
 end polynomial

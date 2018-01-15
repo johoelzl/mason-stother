@@ -382,7 +382,103 @@ begin
   exact irreducible_of_associated h2 h3
 end
 
+lemma zero_associated_zero  {γ : Type u}[integral_domain γ] : (0 : γ) ~ᵤ 0 :=
+begin
+  simp [associated],
+  fapply exists.intro,
+  exact 1,
+  exact true.intro
+end
 
+lemma associated_of_mul_eq_one {γ : Type u}[integral_domain γ]{a b : γ}(h1 : a * b = 1) : a ~ᵤ b :=
+begin
+  have h2 : b * a = 1,
+  {
+    rw mul_comm a b at h1,
+    exact h1
+  },
+  have h3 : a * a * (b * b) = 1,
+  {
+    rw [←mul_assoc, @mul_assoc _ _ a a _, h1], 
+    simp [h1]
+  },
+  have h4 : b * b * (a * a) = 1,
+  {
+    rw [mul_comm _ _] at h3,
+    exact h3
+  },
+  rw associated,
+  fapply exists.intro,
+  {
+    exact units.mk (a * a) (b * b) h3 h4,
+  },
+  {
+    rw [units.val_coe],
+    simp [mul_assoc, h1]
+  }
+end
+
+def unit_of_mul_eq_one {γ : Type u}[integral_domain γ]{a b : γ} (h1 : a * b = 1) : units γ :=
+units.mk a b h1 (by {rw mul_comm _ _ at h1, exact h1})
+
+lemma associated_of_dvd_dvd {γ : Type u}[integral_domain γ]{a b : γ}{h1 : a ∣ b} {h2 : b ∣ a} : a ~ᵤ b :=
+begin
+  simp only [has_dvd.dvd] at *,
+  let c := some h2,
+  have h3 : a = b * c,
+  from some_spec h2,
+  let d := some h1,
+  have h4 : b = a * d,
+  from some_spec h1,
+
+  by_cases h6 : (a = 0),
+  {
+    have h7 : (b = 0),
+    {
+      rw h6 at h4,
+      simp at h4,
+      exact h4,
+    },
+    rw [h6, h7]
+  },
+  {
+    have h3b : a = a * (d * c),
+    {
+      rw [h4, mul_assoc] at h3,
+      exact h3,
+    },
+    
+    have h5 : a * 1 = a * (d * c),
+    {simp, exact h3b}, 
+    have h7 : 1 = (d * c),
+    from eq_of_mul_eq_mul_left h6 h5,
+    rw associated,
+    rw mul_comm _ _ at h7,
+    fapply exists.intro,
+    exact unit_of_mul_eq_one (eq.symm h7),
+    rw [unit_of_mul_eq_one, units.val_coe],
+    simp,
+    rw h3,
+    exact mul_comm _ _,
+  }
+end
+
+lemma associated_zero_iff_eq_zero {α : Type u} {a : α} [integral_domain α] : (a ~ᵤ (0 : α)) ↔ a = 0 :=
+begin
+  constructor,
+  {
+    intro h1,
+    rw [associated] at h1,
+    let u := some h1,
+    have h2: a = u * 0,
+    from some_spec h1,
+    simp [h2],
+  },
+  {
+    intro h1,
+    rw h1
+  }
+end
 
 inductive rel_multiset {α β : Type u} (r : α → β → Prop) : multiset α → multiset β → Prop
 | nil : rel_multiset {} {}
@@ -475,14 +571,96 @@ instance field.to_unique_factorization_domain [s : field α] : unique_factorizat
     ..s
 }
 
+def facs_to_pow  [monoid α] (p : α →₀ ℕ ) : finset α:= p.support.image (λ a, a^(p a))
+
+--correct?
+lemma facs_to_pow_prod_dvd [integral_domain α] {f : α →₀ ℕ} {z : α}(h1 : (∀ x ∈ (finsupp.support f), irreducible x ∧ (x^(f x))∣z ∧ (∀y ∈ finsupp.support f,x ≠ y →  ¬ (x ~ᵤ y)) )) : f.prod (λ x y, x^y) ∣ z:=
+sorry
+
 --gcds
 class has_gcd (α : Type u) [comm_semiring α] :=
 (gcd : α → α → α) (gcd_right : ∀ a b, ( (gcd a b) ∣ b )) (gcd_left : ∀ a b, (gcd a b) ∣ a) (gcd_min : ∀ a b g, g∣a → g∣b → g∣ (gcd a b))
 
 def gcd [comm_semiring α] [has_gcd α] : α → α → α := has_gcd.gcd
 def gcd_min [comm_semiring α] [h : has_gcd α]  := h.gcd_min --Correct???
-
+def gcd_left [comm_semiring α] [h : has_gcd α]  := h.gcd_left --use {a b : α}?
+def gcd_right [comm_semiring α] [h : has_gcd α]  := h.gcd_right
 def is_gcd [has_dvd α] (a b d :α) :=  d∣a ∧  d∣b ∧  (∀x, x∣a →  x∣b → x∣d)
+
+
+@[simp] lemma gcd_zero_zero_eq_zero {α : Type u} [comm_semiring α][has_gcd α] : gcd (0 : α) 0 = 0 :=
+begin
+  by_contradiction,
+  have h1 : (0 : α)∣0,
+  {simp},
+  have h2 : 0 ∣ (gcd (0 : α) 0),
+  from gcd_min _ _ _ h1 h1,
+  have : (gcd (0 : α) 0) = 0,
+  from eq_zero_of_zero_dvd h2,
+  contradiction
+end
+
+lemma gcd_zero_associated_left {α : Type u} [integral_domain α][has_gcd α] {f : α} : (gcd f (0 : α)) ~ᵤ f :=
+begin
+  apply associated_of_dvd_dvd,
+  exact gcd_left _ _,
+  apply gcd_min,
+  simp,
+  simp
+end
+
+lemma gcd_zero_associated_right {α : Type u} [integral_domain α][has_gcd α] {f : α} : (gcd (0 : α) f) ~ᵤ f :=
+begin
+  apply associated_of_dvd_dvd,
+  exact gcd_right _ _,
+  apply gcd_min,
+  simp,
+  simp
+end
+
+lemma gcd_eq_zero_iff_eq_zero_and_eq_zero {α : Type u} [integral_domain α][has_gcd α] {f g : α}  : gcd f g = 0 ↔ f = 0 ∧ g = 0:=
+begin
+  constructor,
+  {
+     intro h1,
+     by_contradiction h2,
+     have h3 : ¬(g = 0 ∧ f = 0),
+     {
+       rw and.comm at h2,
+       exact h2
+     },
+     simp at *,
+     by_cases h4 : (f = 0),
+     { 
+       have h5 : g ≠ 0,
+       from h2 h4,
+       rw h4 at h1,
+       have h6 : ((gcd 0 g) ~ᵤ g),
+       from gcd_zero_associated_right,
+       rw [h1] at h6,
+       have h7 : (g ~ᵤ 0),
+       from associated.symm h6,
+       rw [associated_zero_iff_eq_zero] at h7,
+       contradiction,
+     },
+     {
+       apply h4,
+       apply eq_zero_of_zero_dvd,
+       rw ← h1,
+       exact gcd_left _ _,
+     }
+
+  },
+  {
+    intro h1,
+    have h2 : f = 0,
+    from and.elim_left h1,
+    have h3 : g = 0,
+    from and.elim_right h1,
+    rw [h2, h3],
+    exact gcd_zero_zero_eq_zero
+  }
+end
 
 instance unique_factorization_domain.has_gcd [unique_factorization_domain α] : has_gcd α :=
 {

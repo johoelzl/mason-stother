@@ -110,6 +110,56 @@ begin
   exact rfl,
 end
 
+lemma eq_one_of_monic_unit [integral_domain α] {f : polynomial α}(h1 : monic f) (h2 : is_unit f) : f = 1 :=
+begin
+  rw monic at *,
+  have h3 : ∃c : α, f =  C c,
+  from eq_constant_of_is_unit h2,
+  let c := some h3,
+  have h4 : f = C c,
+  from some_spec h3,
+  rw [h4, leading_coeff_C] at h1,
+  rw h1 at h4,
+  simp at h4,
+  assumption
+end
+--lemma monic polynomials are associated iff they are equal.
+lemma associated_iff_eq [integral_domain α] {x y : polynomial α}(h1 : monic x)(h2 : monic y) : (x ~ᵤ y) ↔ x = y :=
+begin
+  constructor,
+  {
+     intro h3,
+     rw associated at h3,
+     let u:= some h3,
+     have h4 : x = ↑u * y,
+     from some_spec h3,
+     rw monic at *,
+     have h5 : leading_coeff (↑u * y) = (leading_coeff ↑u) * (leading_coeff y),
+     from leading_coeff_mul_eq_mul_leading_coef,
+     rw [←h4, h1, h2] at h5,
+     have h6 : leading_coeff (↑u : polynomial α) = 1,
+     {simp at h5, exact eq.symm h5},
+     have h7 : is_unit (↑u : polynomial α ),
+     {
+       constructor,
+       swap,
+       exact u,
+       exact rfl
+     },
+     have h8 : monic (↑u : polynomial α ),
+     from h6,
+     have h9 : (↑u : polynomial α ) = 1,
+     from eq_one_of_monic_unit h8 h7,
+     rw h9 at h4,
+     simp [h4]
+
+  },
+  {
+    intro h3,
+    simp [h3]
+  }
+end
+
 lemma polynomial_fac [field α] {x : polynomial α} : ∃ c :  α, ∃ p : multiset (polynomial α), x = C c * p.prod ∧ (∀x∈p, irreducible x ∧ monic x)  :=
 begin
   by_cases h1 : (x = 0),
