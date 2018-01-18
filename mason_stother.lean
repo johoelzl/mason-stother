@@ -68,11 +68,9 @@ section field
 
 variable β : Type u
 
-def rel_prime [unique_factorization_domain β] (a b : polynomial β) := is_unit (gcd a b)
-
 variable [field β] --Again an anoying diamond porblem with field to UFD
 
-#check @unique_factorization_domain.has_gcd
+
 
 
 
@@ -316,7 +314,112 @@ end-/
 --def n₀ (p : polynomial β) : ℕ  := (roots p).support.card --The number of distinct roots
 --set_option pp.notation false
 --set_option pp.implicit false
+--More general, where does it belong?
+lemma ne_zero_of_dvd_ne_zero {γ : Type u}{a b : γ} [comm_semiring γ] (h1 : a ∣ b) (h2 : b ≠ 0) : a ≠ 0 :=
+begin
+  simp only [has_dvd.dvd] at h1,
+  let c := some h1,
+  have h3: b = a * c,
+  from some_spec h1,
+  by_contradiction h4,
+  rw not_not at h4,
+  rw h4 at h3,
+  simp at h3,
+  contradiction
+end
 
+----set_option trace.simplify true
+--set_option trace.simplify.failure true
+set_option trace.simplify.rewrite true
+-- set_option trace.simplify.rewrite_failure true
+
+--important solve simp problem here
+--Here a problem with simp, it immideately* failes
+lemma degree_wron_le {a b : polynomial β} : degree (d[a] * b - a * d[b]) ≤ degree a + degree b - 1 :=
+begin
+  by_cases h1 : (a = 0),
+  {
+    rw [h1, degree_zero, derivative_zero,zero_mul,sub_eq_add_neg, zero_add,zero_mul,degree_neg],
+    rw [degree_zero],
+    exact nat.zero_le _,
+  },
+  {
+    by_cases h2 : (degree a = 0),
+    {
+
+      by_cases h3 : (b = 0),
+      {
+        rw h3,
+        simp [nat.zero_le],
+        --rw [h3, mul_zero, degree_zero,sub_eq_add_neg, zero_add, derivative_zero,add_zero, mul_zero, degree_neg, degree_zero],
+        exact nat.zero_le (degree a - 1)--simp should find degree_zero here
+      },
+    }
+  }
+end
+
+#exit
+      {
+        by_cases h4 : (degree b = 0),
+        {
+          rw [h4, h2],
+          rw [←is_constant_iff_degree_eq_zero] at *,
+          rw [derivative_eq_zero_of_is_constant h2, derivative_eq_zero_of_is_constant h4],
+          rw [mul_zero, zero_mul, add_zero,sub_eq_add_neg,zero_add, degree_neg, degree_zero],
+        },
+        {
+          rw [h2, zero_add],
+          rw ←is_constant_iff_degree_eq_zero at h2,
+          rw [derivative_eq_zero_of_is_constant h2, zero_mul,sub_eq_add_neg, zero_add,degree_neg],
+          rw [degree_mul_eq_add_of_mul_ne_zero],
+          rw [is_constant_iff_degree_eq_zero] at h2,
+          rw [h2, zero_add],
+          exact degree_derivative_le,
+        }
+      },
+
+      rw h1,
+      rw ←is_constant_iff_degree_eq_zero at h1,
+      have h2 : d[a] = 0,
+      from derivative_eq_zero_of_is_constant h1,
+      rw h2,
+      rw is_constant_iff_degree_eq_zero at h1,
+      rw [zero_mul,sub_eq_add_neg, zero_add, degree_neg, zero_add, degree_mul_eq_add_of_mul_ne_zero, h1, zero_add],
+      exact degree_derivative_le,
+
+
+    },
+    {
+
+    }
+    
+  }
+
+
+
+  /-
+  by_cases h1 : (d[a] * b = 0),
+  {
+
+    rw [h1, sub_eq_add_neg, zero_add, degree_neg, degree_mul_eq_add_of_mul_ne_zero],
+    have h2: degree d[b] ≤ degree b - 1,
+    from degree_derivative_le,
+    have h3 : degree a + degree d[b] ≤ degree a + (degree b - 1),
+    exact add_le_add_left h2 (degree a),
+    by_cases h1_1 : (degree b = 0),
+    {
+
+    },
+    
+  },
+  {
+
+  }
+  exact calc degree (d[a] * b - a * d[b]) ≤ max (degree (d[a] * b)) (degree (a * d[b])) : degree_sub
+  ... = max (degree d[a] + degree b) (degree (a * d[b])) : by rw degree_mul_eq_add_of_mul_ne_zero
+  ... = max (degree d[a] + degree b) (degree a + degree ( d[b])) : by rw degree_mul_eq_add_of_mul_ne_zero
+  -/
+end
 
 
 lemma Mason_Stothers_lemma
@@ -462,28 +565,150 @@ begin
     apply add_le_add_right,
     exact h1 
   },
-
-  --have h_f' : derivative f = C (c_fac f) *
-
-
---derivative (s.prod p) = s.sum (λb, derivative (p b) * (erase s b).prod p) 
-
---((finsupp.prod (monic_irr f) (λ k n, k ^n) ) ) = 
---finset.prod (support f) (λ (a : polynomial β), a ^ ⇑f a) =
---derivative (s.prod f) = s.sum (λb, derivative (f b) * (erase s b).prod f) 
--- (monic_irr f).support.prod (λa, (λ k n, k ^n) a ((monic_irr f) a))
 end
 
+lemma derivative_eq_zero_and_derivative_eq_zero_of_rel_prime_of_wron_eq_zero
+{a b : polynomial β} 
+(h1 : rel_prime a b)
+(h2 : d[a] * b - a * d[b] = 0)
+: d[a] = 0 ∧  d[b] = 0 := sorry
 
-theorem Mason_Stothers
+lemma rel_prime_gcd_derivative_gcd_derivative_of_rel_prime {a b : polynomial β} (h : rel_prime a b) : rel_prime (gcd a d[a]) (gcd b d[b]) :=
+sorry
+
+theorem Mason_Stothers [field β]
+  (h_char : characteristic_zero β)
   (a b c : polynomial β)
   (h_rel_prime_ab : rel_prime a b)
   (h_rel_prime_bc : rel_prime b c)
   (h_rel_prime_ca : rel_prime c a)
-  (h1 : a + b = c)
-  (h2 : ¬ (derivative a = 0 ∧ derivative b = 0 ∧ derivative c = 0)) :
+  (h_add : a + b = c)
+  (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)) :
   degree c ≤ degree ( rad (a*b*c)) - 1 :=
-sorry
+
+begin
+  have h_der_not_all_zero : ¬(d[a] = 0 ∧ d[b] = 0 ∧ d[c] = 0),
+  {
+    rw [derivative_eq_zero_iff_is_constant, derivative_eq_zero_iff_is_constant, derivative_eq_zero_iff_is_constant],
+    exact h_constant,
+    exact h_char, -- Should be written down shorter
+    exact h_char,
+    exact h_char,
+  },
+  have h_der : d[a] + d[b] = d[c],
+  {
+    rw [←h_add, derivative_add],
+  },
+  have h_wron : d[a] * b - a * d[b] = d[a] * c - a * d[c],
+  {
+    have h1 : d[a] * a + d[a] * b = d[a] * c,
+      exact calc d[a] * a + d[a] * b = d[a] * (a + b) : by rw [mul_add]
+      ... = _ : by rw h_add,
+    have h2 : a * d[a] + a * d[b] = a * d[c],
+      exact calc a * d[a] + a * d[b] = a * (d[a] + d[b]) : by rw [mul_add]
+      ... = _ : by rw h_der,
+    have h3 : d[a] * b - a * d[b] = d[a] * c - a * d[c],
+      exact calc d[a] * b - a * d[b] = d[a] * b + (d[a] * a - d[a] * a) - a * d[b] : by simp
+      ... = d[a] * b + d[a] * a - d[a] * a - a * d[b] : by simp
+      ... = d[a] * c - (d[a] * a +  a * d[b]) : by simp [h1]
+      ... = d[a] * c - (a * d[a] +  a * d[b]) : by rw [mul_comm _ a]
+      ... = _ : by rw h2,
+    exact h3
+  },
+  have h_dvd_wron_a : gcd a d[a] ∣ d[a] * b - a * d[b],
+  {
+    have h1 : gcd a d[a] ∣ d[a] * b,
+    {
+      apply dvd_trans gcd_right,
+      apply dvd_mul_of_dvd_left,
+      simp
+    },
+    have h2 : gcd a d[a] ∣ a * d[b],
+    {
+      apply dvd_trans gcd_left,
+      apply dvd_mul_of_dvd_left,
+      simp
+    },
+    exact dvd_sub h1 h2,
+  },
+  have h_dvd_wron_b : gcd b d[b] ∣ d[a] * b - a * d[b],
+  {
+    have h1 : gcd b d[b] ∣ d[a] * b,
+    {
+      apply dvd_trans gcd_left,
+      apply dvd_mul_of_dvd_right,
+      simp
+    },
+    have h2 : gcd b d[b] ∣ a * d[b],
+    {
+      apply dvd_trans gcd_right,
+      apply dvd_mul_of_dvd_right,
+      simp
+    },
+    exact dvd_sub h1 h2,
+  },
+  
+  have h_dvd_wron_c : gcd c d[c] ∣ d[a] * b - a * d[b],
+  {
+    rw h_wron,
+    have h1 : gcd c d[c] ∣ a * d[c],
+    {
+      apply dvd_trans gcd_right,
+      apply dvd_mul_of_dvd_right,
+      simp
+    },
+    have h2 : gcd c d[c] ∣ d[a] * c,
+    {
+      apply dvd_trans gcd_left,
+      apply dvd_mul_of_dvd_right,
+      simp
+    },
+    exact dvd_sub h2 h1,
+  },
+  have h_gcds_dvd : (gcd a d[a]) * (gcd b d[b]) * (gcd c d[c]) ∣ d[a] * b - a * d[b],
+  {   
+    apply mul_dvd_of_dvd_of_dvd_of_rel_prime,
+    apply rel_prime_mul_of_rel_prime_of_rel_prime_of_rel_prime,
+    exact rel_prime_gcd_derivative_gcd_derivative_of_rel_prime h_rel_prime_ab,
+    exact rel_prime_gcd_derivative_gcd_derivative_of_rel_prime h_rel_prime_bc,
+    exact rel_prime_gcd_derivative_gcd_derivative_of_rel_prime h_rel_prime_ca,
+    apply mul_dvd_of_dvd_of_dvd_of_rel_prime,
+    exact rel_prime_gcd_derivative_gcd_derivative_of_rel_prime h_rel_prime_ab,
+    exact h_dvd_wron_a,
+    exact h_dvd_wron_b,
+    exact h_dvd_wron_c
+  },
+  have h_wron_ne_zero : d[a] * b - a * d[b] ≠ 0,
+  {
+    by_contradiction h1,
+    rw not_not at h1,
+    have h_a_b : d[a] = 0 ∧ d[b] = 0,
+    from derivative_eq_zero_and_derivative_eq_zero_of_rel_prime_of_wron_eq_zero h_rel_prime_ab h1,
+    have h2 : d[a] * c - a * d[c] = 0,
+    {rw [←h_wron, h1]},
+    have h_a_c : d[a] = 0 ∧ d[c] = 0,
+    from derivative_eq_zero_and_derivative_eq_zero_of_rel_prime_of_wron_eq_zero (rel_prime_comm h_rel_prime_ca) h2,
+    have h3 : (d[a] = 0 ∧ d[b] = 0 ∧ d[c] = 0),
+    exact ⟨and.elim_left h_a_b, and.elim_right h_a_b, and.elim_right h_a_c⟩,
+    contradiction    
+  },
+  have h_deg_add : degree (gcd a d[a] * gcd b d[b] * gcd c d[c]) = degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c]),
+  {
+    have h1 : gcd a d[a] * gcd b d[b] * gcd c d[c] ≠ 0,
+    from ne_zero_of_dvd_ne_zero h_gcds_dvd h_wron_ne_zero,
+    have h2 : degree (gcd a d[a] * gcd b d[b] * gcd c d[c]) = degree (gcd a d[a] * gcd b d[b]) + degree (gcd c d[c]),
+    from degree_mul_eq_add_of_mul_ne_zero h1,
+    have h3 : gcd a d[a] * gcd b d[b] ≠ 0,
+    from ne_zero_of_mul_ne_zero_right h1,
+    have h4 : degree (gcd a d[a] * gcd b d[b]) = degree (gcd a d[a]) + degree (gcd b d[b]),
+    from degree_mul_eq_add_of_mul_ne_zero h3,
+    rw [h2, h4]
+  },
+
+
+
+end
+
 
 
 

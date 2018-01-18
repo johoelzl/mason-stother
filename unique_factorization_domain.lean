@@ -583,8 +583,8 @@ class has_gcd (α : Type u) [comm_semiring α] :=
 
 def gcd [comm_semiring α] [has_gcd α] : α → α → α := has_gcd.gcd
 def gcd_min [comm_semiring α] [h : has_gcd α]  := h.gcd_min --Correct???
-def gcd_left [comm_semiring α] [h : has_gcd α]  := h.gcd_left --use {a b : α}?
-def gcd_right [comm_semiring α] [h : has_gcd α]  := h.gcd_right
+def gcd_left [comm_semiring α] [h : has_gcd α] {a b : α }  := has_gcd.gcd_left a b --use {a b : α}?
+def gcd_right [comm_semiring α] [h : has_gcd α] {a b : α } := has_gcd.gcd_right a b
 def is_gcd [has_dvd α] (a b d :α) :=  d∣a ∧  d∣b ∧  (∀x, x∣a →  x∣b → x∣d)
 
 
@@ -603,7 +603,7 @@ end
 lemma gcd_zero_associated_left {α : Type u} [integral_domain α][has_gcd α] {f : α} : (gcd f (0 : α)) ~ᵤ f :=
 begin
   apply associated_of_dvd_dvd,
-  exact gcd_left _ _,
+  exact gcd_left,
   apply gcd_min,
   simp,
   simp
@@ -612,7 +612,7 @@ end
 lemma gcd_zero_associated_right {α : Type u} [integral_domain α][has_gcd α] {f : α} : (gcd (0 : α) f) ~ᵤ f :=
 begin
   apply associated_of_dvd_dvd,
-  exact gcd_right _ _,
+  exact gcd_right,
   apply gcd_min,
   simp,
   simp
@@ -647,7 +647,7 @@ begin
        apply h4,
        apply eq_zero_of_zero_dvd,
        rw ← h1,
-       exact gcd_left _ _,
+       exact gcd_left,
      }
 
   },
@@ -661,6 +661,7 @@ begin
     exact gcd_zero_zero_eq_zero
   }
 end
+
 
 instance unique_factorization_domain.has_gcd [unique_factorization_domain α] : has_gcd α :=
 {
@@ -699,6 +700,17 @@ instance unique_factorization_domain.has_gcd [unique_factorization_domain α] : 
   gcd_left := sorry,
   gcd_min := sorry
 }
+
+
+def rel_prime {γ : Type u} [unique_factorization_domain γ] (a b : γ) := is_unit (gcd a b)
+
+lemma  rel_prime_mul_of_rel_prime_of_rel_prime_of_rel_prime {α : Type u}{a b c: α} [unique_factorization_domain α] (h1 : rel_prime a b)(h2 : rel_prime b c)(h3 : rel_prime c a) : rel_prime (a*b) c :=
+sorry
+lemma mul_dvd_of_dvd_of_dvd_of_rel_prime {α : Type u}{a b c: α} [unique_factorization_domain α] (h1 : rel_prime a b)(h2 : a ∣ c)(h3 : b ∣ c) : (a * b) ∣ c:=
+sorry
+
+lemma rel_prime_comm {γ : Type u} [unique_factorization_domain γ] {a b : γ} : rel_prime a b → rel_prime b a :=
+sorry
 
 --Lemma that every element not zero can be represented as a product of a unit with prod primes.
 lemma factorization [unique_factorization_domain α]: ∀{x : α}, x ≠ 0 → ∃ u : units α, ∃ p : multiset α, x = u*p.prod ∧ (∀x∈p, irreducible x) :=
