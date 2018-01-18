@@ -59,7 +59,7 @@ rfl
 def is_constant (p : polynomial α) : Prop := ∃ c : α, p = C c
 
 --correct simp
-@[simp] lemma is_constant_zero : is_constant (0 : polynomial α) :=
+lemma is_constant_zero : is_constant (0 : polynomial α) :=
 begin
   rw [is_constant],
   fapply exists.intro,
@@ -197,8 +197,8 @@ lemma leading_coeff_def {p : polynomial α } : leading_coeff p = p (degree p) :=
 
 
 
---correct?
-@[reducible] def monic (p : polynomial α):= leading_coeff p = 1
+--correct? --removed reducible here
+def monic (p : polynomial α):= leading_coeff p = 1
 
 lemma ext : ∀{f g : polynomial α}, (∀a, f a = g a) → f = g:=
 begin
@@ -664,7 +664,7 @@ begin
 end
 
 --correct simp?
-@[simp] lemma monic_def {f : polynomial α} {h : monic f} : leading_coeff f = 1 := h
+lemma monic_def {f : polynomial α} {h : monic f} : leading_coeff f = 1 := h
 
 --naming?
 --Could be made more general --to work for an arbitrary monic--what about zero_ne_one? --why is the type asscription done in the second argument in degree_X?
@@ -682,7 +682,7 @@ begin
     rw [leading_coeff],
     rw h4,
     rw mul_add_degree_eq_add_leading_coeff,
-    simp *, 
+    simp [*, monic_def], 
   }
     --conv (degree (f * g)) {rw [(rfl : (degree (f * g) = n))]},
 end
@@ -1450,7 +1450,8 @@ begin
     by_cases h1 : (p = 0),
     {
       intro h2,
-      simp *
+      simp *,
+      exact is_constant_zero --should be a simp lemma
     },
     {
       rw ←not_imp_not,
@@ -1565,7 +1566,21 @@ begin
   }
 
 end
-
+ 
+--local notation `d[`a`]` := polynomial.derivative a
+--set_option trace.simplify true
+set_option trace.class_instances true
+lemma degree_wron_le {a b : polynomial α} : degree ((derivative a) * b - a * (derivative b)) ≤ (degree a) + (degree b) - (1 : ℕ) :=
+begin
+  by_cases h1 : (a = 0),
+  {
+    rw h1,
+    dsimp, --Could it be that it failes because of an instance resolution problem? see dsimp,
+    --It seems that the problem is that it wants to do an instance resolution.
+  },
+  {
+  }
+end
 
 end integral_domain
 end polynomial

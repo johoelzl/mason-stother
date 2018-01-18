@@ -3,7 +3,7 @@
 
 --Defining the gcd
 import poly
-import euclidean_domain
+--import euclidean_domain
 import unique_factorization_domain
 import data.finsupp
 import algebraically_closed_field
@@ -13,7 +13,7 @@ import poly_over_UFD
 noncomputable theory
 local infix ^ := monoid.pow
 local notation `d[`a`]` := polynomial.derivative a
-local notation Σ := finset.sum
+local notation Σ := finset.sume
 local notation Π := finset.prod
 local notation `Π₀` := finsupp.prod
 local notation `~`a:=polynomial a
@@ -329,16 +329,18 @@ begin
 end
 
 ----set_option trace.simplify true
---set_option trace.simplify.failure true
-set_option trace.simplify.rewrite true
+set_option trace.simplify true
+--set_option debugger true
+--set_option trace.simp_lemmas.invalid true
 -- set_option trace.simplify.rewrite_failure true
-
+set_option pp.implicit false
 --important solve simp problem here
 --Here a problem with simp, it immideately* failes
 lemma degree_wron_le {a b : polynomial β} : degree (d[a] * b - a * d[b]) ≤ degree a + degree b - 1 :=
 begin
   by_cases h1 : (a = 0),
   {
+    simp,
     rw [h1, degree_zero, derivative_zero,zero_mul,sub_eq_add_neg, zero_add,zero_mul,degree_neg],
     rw [degree_zero],
     exact nat.zero_le _,
@@ -350,77 +352,13 @@ begin
       by_cases h3 : (b = 0),
       {
         rw h3,
-        simp [nat.zero_le],
+        simp, --insight ? set_option trace.simp_lemmas.invalid true
         --rw [h3, mul_zero, degree_zero,sub_eq_add_neg, zero_add, derivative_zero,add_zero, mul_zero, degree_neg, degree_zero],
-        exact nat.zero_le (degree a - 1)--simp should find degree_zero here
+       -- exact nat.zero_le (degree a - 1)--simp should find degree_zero here
       },
     }
   }
 end
-
-#exit
-      {
-        by_cases h4 : (degree b = 0),
-        {
-          rw [h4, h2],
-          rw [←is_constant_iff_degree_eq_zero] at *,
-          rw [derivative_eq_zero_of_is_constant h2, derivative_eq_zero_of_is_constant h4],
-          rw [mul_zero, zero_mul, add_zero,sub_eq_add_neg,zero_add, degree_neg, degree_zero],
-        },
-        {
-          rw [h2, zero_add],
-          rw ←is_constant_iff_degree_eq_zero at h2,
-          rw [derivative_eq_zero_of_is_constant h2, zero_mul,sub_eq_add_neg, zero_add,degree_neg],
-          rw [degree_mul_eq_add_of_mul_ne_zero],
-          rw [is_constant_iff_degree_eq_zero] at h2,
-          rw [h2, zero_add],
-          exact degree_derivative_le,
-        }
-      },
-
-      rw h1,
-      rw ←is_constant_iff_degree_eq_zero at h1,
-      have h2 : d[a] = 0,
-      from derivative_eq_zero_of_is_constant h1,
-      rw h2,
-      rw is_constant_iff_degree_eq_zero at h1,
-      rw [zero_mul,sub_eq_add_neg, zero_add, degree_neg, zero_add, degree_mul_eq_add_of_mul_ne_zero, h1, zero_add],
-      exact degree_derivative_le,
-
-
-    },
-    {
-
-    }
-    
-  }
-
-
-
-  /-
-  by_cases h1 : (d[a] * b = 0),
-  {
-
-    rw [h1, sub_eq_add_neg, zero_add, degree_neg, degree_mul_eq_add_of_mul_ne_zero],
-    have h2: degree d[b] ≤ degree b - 1,
-    from degree_derivative_le,
-    have h3 : degree a + degree d[b] ≤ degree a + (degree b - 1),
-    exact add_le_add_left h2 (degree a),
-    by_cases h1_1 : (degree b = 0),
-    {
-
-    },
-    
-  },
-  {
-
-  }
-  exact calc degree (d[a] * b - a * d[b]) ≤ max (degree (d[a] * b)) (degree (a * d[b])) : degree_sub
-  ... = max (degree d[a] + degree b) (degree (a * d[b])) : by rw degree_mul_eq_add_of_mul_ne_zero
-  ... = max (degree d[a] + degree b) (degree a + degree ( d[b])) : by rw degree_mul_eq_add_of_mul_ne_zero
-  -/
-end
-
 
 lemma Mason_Stothers_lemma
 (f : polynomial β) : degree f ≤ degree (gcd f (derivative f )) + degree (rad f) := --I made degree radical from this one
