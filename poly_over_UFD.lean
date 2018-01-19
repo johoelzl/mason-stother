@@ -160,7 +160,8 @@ begin
   }
 end
 
-lemma polynomial_fac [field α] {x : polynomial α} : ∃ c :  α, ∃ p : multiset (polynomial α), x = C c * p.prod ∧ (∀x∈p, irreducible x ∧ monic x)  :=
+lemma polynomial_fac [field α] {x : polynomial α} : 
+  ∃ c :  α, ∃ p : multiset (polynomial α), x = C c * p.prod ∧ (∀x∈p, irreducible x ∧ monic x)  :=
 begin
   by_cases h1 : (x = 0),
   {

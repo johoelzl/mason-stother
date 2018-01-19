@@ -155,6 +155,16 @@ axiom unique_factorization (p : polynomial β) : ∃ c : β , p = C c * ((finsup
 def c_fac (p : polynomial β) : β := some ( unique_factorization p)
 axiom c_fac_unit (p : polynomial β) :  is_unit (c_fac p)
 
+def multiset.to_finsupp {α : Type*} (m : multiset α) : α →₀ ℕ := 
+(m.map $ λa, single a 1).sum
+
+lemma to_finsupp_add {α : Type*} (m n : multiset α) :
+  (m + n).to_finsupp = m.to_finsupp + n.to_finsupp :=
+calc (m + n).to_finsupp = ((m.map $ λa, single a 1) + (n.map $ λa, single a 1)).sum :
+    by rw [← multiset.map_add]; refl
+  ... = m.to_finsupp + n.to_finsupp :
+    by rw [multiset.sum_add]; refl
+
 --def facs_to_pow (p : polynomial β →₀ ℕ ) : finset (polynomial β):= p.support.image (λ a, a^(p a))
 --def to_finsupp_pow_min_one (p : polynomial β →₀ ℕ) : polynomial β →₀ ℕ := map_range  (λ n, n - 1) (by {simp}) p
 def facs_to_pow_min_one (p : polynomial β →₀ ℕ ) : finset (polynomial β):= p.support.image (λ a, a^(p a - 1))
