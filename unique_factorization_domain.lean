@@ -2,9 +2,9 @@ import data.finsupp
 import algebra.ring
 import .to_finset
 
-local infix ^ := monoid.pow
-
 noncomputable theory
+
+local infix ^ := monoid.pow
 
 open classical
 local attribute [instance] prop_decidable
@@ -15,17 +15,10 @@ variable {α : Type u}
 --Would it have been smart to define units as a type that lives in Prop??
 --Or would this have been pointless because a Prop cannot contain data? It could have been made with exisential quatifier, but than we are in the same situation that we are in now.
 
-
---If I do this I can't reuse the lemmas for units.
-def is_unit_2 {t : Type u}[has_mul t] [has_one t](a : t) : Prop := ∃b, a * b = 1 ∧ b * a = 1
---If I do this I can't reuse the lemmas for units.
-
-
 def is_unit {t : Type u}[semiring t] (a : t) : Prop := ∃b : units t, a = b
 
 def to_unit {t : Type u}[semiring t] {x : t} (h : is_unit x) : units t :=
 some h
-
 
 --correct simp?
 @[simp] lemma  to_unit_is_unit_eq {t : Type u}[semiring t] {x : t} {h : is_unit x} : ↑(@to_unit t _ x h) = x :=
@@ -34,50 +27,19 @@ eq.symm (some_spec h)
 @[simp] lemma  to_unit_is_unit_val_eq {t : Type u}[semiring t] {x : t} {h : is_unit x} : (@to_unit t _ x h).val = x :=
 eq.symm (some_spec h)
 
-
---Can't we make units a typeclass? 
-
-
-
---We need a coercion from α →₀ ℕ to list. De support is een finset, does that have a coercion to list?
---The value of a finset is a multiset, and the multiset is a quotient with regards to permutations of lists.
---def unique_factorization {α : Type u} {x : α} 
-
---If we obtain a list from the multisets, than there exists a function which permutes and multiplies with a constant.
---We could even make a quotient for lists with regards to this function! Would that be handy?
-
---With quotient.out a representative can be obtained.
---Now a coercion to multiset.
---Append is associative but not commutative? --Problem
-def to_list (x : α →₀ ℕ) : list α := list.foldl (λ y z,  append y (list.repeat z (x z))) list.nil  (quotient.out x.support.val) --Or I make a list directly by folding with repeat append and empty list?
-
---Now the relation: permutation + mul by unit.
-/-
-inductive perm : list α → list α → Prop
-| nil   : perm [] []
-| skip  : Π (x : α) {l₁ l₂ : list α}, perm l₁ l₂ → perm (x::l₁) (x::l₂)
-| swap  : Π (x y : α) (l : list α), perm (y::x::l) (x::y::l)
-| trans : Π {l₁ l₂ l₃ : list α}, perm l₁ l₂ → perm l₂ l₃ → perm l₁ l₃
--/
-
---Unit mul
-/-
-inductive associated_list : list α → list α → Prop
-| nil : associated_list [] []
-| mk  :  
--/
-
 def associated [integral_domain α] (x y : α) : Prop:=
 ∃u : units α, x = u * y
 
 local notation a`~ᵤ`b := associated a b
 
 --Correct???? Should be unit or associate.
-def irreducible {γ : Type u}[integral_domain γ](p : γ): Prop := p ≠ 0 ∧ ¬ is_unit p ∧ ∀d, d∣p → (is_unit d ∨ (d ~ᵤ p))
+def irreducible [integral_domain α] (p : α) : Prop :=
+p ≠ 0 ∧ ¬ is_unit p ∧ ∀d, d∣p → (is_unit d ∨ (d ~ᵤ p))
 
-def irreducible' {γ : Type u}[integral_domain γ](p : γ): Prop := p ≠ 0 ∧ ¬ is_unit p ∧ ∀ a b :γ, p = a * b → (is_unit a ∨ is_unit b)
+def irreducible' [integral_domain α] (p : α) : Prop :=
+p ≠ 0 ∧ ¬ is_unit p ∧ ∀ a b : α, p = a * b → (is_unit a ∨ is_unit b)
 
-lemma irreducible_iff_irreducible' {γ : Type u}[integral_domain γ]{p : γ} : irreducible p ↔ irreducible' p :=
+lemma irreducible_iff_irreducible' [integral_domain α] {p : α} : irreducible p ↔ irreducible' p :=
 begin
   apply iff.intro,
   {
@@ -136,7 +98,7 @@ begin
     from and.elim_left h1,
     have h3 : (¬ is_unit p),
     from and.elim_left (and.elim_right h1),
-    have h4 : ∀ a b :γ, p = a * b → (is_unit a ∨ is_unit b),
+    have h4 : ∀ a b : α, p = a * b → (is_unit a ∨ is_unit b),
     from and.elim_right (and.elim_right h1), 
     constructor,
     exact h2,
@@ -279,7 +241,7 @@ begin
   ... = ↑(some h1 * some h2) * z : by simp [units.mul_coe]
 end 
 
-lemma associated.eqv (α : Type) [integral_domain α]: equivalence (@associated α _) :=
+lemma associated.eqv [integral_domain α] : equivalence (@associated α _) :=
 mk_equivalence (@associated α _) (@associated.refl α _) (@associated.symm α _) (@associated.trans α _)
 
 
@@ -421,7 +383,8 @@ end
 def unit_of_mul_eq_one {γ : Type u}[integral_domain γ]{a b : γ} (h1 : a * b = 1) : units γ :=
 units.mk a b h1 (by {rw mul_comm _ _ at h1, exact h1})
 
-lemma associated_of_dvd_dvd {γ : Type u}[integral_domain γ]{a b : γ}{h1 : a ∣ b} {h2 : b ∣ a} : a ~ᵤ b :=
+lemma associated_of_dvd_dvd {γ : Type u} [integral_domain γ] {a b : γ}
+  (h1 : a ∣ b) (h2 : b ∣ a) : a ~ᵤ b :=
 begin
   simp only [has_dvd.dvd] at *,
   let c := some h2,
@@ -660,6 +623,115 @@ begin
     exact gcd_zero_zero_eq_zero
   }
 end
+
+namespace associated
+
+variables (α) [unique_factorization_domain α]
+
+def setoid : setoid α :=
+{ r := associated, iseqv := associated.eqv }
+local attribute [instance] setoid
+
+def quot : Type u := quotient (associated.setoid α)
+
+variables {α}
+
+@[reducible] def mk (a : α) : quot α := ⟦ a ⟧
+
+instance : has_zero (quot α) := ⟨⟦ 0 ⟧⟩
+instance : has_one (quot α) := ⟨⟦ 1 ⟧⟩
+instance : has_mul (quot α) :=
+⟨λa' b', quotient.lift_on₂ a' b' (λa b, ⟦ a * b ⟧) $
+  assume a₁ a₂ b₁ b₂ ⟨c₁, h₁⟩ ⟨c₂, h₂⟩, quotient.sound $
+  ⟨c₁ * c₂, by simp [h₁, h₂, mul_assoc, mul_comm, mul_left_comm]⟩⟩
+
+instance : comm_monoid (quot α) :=
+{ one       := 1,
+  mul       := (*),
+  mul_one   := assume a', quotient.induction_on a' $
+    assume a, show ⟦a * 1⟧ = ⟦ a ⟧, by simp,
+  one_mul   := assume a', quotient.induction_on a' $
+    assume a, show ⟦1 * a⟧ = ⟦ a ⟧, by simp,
+  mul_assoc := assume a' b' c', quotient.induction_on₃ a' b' c' $
+    assume a b c, show ⟦a * b * c⟧ = ⟦a * (b * c)⟧, by rw [mul_assoc],
+  mul_comm  := assume a' b', quotient.induction_on₂ a' b' $
+    assume a b, show ⟦a * b⟧ = ⟦b * a⟧, by rw [mul_comm] }
+
+instance : partial_order (quot α) :=
+{ le := λa b, ∃c, a * c = b,
+  le_refl := assume a, ⟨1, by simp⟩,
+  le_trans := assume a b c ⟨f₁, h₁⟩ ⟨f₂, h₂⟩,
+    ⟨f₁ * f₂, h₂ ▸ h₁ ▸ (mul_assoc _ _ _).symm⟩,
+  le_antisymm := assume a' b',
+    quotient.induction_on₂ a' b' $ assume a b ⟨f₁', h₁⟩ ⟨f₂', h₂⟩,
+    (quotient.induction_on₂ f₁' f₂' $ assume f₁ f₂ h₁ h₂,
+      let ⟨c₁, h₁⟩ := quotient.exact h₁.symm, ⟨c₂, h₂⟩ := quotient.exact h₂.symm in
+      quotient.sound $ associated_of_dvd_dvd
+        (h₁.symm ▸ dvd_mul_of_dvd_right (dvd_mul_right _ _) _)
+        (h₂.symm ▸ dvd_mul_of_dvd_right (dvd_mul_right _ _) _)) h₁ h₂ }
+
+def irred (a : quot α) : Prop :=
+quotient.lift_on a irreducible $
+assume a b h, propext $ iff.intro
+  (assume h', irreducible_of_associated h' h)
+  (assume h', irreducible_of_associated h' h.symm)
+
+lemma prod_mk {p : multiset α} : (p.map mk).prod = ⟦ p.prod ⟧ :=
+multiset.induction_on p (by simp; refl) $
+  assume a s ih, by simp [ih]; refl
+
+lemma multiset_eq (p q : multiset α) :
+  rel_multiset associated p q ↔ p.map mk = q.map mk :=
+_
+
+lemma representation (a' : quot α) : a' ≠ 0 →
+  ∃p : multiset (quot α), (∀a∈p, irred a) ∧ a' = p.prod :=
+quotient.induction_on a' $ assume a, sorry -- TODO: jens
+
+example (p : multiset (quot α)) : ∃q:multiset α, p = q.map mk :=
+multiset.induction_on p ⟨0, rfl⟩ $
+  assume a', quotient.induction_on a' $ assume a p ⟨q, hq⟩,
+  ⟨a :: q, by simp [hq]⟩
+
+lemma uniqueness (p q : multiset (quot α))
+  (hp : ∀a∈p, irred a) (hq : ∀a∈q, irred a)
+  (h : p.prod = q.prod) : p = q :=
+sorry -- TODO: jens
+
+def to_multiset (a : quot α) : multiset (quot α) :=
+if h : a = 0 then 0 else classical.some (representation a h)
+
+lemma to_multiset_prod_eq (a : quot α) (h : a ≠ 0) :
+  (to_multiset a).prod = a :=
+_
+
+lemma prod_le_prod_of_subset {p q : multiset (quot α)} (h : p ⊆ q) : p.prod ≤ q.prod :=
+_
+
+lemma prod_le_prod_iff_subset {p q : multiset (quot α)}
+  (hp : ∀a∈p, irred a) (hq : ∀a∈q, irred a) :
+  p.prod ≤ q.prod ↔ p ⊆ q :=
+_
+
+
+instance : lattice.semilattice_inf (quot α) :=
+{ inf := λa b, (to_multiset a ∩ to_multiset b).prod,
+  inf_le_left := assume a b, _,
+  inf_le_right := _,
+  le_inf := _,
+  .. associated.partial_order
+}
+
+/-
+lemma exists_gcd (a b : quot α) (ha : a ≠ 0) (hb : b ≠ 0) : 
+  ∃c, c ≤ a ∧ c ≤ b ∧ (∀d, d ≤ a → d ≤ b → d ≤ c) :=
+_
+-/
+
+end associated
+
+
+
 
 
 instance unique_factorization_domain.has_gcd [unique_factorization_domain α] : has_gcd α :=
