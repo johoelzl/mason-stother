@@ -446,6 +446,8 @@ end
 inductive rel_multiset {α β : Type u} (r : α → β → Prop) : multiset α → multiset β → Prop
 | nil : rel_multiset {} {}
 | cons : ∀a b xs ys, r a b → rel_multiset xs ys → rel_multiset (a::xs) (b::ys)
+--Can we do an induction on rel_multiset?
+
 
 class unique_factorization_domain (α : Type u) extends integral_domain α :=
 (fac : ∀{x : α}, x ≠ 0 → ¬ is_unit x → ∃ p : multiset α, x = p.prod ∧ (∀x∈p, irreducible x))
@@ -680,9 +682,121 @@ lemma prod_mk {p : multiset α} : (p.map mk).prod = ⟦ p.prod ⟧ :=
 multiset.induction_on p (by simp; refl) $
   assume a s ih, by simp [ih]; refl
 
+--#print prefix rel_multiset
+--set_option trace.simplify.rewrite true
+--set_option trace.class_instances true
+#print prefix multiset
+#print prefix rel_multiset
+#print prefix unique_factorization_domain
+--#check multiset.no_confusion
+#print prefix quot
+
+--set_option pp.notation false
+
+--lemma 
+
+#check quot.exact
+
+--naming?
+lemma complete {a b : α} : mk a = mk b → (a ~ᵤ b) :=
+begin
+ intro h1,
+ simp * at *,
+ exact h1,
+end
+
+lemma forall_associated_of_map_eq_map : ∀(p q : multiset α),
+  p.map mk = q.map mk → rel_multiset associated p q :=
+begin
+assume p,
+  apply multiset.induction_on p,
+  {
+    intro q,
+    simp * at *,
+    by_cases h1 : (q = 0),
+    {
+      simp * at *,
+      exact rel_multiset.nil _, 
+    },
+    {
+      intro h2,
+      have h3 : ∃ a, a ∈ q,
+      from multiset.exists_mem_of_ne_zero h1,
+      let a := some h3,
+      have h4 : a ∈ q,
+      from some_spec h3,
+      have h5 : mk a ∈ (multiset.map mk q),
+      from multiset.mem_map_of_mem mk h4,
+      rw ← h2 at h5,
+      by_contradiction h6,
+      exact multiset.not_mem_zero _ h5,
+    }
+
+  },
+  intros a p h1 q h3,
+  simp * at *,
+  have h4 : mk a ∈ multiset.map mk q,
+  {
+    rw ← h3,
+    simp,
+  },
+  have h5 : ∃ t', multiset.map mk q = mk a :: t',
+  from multiset.exists_cons_of_mem h4,
+  let t' := some h5,
+  have h6 : multiset.map mk q = mk a :: t',
+  from some_spec h5,
+  have h7 : ∃ b : α, b ∈ q ∧ mk b = mk a,
+  {
+    rw multiset.mem_map at h4,
+    exact h4,
+  },
+  let b := some h7,
+  have h8 : b ∈ q ∧ mk b = mk a,
+  from some_spec h7,
+  have h9 : ∃ t, q = b :: t,
+  from multiset.exists_cons_of_mem (and.elim_left h8),
+  let t := some h9,
+  have h10 : q = b :: t,
+  from some_spec h9,
+  rw h10,
+  have h11 : mk a = mk b,
+  exact eq.symm (and.elim_right h8),
+  apply rel_multiset.cons,
+  {
+    rw mk at h11,
+    rw mk at h11,
+    exact complete h11,
+  },
+  {
+    apply h1 _,
+    rw h10 at h3,
+    simp at h3,
+    rw [h11, multiset.cons_inj_right] at h3,
+    exact h3,
+  }
+
+end
+
 lemma multiset_eq (p q : multiset α) :
   rel_multiset associated p q ↔ p.map mk = q.map mk :=
-_
+begin
+  constructor,
+  {
+    intro h1,
+    induction h1 with a b h1 h2 h3 h4 h5,
+    {
+      exact rfl,
+    },
+    {
+      simp [h5],
+      exact h3
+    },
+  },
+  {
+    exact forall_associated_of_map_eq_map _ _
+  },
+end
+
 
 lemma representation (a' : quot α) : a' ≠ 0 →
   ∃p : multiset (quot α), (∀a∈p, irred a) ∧ a' = p.prod :=
