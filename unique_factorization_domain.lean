@@ -605,6 +605,22 @@ begin
   }
 end
 
+--Should also make a right.
+lemma is_unit_left_of_is_unit_mul [comm_semiring α] {a b : α} : is_unit (a * b) → is_unit a :=
+begin
+  intro h1,
+  let u := to_unit h1,
+  have h2 : a * (b* (↑u⁻¹ : α) ) = 1,
+  {
+    exact calc a * (b* (↑u⁻¹ : α) ) = (a * b) * (↑u⁻¹ : α) : by rw ← mul_assoc
+    ... = u.val * (↑u⁻¹ : α) : by rw ← @to_unit_is_unit_val_eq _ _ (a * b) _
+    ... = u.val * u.inv : by rw units.inv_coe
+    ... = 1 : u.val_inv,
+  },
+  rw @is_unit_left_iff_exists_mul_eq_one _ _ a,
+  exact ⟨(b * ↑u⁻¹), h2 ⟩,
+end
+
 inductive rel_multiset {α β : Type u} (r : α → β → Prop) : multiset α → multiset β → Prop
 | nil : rel_multiset {} {}
 | cons : ∀a b xs ys, r a b → rel_multiset xs ys → rel_multiset (a::xs) (b::ys)
@@ -848,6 +864,9 @@ instance : comm_monoid (quot α) :=
   mul_comm  := assume a' b', quotient.induction_on₂ a' b' $
     assume a b, show ⟦a * b⟧ = ⟦b * a⟧, by rw [mul_comm] }
 
+
+--Can we say something aboutthe addition?, can we lift addition?
+
 instance : partial_order (quot α) :=
 { le := λa b, ∃c, a * c = b,
   le_refl := assume a, ⟨1, by simp⟩,
@@ -886,6 +905,7 @@ begin
 end
 
 #check irred._proof_1
+--We don't need this one I think.
 lemma irreducible_iff_mk_irred {a : α} : irreducible a ↔ irred (mk a) :=
 begin
   --rw propext,
@@ -908,6 +928,32 @@ multiset.induction_on p (by simp; refl) $
 
 lemma mul_mk {a b : α} : mk (a * b) = mk a * mk b :=
 rfl
+
+lemma zero_def : (0 : quot α) = ⟦ 0 ⟧ :=
+rfl
+
+lemma one_def : (1 : quot α) = ⟦ 1 ⟧ :=
+rfl
+
+lemma mul_zero {a : quot α} : a * 0 = 0 :=
+begin
+  let a' := quot.out a,
+  have h1 : mk a' = a,
+  from quot.out_eq _,
+  rw [←h1, zero_def, ← mul_mk],
+  simp,
+  exact rfl,
+end
+
+lemma zero_mul {a : quot α} : 0 * a = 0 :=
+begin
+  let a' := quot.out a,
+  have h1 : mk a' = a,
+  from quot.out_eq _,
+  rw [←h1, zero_def, ← mul_mk],
+  simp,
+  exact rfl,
+end
 
 --naming?
 lemma complete {a b : α} : mk a = mk b → (a ~ᵤ b) :=
@@ -1145,9 +1191,75 @@ multiset.induction_on p ⟨0, rfl⟩ $
 --Doens't this hold already for not is_unit? admit done, do we need this one.
  lemma prod_not_is_unit_quot_eq_one_iff_eq_zero {p : multiset (quot α)}: (∀ (a : quot α), a ∈ p → (¬ is_unit_quot a)) → (p.prod = 1 ↔ p = 0) :=
  begin
-  
-  
+  intro h1a,
+  constructor,
+  {
+    intro h2a,
+    by_contradiction h1,
+    have h2 : ∃a , a ∈ p,
+    from multiset.exists_mem_of_ne_zero h1,
+    let h := some h2,
+    have h3 : h ∈ p,
+    from some_spec h2,
+    have h4 : ∃ t, p = h :: t,
+    from multiset.exists_cons_of_mem h3,
+    let t := some h4,
+    have h5 : p = h :: t,
+    from some_spec h4,
+    rw h5 at h2a,
+    simp at h2a,
+    have h6 : ¬is_unit_quot h,
+    from h1a h h3,
+    let h' := quot.out h,
+    have h7 : mk h' = h,
+    from quot.out_eq h,
+    have h8 : ∃t':multiset α, t = t'.map mk,
+    from exists_eq_map_mk _,
+    let t' := some h8,
+    have h9 : t = t'.map mk,
+    from some_spec h8,
+    rw [h9, prod_mk, ←h7, ←mul_mk] at h2a,
+    have h10 : ((h' * (multiset.prod t')) ~ᵤ (1 : α)),
+    from complete h2a,
+    rw asssociated_one_iff_is_unit at h10,
+    --have h11: is_unit_quot (mk (h' * multiset.prod t')),
+    --from h10,
+    have h12 : is_unit h',
+    from is_unit_left_of_is_unit_mul h10,
+    have h13 : is_unit_quot (mk h'),
+    from h12,
+    rw h7 at h13,
+    contradiction,
+  },
+  {
+    intro h1,
+    simp *,
+  }
  end
+
+lemma prod_irred_quot_eq_one_iff_eq_zero {p : multiset (quot α)}: (∀ (a : quot α), a ∈ p → (irred a)) → (p.prod = 1 ↔ p = 0) :=
+begin
+  intro h1,
+  have h2 : ∀ (a : quot α), a ∈ p → (¬  is_unit_quot a),
+  {
+    intros b h2,
+    have h3 : irred b,
+    from h1 b h2,
+    let b' := quot.out b,
+    have h4  : mk b' = b,
+    from quot.out_eq _,
+    rw ← h4 at h3,
+    have h5 : irreducible b',
+    from h3,
+    have h6 : ¬ is_unit b',
+    from and.elim_left (and.elim_right h5),
+    rw ← h4,
+    exact h6,
+  },
+  apply prod_not_is_unit_quot_eq_one_iff_eq_zero,
+  exact h2,
+end
+
 
 --#check --(has_mul α).mul
 
@@ -1155,19 +1267,22 @@ lemma uniqueness (p q : multiset (quot α))
   (hp : ∀a∈p, irred a) (hq : ∀a∈q, irred a)
   (h : p.prod = q.prod) : p = q :=
 begin
-  --apply quotient.induction_on₂ p q,
-
-  
   by_cases h1a : (p = 0),
   {
     rw h1a at h,
     simp at h,
-    admit,
+    have h2 : multiset.prod q = 1,
+    from eq.symm h,
+    rw prod_irred_quot_eq_one_iff_eq_zero hq at h2,
+    simp *,
   },
   {
     by_cases h1b : (q = 0),
     {
-      admit,
+      rw h1b at h,
+      simp at h,
+      rw prod_irred_quot_eq_one_iff_eq_zero hp at h,
+      simp *,
     },
     {
       have h1 : ∃p':multiset α, p = p'.map mk,
@@ -1274,10 +1389,6 @@ begin
        exact h18,
     }
   }
-  
-
-
-
 end
 
 def to_multiset (a : quot α) : multiset (quot α) :=
@@ -1285,15 +1396,113 @@ if h : a = 0 then 0 else classical.some (representation a h)
 
 lemma to_multiset_prod_eq (a : quot α) (h : a ≠ 0) :
   (to_multiset a).prod = a :=
-_
+begin
+  
+  rw to_multiset,
+  --rw ne.def at h,
+  simp * at *,
+  have h1 : a = multiset.prod (some _),
+  from and.elim_right (some_spec (representation a h)),
+  exact eq.symm h1,
+end
 
-lemma prod_le_prod_of_subset {p q : multiset (quot α)} (h : p ⊆ q) : p.prod ≤ q.prod :=
-_
+--Think it should be le not subset
+--lemma prod_le_prod_of_subset {p q : multiset (quot α)} (h : p ⊆ q) : p.prod ≤ q.prod :=
+lemma prod_le_prod_of_le {p q : multiset (quot α)} (h : p ≤ q) : p.prod ≤ q.prod :=
+begin
+  have h1 : p + (q - p) = q,
+  from multiset.add_sub_of_le h,
+  rw ← h1,
+  simp,
+  fapply exists.intro,
+  exact multiset.prod (q - p),
+  exact rfl,
+end
+
+lemma zero_ne_one : (0 : quot α) ≠ 1 :=
+begin
+  by_contradiction h1,
+  simp [not_not] at *,
+  have h2 : ((0 : α) ~ᵤ (1 : α)),
+  {
+    rw [zero_def, one_def] at h1,
+    exact complete h1,
+  },
+  have h3 : ((1 : α) ~ᵤ (0 : α)),
+  from associated.symm h2,
+  rw associated_zero_iff_eq_zero at h3,
+  have h4 : (0 : α) ≠ 1,
+  from zero_ne_one,
+  have h5 : (0 : α) = 1,
+  from eq.symm h3,
+  contradiction,
+end 
 
 lemma prod_le_prod_iff_subset {p q : multiset (quot α)}
   (hp : ∀a∈p, irred a) (hq : ∀a∈q, irred a) :
-  p.prod ≤ q.prod ↔ p ⊆ q :=
-_
+  p.prod ≤ q.prod ↔ p ≤ q :=
+begin
+  constructor,
+  {
+    intro h1,
+    simp only [has_le.le, preorder.le, partial_order.le] at h1,
+    let c := some h1,
+    have h2 :  multiset.prod p * c = multiset.prod q,
+    from some_spec h1,
+    by_cases h3 : (c = 0),
+    {
+      rw h3 at h2,
+      simp [mul_zero] at h2,
+      by_cases h4  : (q = 0),
+      {
+        rw h4 at h2,
+        simp at h2,
+        by_contradiction h5,
+        exact zero_ne_one h2,
+      },
+      {
+        have h5 : ∃ h, h ∈ q,
+        from multiset.exists_mem_of_ne_zero h4,
+        let h := some h5,
+        have h6 :  h ∈ q,
+        from some_spec h5,
+        have h7 : ∃ t, q = h :: t,
+        from multiset.exists_cons_of_mem h6,
+        let t := some h7,
+        have h8 : q = h :: t,
+        from some_spec h7,
+        admit,
+      }
+    },
+    {
+      have h4 : ∃p : multiset (quot α), (∀a∈p, irred a) ∧ c = p.prod,
+      from representation _ h3,
+      let c' := some h4,
+      have h5 : (∀a∈c', irred a) ∧ c = c'.prod,
+      from some_spec h4,
+      have h5b : c = c'.prod,
+      from and.elim_right h5,
+      rw h5b at h2,
+      rw ←multiset.prod_add at h2,
+      have h6 : ∀ (a : quot α), a ∈ (p + c') → irred a,
+      {
+        simp,
+        intros a h6,
+        cases h6,
+        exact hp a h6,
+        exact (and.elim_left h5) a h6,
+      },
+      have h7 : p + c' = q,
+      from uniqueness _ _ h6 hq h2,
+      rw ← h7,
+      exact multiset.le_add_right _ _,
+    }
+
+  },
+  {
+    exact prod_le_prod_of_le,
+  }
+end
 
 
 instance : lattice.semilattice_inf (quot α) :=
