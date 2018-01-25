@@ -27,6 +27,18 @@ eq.symm (some_spec h)
 @[simp] lemma  to_unit_is_unit_val_eq {t : Type u}[semiring t] {x : t} {h : is_unit x} : (@to_unit t _ x h).val = x :=
 eq.symm (some_spec h)
 
+lemma mul_inv'' {t : Type u}[semiring t] {x : t} (h : is_unit x) :  x * (to_unit h).inv = 1 :=
+begin
+  exact calc x * (to_unit h).inv = (to_unit h).val * (to_unit h).inv : by simp
+  ... = 1 : (to_unit h).val_inv
+end
+
+lemma inv_mul'' {t : Type u}[semiring t] {x : t} (h : is_unit x) :  (to_unit h).inv * x = 1 :=
+begin
+  exact calc (to_unit h).inv * x = (to_unit h).inv * (to_unit h).val : by simp
+  ... = 1 : (to_unit h).inv_val
+end
+
 def associated [integral_domain α] (x y : α) : Prop:=
 ∃u : units α, x = u * y
 
@@ -443,6 +455,156 @@ begin
   }
 end
 
+lemma unit_associated_one [integral_domain α] {u : units α}: (u : α) ~ᵤ 1 :=
+⟨u, by simp⟩
+
+lemma is_unit_left_iff_exists_mul_eq_one [comm_semiring α] {a: α} : (is_unit a) ↔ ∃ b, a * b = 1 :=
+begin
+  constructor,
+  {
+    intro h1,
+    fapply exists.intro,
+    exact ((to_unit h1) : units α).inv,
+    {
+      simp [mul_inv'' h1],
+    }
+  },
+  {
+    intro h1,
+    let b := some h1,
+    have h2 : a * b = 1,
+    from some_spec h1,
+    rw is_unit,
+    have h3 :b * a = 1,
+    { rw [mul_comm a b]at h2, exact h2},
+    fapply exists.intro,
+    {
+      exact ⟨a, b, h2, h3⟩
+    },
+    exact rfl
+  }
+end
+
+lemma is_unit_right_iff_exists_mul_eq_one [comm_semiring α] {b: α} : (is_unit b) ↔ ∃ a, a * b = 1 :=
+begin
+  have h1 : (is_unit b) ↔ ∃ a, b * a = 1,
+  from @is_unit_left_iff_exists_mul_eq_one _ _ b,
+  constructor,
+  {
+    intro h2,
+    rw h1 at h2,
+    let a := some h2,
+    have h3 : b * a = 1,
+    from some_spec h2,
+    rw mul_comm b a at h3,
+    exact ⟨a, h3⟩
+  },
+  {
+    intro h2,
+    rw h1,
+    let a := some h2,
+    have h3 : a * b = 1,
+    from some_spec h2,
+    rw mul_comm a b at h3,
+    exact ⟨a, h3⟩,
+  }
+end
+
+
+lemma is_unit_of_associated {γ : Type u}[integral_domain γ]{p b : γ}(h1 : is_unit p)(h2 : p ~ᵤ b) : is_unit b :=
+begin
+  rw associated at h2,
+  rw is_unit_left_iff_exists_mul_eq_one at h1,
+  let u := some h2,
+  have h3 : p = ↑u * b,
+  from some_spec h2,
+  let q := some h1,
+  have h4 : p * q = 1,
+  from some_spec h1,
+  have h5 : (q * ↑u) * b = 1,
+  {
+    exact calc (q * ↑u) * b = q * (↑u * b) : by simp only [mul_assoc]
+    ... = q * p : by rw h3
+    ... = p * q : by simp [mul_comm]
+    ... = _ : h4,
+  },
+  rw is_unit_right_iff_exists_mul_eq_one,
+  exact ⟨(q * ↑u), h5⟩
+end
+
+lemma asssociated_one_iff_is_unit [integral_domain α] {a : α} : (a ~ᵤ 1) ↔ is_unit a :=
+begin
+  constructor,
+  {
+    intro h1,
+    rw associated at h1,
+    let u := some h1,
+    have h2: a = ↑u * 1,
+    from some_spec h1,
+    have h3 : ↑(u⁻¹) * a = 1,
+    {
+      exact calc ↑u⁻¹ * a = ↑u⁻¹ * (↑u * 1) : by rw h2
+      ... = (↑u⁻¹ * ↑u) * 1 : by simp [mul_assoc]
+      ... = 1 : by simp [units.inv_mul]
+    },
+
+    rw is_unit_right_iff_exists_mul_eq_one,
+    exact ⟨↑u⁻¹, h3⟩,
+  },
+  {
+    intro h1,
+    have h2 : ↑(to_unit h1) = a,
+    {simp},
+    rw ←h2,
+    exact unit_associated_one
+    
+  }
+end
+
+--naming
+lemma prod_not_is_unit_eq_one_iff_eq_zero [integral_domain α] {p : multiset α}: (∀ a, a ∈ p → (¬ (is_unit a))) → (p.prod = 1 ↔ p = 0) :=
+begin
+
+  by_cases h1 : (p = 0),
+  {
+    simp [h1]
+  },
+  {
+    have h2 : ∃a , a ∈ p,
+    from multiset.exists_mem_of_ne_zero h1,
+    let h := some h2,
+    have h3 : h ∈ p,
+    from some_spec h2,
+    have h4 : ∃ t, p = h :: t,
+    from multiset.exists_cons_of_mem h3,
+    let t := some h4,
+    have h5 : p = h :: t,
+    from some_spec h4,
+    intro h6,
+    constructor,
+    {
+      intro h7,
+      rw h5 at h7,
+      simp at h7,
+      rw mul_comm h _ at h7,
+      have h8 : is_unit h,
+      {
+        rw is_unit_right_iff_exists_mul_eq_one,
+        exact ⟨multiset.prod t, h7⟩,
+      },
+      have h9 : h ∈ p,
+      {rw h5, simp},
+      have : ¬is_unit h,
+      from h6 h h9,
+      contradiction,
+    },
+    {
+      intro h7,
+      simp *,
+    }
+  }
+end
+
 inductive rel_multiset {α β : Type u} (r : α → β → Prop) : multiset α → multiset β → Prop
 | nil : rel_multiset {} {}
 | cons : ∀a b xs ys, r a b → rel_multiset xs ys → rel_multiset (a::xs) (b::ys)
@@ -453,6 +615,31 @@ class unique_factorization_domain (α : Type u) extends integral_domain α :=
 (fac : ∀{x : α}, x ≠ 0 → ¬ is_unit x → ∃ p : multiset α, x = p.prod ∧ (∀x∈p, irreducible x))
 (unique : ∀{f g : multiset α}, (∀x∈f, irreducible x) → (∀x∈g, irreducible x) → f.prod = g.prod → rel_multiset associated f g)
 
+
+
+--Lemma that every element not zero can be represented as a product of a unit with prod primes.
+lemma factorization [unique_factorization_domain α]: ∀{x : α}, x ≠ 0 → ∃ u : units α, ∃ p : multiset α, x = u*p.prod ∧ (∀x∈p, irreducible x) :=
+begin
+  intros x h1,
+  by_cases h2 : (is_unit x),
+  {
+    fapply exists.intro,
+    exact to_unit h2,
+    fapply exists.intro,
+    exact 0,
+    simp
+  },
+  { 
+    let f := some (unique_factorization_domain.fac h1 h2),
+    fapply exists.intro,
+    exact to_unit is_unit_one,
+    fapply exists.intro,
+    exact f,
+    simp,
+    exact some_spec (unique_factorization_domain.fac h1 h2)
+  }
+  
+end
 --To prove, that a field is an instance of an unique_fac_dom
 
 /-
@@ -640,6 +827,8 @@ variables {α}
 
 @[reducible] def mk (a : α) : quot α := ⟦ a ⟧
 
+lemma mk_def {a : α} : mk a = ⟦a⟧ := rfl
+
 instance : has_zero (quot α) := ⟨⟦ 0 ⟧⟩
 instance : has_one (quot α) := ⟨⟦ 1 ⟧⟩
 instance : has_mul (quot α) :=
@@ -672,30 +861,53 @@ instance : partial_order (quot α) :=
         (h₁.symm ▸ dvd_mul_of_dvd_right (dvd_mul_right _ _) _)
         (h₂.symm ▸ dvd_mul_of_dvd_right (dvd_mul_right _ _) _)) h₁ h₂ }
 
+@[simp] lemma mk_zero_eq_zero : mk (0 : α) = 0 := rfl
+
 def irred (a : quot α) : Prop :=
 quotient.lift_on a irreducible $
 assume a b h, propext $ iff.intro
   (assume h', irreducible_of_associated h' h)
   (assume h', irreducible_of_associated h' h.symm)
 
+def is_unit_quot (a : quot α) : Prop :=
+quotient.lift_on a is_unit $
+assume a b h, propext $ iff.intro
+begin
+  intro h1,
+  apply is_unit_of_associated h1,
+  exact h
+end
+begin
+  intro h1,
+  have h2 : b ≈ a,
+  {cc},
+  apply is_unit_of_associated h1,
+  exact h2
+end
+
+#check irred._proof_1
+lemma irreducible_iff_mk_irred {a : α} : irreducible a ↔ irred (mk a) :=
+begin
+  --rw propext,
+  constructor,
+  {
+    
+    intro h1,
+    exact h1, --Importatnt to understand this
+  },
+  {
+    intro h1,
+    exact h1, --Why does it work the other wat?
+  }
+end
+
+
 lemma prod_mk {p : multiset α} : (p.map mk).prod = ⟦ p.prod ⟧ :=
 multiset.induction_on p (by simp; refl) $
   assume a s ih, by simp [ih]; refl
 
---#print prefix rel_multiset
---set_option trace.simplify.rewrite true
---set_option trace.class_instances true
-#print prefix multiset
-#print prefix rel_multiset
-#print prefix unique_factorization_domain
---#check multiset.no_confusion
-#print prefix quot
-
---set_option pp.notation false
-
---lemma 
-
-#check quot.exact
+lemma mul_mk {a b : α} : mk (a * b) = mk a * mk b :=
+rfl
 
 --naming?
 lemma complete {a b : α} : mk a = mk b → (a ~ᵤ b) :=
@@ -704,6 +916,58 @@ begin
  simp * at *,
  exact h1,
 end
+
+lemma mk_eq_mk_iff_associated {a b : α} : mk a = mk b ↔ (a ~ᵤ b) :=
+⟨ complete, quot.sound ⟩ 
+
+lemma mk_eq_zero_iff_eq_zero {a : α} : mk a = 0 ↔ a = 0 :=
+begin
+  constructor,
+  {
+    intro h1,
+    have h2 : (a ~ᵤ 0),
+    from complete h1,
+    rw associated_zero_iff_eq_zero at h2,
+    exact h2,   
+  },
+  {
+     intro h1,
+     rw h1,
+     simp,
+  }
+end
+
+lemma ne_one_of_irred {a : quot α} : irred a → a ≠ 1 :=
+begin
+  apply quotient.induction_on a,
+  intro a,
+  intro h1,
+  have h2 : irreducible a,
+  from h1,
+  rw ne.def,
+  rw [associated.has_one],
+  rw mk_eq_mk_iff_associated,
+  by_contradiction h3,
+  have h4 : ¬ (is_unit a),
+  from and.elim_left ( and.elim_right h2),
+  rw asssociated_one_iff_is_unit at h3,
+  contradiction,
+end
+/-
+lemma irred_iff_ne_zero {a : quot α} : irred a ↔ a ≠ 0 :=
+begin
+  constructor,
+  {
+    apply quotient.induction_on a,
+    intro a,
+    intro h1,
+    rw [ne.def, ← mk_def, mk_eq_zero_iff_eq_zero],
+    have h2 : irreducible a,
+    from h1,
+    exact and.elim_left h1,       
+  },
+
+end-/
 
 lemma forall_associated_of_map_eq_map : ∀(p q : multiset α),
   p.map mk = q.map mk → rel_multiset associated p q :=
@@ -774,7 +1038,6 @@ assume p,
     rw [h11, multiset.cons_inj_right] at h3,
     exact h3,
   }
-
 end
 
 lemma multiset_eq (p q : multiset α) :
@@ -797,20 +1060,225 @@ begin
   },
 end
 
+#check factorization
+
+--correct simp?
+@[simp] lemma mk_unit_eq_one {u : units α} : mk (u : α) = 1 := 
+begin
+  apply quot.sound,
+  exact unit_associated_one
+end
+#check mk_eq_zero_iff_eq_zero
+
+lemma mk_eq_one_iff_is_unit {a : α} : mk a = 1 ↔ is_unit a :=
+begin
+  constructor,
+  {
+    intro h1,
+    have h2 : is_unit_quot (mk a),
+    {
+      rw h1,
+      exact is_unit_one
+    },
+    {
+      exact h2,
+    }
+  },
+  {
+    intro h1,
+    rw ←@to_unit_is_unit_eq _ _ a _,
+    exact mk_unit_eq_one,
+    exact h1,
+  }
+end
 
 lemma representation (a' : quot α) : a' ≠ 0 →
   ∃p : multiset (quot α), (∀a∈p, irred a) ∧ a' = p.prod :=
-quotient.induction_on a' $ assume a, sorry -- TODO: jens
+quotient.induction_on a' $ assume a, 
+begin
+  intro h1,
+  have h2 : a ≠ 0,
+  { rw [ne.def],rw [ ← mk_eq_zero_iff_eq_zero], exact h1},
+  have h3 : ∃ u : units α, ∃ p : multiset α, a = u*p.prod ∧ (∀x∈p, irreducible x),
+  from factorization h2,
+  let u := some h3,
+  have h4: ∃ p : multiset α, a = u*p.prod ∧ (∀x∈p, irreducible x),
+  from some_spec h3,
+  let p := some h4,
+  have h5: a = u*p.prod ∧ (∀x∈p, irreducible x),
+  from some_spec h4,
+  have h5a : a = ↑u * multiset.prod p,
+  from and.elim_left h5,
+  have h5b : ∀ (x : α), x ∈ p → irreducible x,
+  from and.elim_right h5,
+  fapply exists.intro,
+  {
+    exact multiset.map mk p,
+  },
+  {
+    constructor,
+    {
+      intros b' h6,
+      rw multiset.mem_map at h6,
+      let b := some h6,
+      have h7 : b ∈ p ∧ mk b = b',
+      from some_spec h6,
+      have h8 : irreducible b,
+      from h5b _ (and.elim_left h7),
+      rw ←(and.elim_right h7),
+      exact h8
+    },
+    {
+      rw h5a,
+      rw [←mk, mul_mk],
+      simp,
+      rw prod_mk  
+    }
+  }
+end
 
-example (p : multiset (quot α)) : ∃q:multiset α, p = q.map mk :=
-multiset.induction_on p ⟨0, rfl⟩ $
+lemma exists_eq_map_mk (p : multiset (quot α)) : ∃q:multiset α, p = q.map mk :=
+multiset.induction_on p ⟨0, rfl⟩ $ 
   assume a', quotient.induction_on a' $ assume a p ⟨q, hq⟩,
   ⟨a :: q, by simp [hq]⟩
+
+--Doens't this hold already for not is_unit? admit done, do we need this one.
+ lemma prod_not_is_unit_quot_eq_one_iff_eq_zero {p : multiset (quot α)}: (∀ (a : quot α), a ∈ p → (¬ is_unit_quot a)) → (p.prod = 1 ↔ p = 0) :=
+ begin
+  
+  
+ end
+
+--#check --(has_mul α).mul
 
 lemma uniqueness (p q : multiset (quot α))
   (hp : ∀a∈p, irred a) (hq : ∀a∈q, irred a)
   (h : p.prod = q.prod) : p = q :=
-sorry -- TODO: jens
+begin
+  --apply quotient.induction_on₂ p q,
+
+  
+  by_cases h1a : (p = 0),
+  {
+    rw h1a at h,
+    simp at h,
+    admit,
+  },
+  {
+    by_cases h1b : (q = 0),
+    {
+      admit,
+    },
+    {
+      have h1 : ∃p':multiset α, p = p'.map mk,
+      from exists_eq_map_mk p,
+      have h2 : ∃q':multiset α, q = q'.map mk,
+      from exists_eq_map_mk q, 
+      let p' := some h1,
+      have h3 : p = p'.map mk,
+      from some_spec h1,
+      let q' := some h2,
+      have h4 : q = q'.map mk,
+      from some_spec h2,
+      have h5 : p' ≠ 0,
+      {
+        by_contradiction h6,
+        simp at h6,
+        rw h6 at h3,
+        simp at h3,
+        contradiction,
+      },
+      have h6 : q' ≠ 0,
+      {
+        by_contradiction h6,
+        simp at h6,
+        rw h6 at h4,
+        simp at h4,
+        contradiction,
+      },
+
+      --attempt
+       rw [h3, h4, prod_mk, prod_mk] at h,
+       have h7 : (multiset.prod p' ~ᵤ multiset.prod q'),
+       from complete h,
+       rw associated at h7,
+       let u := some h7,
+       have h8 : multiset.prod p' = ↑u * multiset.prod q',
+       from some_spec h7,
+       have h9 : ∃ h, h ∈ q',
+       from multiset.exists_mem_of_ne_zero h6,
+       let h := some h9,
+       have h10 : h ∈ q',
+       from some_spec h9,
+       have h11 : ∃ t, q' = h :: t,
+       from multiset.exists_cons_of_mem h10,
+       let t := some h11,
+       have h12 : q' = h :: t,
+       from some_spec h11,
+       rw h12 at h8,
+       simp at h8,
+       rw ←mul_assoc at h8,
+       let h' := ↑u * h,
+       have h13 : ∀ (a : α), a ∈ p' → irreducible a,
+       {
+         intros a h1,
+         have h13 : mk a ∈ p,
+         {
+           rw h3,
+           exact multiset.mem_map_of_mem mk h1,
+         },
+         exact hp _ h13,
+       },
+      have h14 : ∀ (a : α), a ∈ q' → irreducible a,
+       {
+         intros a h1,
+         have h14 : mk a ∈ q,
+         {
+           rw h4,
+           exact multiset.mem_map_of_mem mk h1,
+         },
+         exact hq _ h14,
+       },
+       have h15 : multiset.prod p' = multiset.prod (h'::t),
+       {simp [h8],},
+       have h16 : ∀ (a : α), a ∈ (h' :: t) → irreducible a,
+       {
+         intros a h1,
+         rw multiset.mem_cons at h1,
+         cases h1 with ha ha,
+         rw ha,
+         apply unit_mul_irreducible_is_irreducible',
+         rw is_unit,
+         exact ⟨u, rfl⟩,
+         exact h14 _ h10,
+         have h16 : a ∈ h :: t,
+         {simp [ha], },
+         rw ← h12 at h16,
+         exact h14 _ h16,
+       },
+       have h17 : rel_multiset associated p' (h' :: t),
+       from unique_factorization_domain.unique h13 h16 h15,
+       rw multiset_eq at h17,
+       have h18 : multiset.map mk (h' :: t) = multiset.map mk q',
+       {
+         have h18 : mk h' = mk h,
+         {
+           rw mul_mk,
+           simp,
+         },
+         rw h12,
+         simp,
+         exact complete h18,
+       },
+       rw [←h17, ← h3, ← h4] at h18,
+       exact h18,
+    }
+  }
+  
+
+
+
+end
 
 def to_multiset (a : quot α) : multiset (quot α) :=
 if h : a = 0 then 0 else classical.some (representation a h)
@@ -896,27 +1364,3 @@ sorry
 
 lemma rel_prime_comm {γ : Type u} [unique_factorization_domain γ] {a b : γ} : rel_prime a b → rel_prime b a :=
 sorry
-
---Lemma that every element not zero can be represented as a product of a unit with prod primes.
-lemma factorization [unique_factorization_domain α]: ∀{x : α}, x ≠ 0 → ∃ u : units α, ∃ p : multiset α, x = u*p.prod ∧ (∀x∈p, irreducible x) :=
-begin
-  intros x h1,
-  by_cases h2 : (is_unit x),
-  {
-    fapply exists.intro,
-    exact to_unit h2,
-    fapply exists.intro,
-    exact 0,
-    simp
-  },
-  { 
-    let f := some (unique_factorization_domain.fac h1 h2),
-    fapply exists.intro,
-    exact to_unit is_unit_one,
-    fapply exists.intro,
-    exact f,
-    simp,
-    exact some_spec (unique_factorization_domain.fac h1 h2)
-  }
-  
-end
