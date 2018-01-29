@@ -905,7 +905,7 @@ begin
   exact h2
 end
 
-#check irred._proof_1
+
 --We don't need this one I think.
 lemma irreducible_iff_mk_irred {a : α} : irreducible a ↔ irred (mk a) :=
 begin
@@ -1107,7 +1107,7 @@ begin
   },
 end
 
-#check factorization
+
 
 --correct simp?
 @[simp] lemma mk_unit_eq_one {u : units α} : mk (u : α) = 1 := 
@@ -1115,7 +1115,7 @@ begin
   apply quot.sound,
   exact unit_associated_one
 end
-#check mk_eq_zero_iff_eq_zero
+
 
 lemma mk_eq_one_iff_is_unit {a : α} : mk a = 1 ↔ is_unit a :=
 begin
@@ -1651,7 +1651,6 @@ begin
   }
 end
 
-#print prefix associated.partial_order
 
 def inf := λa b : quot α, (to_multiset a ∩ to_multiset b).prod
 
@@ -1705,7 +1704,7 @@ begin
   }
 end
 
-lemma le_inf {a b c : quot α} {h1a : a ≠ 0} {h1b : b ≠ 0} {h1c : c ≠ 0}: a ≤ b → a ≤ c → a ≤ inf b c :=
+lemma le_inf {a b c : quot α} (h1a : a ≠ 0) (h1b : b ≠ 0) (h1c : c ≠ 0): a ≤ b → a ≤ c → a ≤ inf b c :=
 begin
   intros h1 h2,
   --simp,
@@ -1748,79 +1747,6 @@ begin
   exact h1a,
 
 end
-
-instance : lattice.semilattice_inf (quot α) :=
-{ inf := λa b, (to_multiset a ∩ to_multiset b).prod,
-  inf_le_left := assume a b, 
-  begin
-    by_cases h1a : (a = 0),
-    {
-      rw h1a,
-      simp only [lattice.has_inf.inf, to_multiset_zero, multiset.zero_inter],
-      simp,   
-    },
-    {
-      simp,
-      have h2a : to_multiset a ∩ to_multiset b ≤ to_multiset a,
-      from multiset.inter_le_left _ _,
-      have h2 : (multiset.prod (to_multiset a ∩ to_multiset b) ≤ a) = ( multiset.prod (to_multiset a ∩ to_multiset b) ≤ (to_multiset a).prod),
-      {
-        rw [ to_multiset_prod_eq],
-        exact h1a,
-      },
-      rw [h2],
-      rw le_iff_exists_add at h2a,
-      let c:= some h2a,
-      have h3 : to_multiset a = to_multiset a ∩ to_multiset b + c,
-      from some_spec h2a,
-      fapply exists.intro,
-      {
-        exact multiset.prod c,
-      },
-      {
-        rw [multiset.prod_mul_prod_eq_add_prod],
-        rw ← h3,
-      }
-    },
-  end,
-  inf_le_right := _,--similar to previous
-  le_inf := --might be incorrec: consider a = 0
-  begin
-   intros a b c h1 h2,
-   by_cases h3a : (a = 0),
-   {
-     rw h3a at h1,
-     rw h3a at h2,
-     have h4 : b = 0,
-     from eq_zero_of_zero_le h1,
-     have h5 : c = 0,
-     from eq_zero_of_zero_le h2,
-     rw [h3a, h4, h5],
-     simp,
-     exact zero_le_one,
-     
-   }
-
-
-   simp,
-   let b' := some h1,
-   have h3 : a * b' = b,
-   from some_spec h1,
-   let c' := some h2,
-   have h4 : a * c' = c,
-   from some_spec h2,
-   rw [← h3, ← h4],
-   by_cases h5 : (a = 0),
-   {
-     rw h5,
-     
-   }
-
-
-  end
-  ,
-  .. associated.partial_order
-}
 
 /-
 lemma exists_gcd (a b : quot α) (ha : a ≠ 0) (hb : b ≠ 0) : 
@@ -1939,18 +1865,62 @@ instance unique_factorization_domain.has_gcd [unique_factorization_domain α] : 
           contradiction,
         },
         {
+          have h6 : mk c ≤ mk a,
+          admit,
+          have h7 : mk c ≤ mk b,
+          admit,
+          have h8 : mk c ≤ inf (mk a) (mk b),
+          have h9 : mk c ≠ 0,
+          {
+            rw [ne.def, mk_eq_zero_iff_eq_zero],
+            exact h5,
+          },
+          have h10 : mk a ≠ 0,
+          {
+            rw [ne.def, mk_eq_zero_iff_eq_zero],
+            exact h3,
+          },
+          have h11 : mk b ≠ 0,
+          {
+            rw [ne.def, mk_eq_zero_iff_eq_zero],
+            exact h4,
+          },
+          from le_inf h9 h10 h11 h6 h7,
+          let d' := some h8,
+          have h12 : mk c * d' = inf (mk a) (mk b),
+          from some_spec h8,
+          let q := quot.out (inf (mk a) (mk b)),
+          have h13 : mk q = (inf (mk a) (mk b)),
+          from quot.out_eq _,
+          let d := quot.out d',
+          have h14 : mk d = d',
+          from quot.out_eq _,
+          rw [← h14, ←mul_mk, ←h13] at h12,
+          have h13 : (c * d  ~ᵤ q),
+          from complete h12,
+          let u := some h13,
+          have h14 : c * d = u * q,
+          from some_spec h13,
+          fapply exists.intro,
+          {
+            exact d * u.inv,
+          },
+          { 
+            exact calc q = 1 * q : by simp
+            ... = (u.inv * u.val) * q : by rw [units.inv_val]
+            ... = u.inv * (u.val * q) : by simp [mul_assoc]
+            ... = u.inv * (↑u * q) : by rw [units.val_coe]
+            ... = u.inv * (c * d) : by rw h14
+            ... = (c * d) * u.inv : by simp [mul_comm]
+            ... = _ : by simp [mul_assoc],
+           }
+          
 
         }
-        let a' := some h1,
-        have h5 : c * a' = a,
-        from eq.symm (some_spec h1),
-        let b' := some h2,
-        have h6 : c * b' = b,
-        from eq.symm (some_spec h2),
-        rw [←h5, ←h6],
-      }
-    }
-  end
+    },
+
+    },
+  end,
 }
 
 
