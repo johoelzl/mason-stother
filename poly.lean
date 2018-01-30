@@ -1298,7 +1298,7 @@ begin
   }    
 end
 
-
+--Should be in lib, used it on two spots already.
 lemma one_le_of_ne_zero {n : ℕ} : n ≠ 0 → 1 ≤ n :=
 begin
   intro h1,
