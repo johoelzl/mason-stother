@@ -20,4 +20,9 @@ begin
   }
 end
 
+lemma prod_mul_prod_eq_add_prod [comm_monoid α] {a b : multiset α} : a.prod * b.prod = (a + b).prod :=
+begin
+  simp,
+end
+
 end multiset
