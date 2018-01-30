@@ -886,7 +886,7 @@ def gcd_left [comm_semiring α] [h : has_gcd α] {a b : α }  := has_gcd.gcd_lef
 def gcd_right [comm_semiring α] [h : has_gcd α] {a b : α } := has_gcd.gcd_right a b
 def is_gcd [has_dvd α] (a b d :α) :=  d∣a ∧  d∣b ∧  (∀x, x∣a →  x∣b → x∣d)
 
-lemma gcd_zero_zero_eq_zero {α : Type u} [comm_semiring α][has_gcd α] : gcd (0 : α) 0 = 0 :=
+@[simp] lemma gcd_zero_zero_eq_zero {α : Type u} [comm_semiring α][has_gcd α] : gcd (0 : α) 0 = 0 :=
 begin
   by_contradiction,
   have h1 : (0 : α)∣0,

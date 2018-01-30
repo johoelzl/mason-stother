@@ -1569,20 +1569,8 @@ end
  
 --local notation `d[`a`]` := polynomial.derivative a
 --set_option trace.simplify true
-set_option trace.class_instances true
-#check @polynomial.ring
+--set_option trace.class_instances true
 
-lemma degree_wron_le {a b : polynomial α} : degree ((derivative a) * b - a * (derivative b)) ≤ (degree a) + (degree b) - (1 : ℕ) :=
-begin
-  by_cases h1 : (a = 0),
-  {
-    rw h1,
-    dsimp, --Could it be that it failes because of an instance resolution problem? see dsimp,
-    --It seems that the problem is that it wants to do an instance resolution.
-  },
-  {
-  }
-end
 
 end integral_domain
 end polynomial

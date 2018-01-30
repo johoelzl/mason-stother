@@ -329,20 +329,29 @@ begin
 end
 
 ----set_option trace.simplify true
-set_option trace.simplify true
+--set_option trace.simplify true
 --set_option debugger true
 --set_option trace.simp_lemmas.invalid true
 -- set_option trace.simplify.rewrite_failure true
-set_option pp.implicit false
+--set_option pp.implicit false
 --important solve simp problem here
 --Here a problem with simp, it immideately* failes
+
+lemma one_le_of_ne_zero {n : ℕ } (h : n ≠ 0) : 1 ≤ n :=
+begin
+  let m := some (nat.exists_eq_succ_of_ne_zero h),
+  have h1 : n = nat.succ m,
+  from some_spec (nat.exists_eq_succ_of_ne_zero h), 
+  rw [h1, nat.succ_le_succ_iff], --simp * failes here
+  exact nat.zero_le _,
+
+end
+
 lemma degree_wron_le {a b : polynomial β} : degree (d[a] * b - a * d[b]) ≤ degree a + degree b - 1 :=
 begin
   by_cases h1 : (a = 0),
   {
-    simp,
-    rw [h1, degree_zero, derivative_zero,zero_mul,sub_eq_add_neg, zero_add,zero_mul,degree_neg],
-    rw [degree_zero],
+    simp *,
     exact nat.zero_le _,
   },
   {
@@ -352,10 +361,83 @@ begin
       by_cases h3 : (b = 0),
       {
         rw h3,
-        simp, --insight ? set_option trace.simp_lemmas.invalid true
-        --rw [h3, mul_zero, degree_zero,sub_eq_add_neg, zero_add, derivative_zero,add_zero, mul_zero, degree_neg, degree_zero],
-       -- exact nat.zero_le (degree a - 1)--simp should find degree_zero here
+        simp,
+        exact nat.zero_le _,
       },
+      {
+        simp [*],
+        by_cases h4 : (degree b = 0),
+        {
+          simp *,
+          rw [←is_constant_iff_degree_eq_zero] at *,
+          have h5 : derivative a = 0,
+          from derivative_eq_zero_of_is_constant h2,
+          have h6 : derivative b = 0,
+          from derivative_eq_zero_of_is_constant h4,
+          simp *,          
+        },
+        {
+          have h2a : degree a = 0,
+          from h2,
+          rw [←is_constant_iff_degree_eq_zero] at h2,
+          have h5 : derivative a = 0,
+          from derivative_eq_zero_of_is_constant h2,
+          simp *,
+          by_cases h6 : (derivative b = 0),
+          {
+            simp *,
+            exact nat.zero_le _,
+          },
+          {
+            rw [degree_neg],
+            apply nat.le_trans degree_mul,
+            simp *,
+            exact degree_derivative_le,
+          }
+        },
+
+      }
+    },
+    {
+      by_cases h3 : (b = 0),
+      {
+        simp *,
+        exact nat.zero_le _,
+      },
+      {
+        by_cases h4 : (degree b = 0),
+        {
+          simp *,
+          rw [←is_constant_iff_degree_eq_zero] at h4,
+          have h5 : derivative b = 0,
+          from derivative_eq_zero_of_is_constant h4,
+          simp *,
+          apply nat.le_trans degree_mul,
+          rw [is_constant_iff_degree_eq_zero] at h4,
+          simp *,
+          exact degree_derivative_le,
+        },
+        {
+          apply nat.le_trans degree_sub,
+          have h5 : degree (d[a] * b) ≤ degree a + degree b - 1,
+          {
+            apply nat.le_trans degree_mul,
+            rw [add_comm _ (degree b), add_comm _ (degree b), nat.add_sub_assoc],
+            apply add_le_add_left,
+            exact degree_derivative_le,
+            exact _root_.one_le_of_ne_zero h2,
+          },
+          have h6 : (degree (a * d[b])) ≤ degree a + degree b - 1,
+          {
+            apply nat.le_trans degree_mul,
+            rw [nat.add_sub_assoc],
+            apply add_le_add_left,
+            exact degree_derivative_le,
+            exact _root_.one_le_of_ne_zero h4,            
+          },
+          exact max_le h5 h6,
+        }
+      }
     }
   }
 end
@@ -505,6 +587,24 @@ begin
   },
 end
 
+--needs cleaning
+lemma Mason_Stothers_lemma'
+(f : polynomial β) : degree f - degree (gcd f (derivative f )) ≤  degree (rad f) := 
+begin
+  have h1 : degree f - degree (gcd f (derivative f )) ≤ degree (gcd f (derivative f )) + degree (rad f) - degree (gcd f (derivative f )),
+  {
+    apply nat.sub_le_sub_right,
+    apply Mason_Stothers_lemma,
+  },
+  have h2 : degree (gcd f d[f]) + degree (rad f) - degree (gcd f d[f]) =  degree (rad f),
+  {
+    rw [add_comm _ (degree (rad f)), nat.add_sub_assoc, nat.sub_self, nat.add_zero],
+    exact nat.le_refl _,
+  },
+  rw h2 at h1,
+  exact h1,
+end
+
 lemma derivative_eq_zero_and_derivative_eq_zero_of_rel_prime_of_wron_eq_zero
 {a b : polynomial β} 
 (h1 : rel_prime a b)
@@ -513,6 +613,25 @@ lemma derivative_eq_zero_and_derivative_eq_zero_of_rel_prime_of_wron_eq_zero
 
 lemma rel_prime_gcd_derivative_gcd_derivative_of_rel_prime {a b : polynomial β} (h : rel_prime a b) : rel_prime (gcd a d[a]) (gcd b d[b]) :=
 sorry
+
+lemma degree_gcd_derivative_le_degree {a : polynomial β}: degree (gcd a d[a]) ≤ degree a :=
+begin
+  by_cases h : (a = 0),
+  {
+    simp * at *,
+  },
+  {
+    apply degree_gcd_le_left,
+    exact h,
+  }
+
+end
+
+--We will need extra conditions here
+lemma degree_rad_add {a b c : polynomial β}: degree (rad a) + degree (rad b) + degree (rad c) ≤ degree (rad (a * b * c)) :=
+begin
+  admit,
+end
 
 theorem Mason_Stothers [field β]
   (h_char : characteristic_zero β)
@@ -642,9 +761,136 @@ begin
     from degree_mul_eq_add_of_mul_ne_zero h3,
     rw [h2, h4]
   },
+  have h_deg_add_le : degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c]) ≤ degree a + degree b - 1,
+  {
+    rw [←h_deg_add],
+    have h1 : degree (gcd a d[a] * gcd b d[b] * gcd c d[c]) ≤ degree (d[a] * b - a * d[b]),
+    from degree_dvd h_gcds_dvd h_wron_ne_zero,
+    exact nat.le_trans h1 (degree_wron_le),
+  },--needs cleaning
+  have h_deg_c_le_1 : degree c ≤ (degree a - degree (gcd a d[a])) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1,
+  {
+    have h1 : degree c + (degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c])) ≤ degree c + (degree a + degree b - 1),
+    from nat.add_le_add_left h_deg_add_le _,
+    have h2 : degree c + (degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c])) - (degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c]))
+    ≤ degree c + (degree a + degree b - 1) - (degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c])),
+    from nat.sub_le_sub_right h1 _,
+    have h3 : degree c + (degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c])) - (degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c])) = degree c,
+    {--twice h3?
+      
+      have h3 : degree c + (degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c])) = 
+      degree c + (degree (gcd c d[c])) + (degree (gcd b d[b]) + degree (gcd a d[a]) ),
+      {
+        simp [add_assoc, add_comm],
+      },
+      rw [h3],
+      --rw [add_comm (degree (gcd b d[b])) (degree (gcd c d[c]))],
+      --rw [←add_assoc, add_comm (degree (gcd a d[a])) _], 
+      rw [←nat.sub_sub, ←nat.sub_sub], --should use tactic comb here
+      have h4 : degree c + degree (gcd c d[c]) + (degree (gcd b d[b]) + degree (gcd a d[a])) =
+      degree c + degree (gcd c d[c]) + degree (gcd b d[b]) + degree (gcd a d[a]),
+      {
+        simp [add_comm],
+      },
+      rw h4,
+      rw [nat.add_sub_assoc, nat.sub_self _, nat.add_zero ], --tactic comb
+      rw [nat.add_sub_assoc, nat.sub_self _, nat.add_zero],
+      rw [nat.add_sub_assoc, nat.sub_self _, nat.add_zero],
+      exact nat.le_refl _,
+      exact nat.le_refl _,
+      exact nat.le_refl _,      
+    },
+    rw h3 at h2,
+    have h4 : degree c + (degree a + degree b - 1) - (degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c]))
+    = degree a - degree (gcd a d[a]) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1,
+    {
+      have h4 : degree c + (degree a + degree b - 1) = degree c + degree b + degree a - 1,
+      {
+       rw [add_comm (degree a) _, ← nat.add_sub_assoc, add_assoc],
+       apply _root_.one_le_of_ne_zero,  
+       admit, --important admit here
+      },
+      rw [h4, nat.sub_sub _ 1 _, add_comm 1 _, ←nat.sub_sub _ _ 1],
+      rw [←nat.sub_sub, ←nat.sub_sub],
+      rw [nat.add_sub_assoc],
+      rw [add_assoc, add_comm (degree b) _, ← add_assoc, add_comm (degree c) _, nat.add_sub_assoc],
+      rw [add_assoc, add_comm (degree c) _, ←add_assoc, nat.add_sub_assoc],
+      exact degree_gcd_derivative_le_degree,
+      exact degree_gcd_derivative_le_degree,
+      exact degree_gcd_derivative_le_degree,
 
-
-
+    },
+    rw h4 at h2,
+    exact h2,
+  },
+  have h_le_rad : degree a - degree (gcd a d[a]) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1 ≤
+  degree (rad (a * b * c)) - 1,
+  {
+    have h1 : degree a - degree (gcd a d[a]) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1 ≤ 
+    degree (rad a ) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1,
+    {
+      have h1a : degree a - degree (gcd a d[a]) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1 =
+      degree a - degree (gcd a d[a]) + ((degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1),
+      {
+        rw [add_assoc, nat.add_sub_assoc],
+        admit, -- admit here
+      },
+      have h1b : degree (rad a) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1 =
+      degree (rad a) + ((degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1),
+      {
+        rw [add_assoc, nat.add_sub_assoc],
+        admit, -- admit here       
+      },
+      rw [h1a, h1b],
+      apply @nat.add_le_add_right (degree a - degree (gcd a d[a])) (degree (rad a)), 
+      exact Mason_Stothers_lemma' _,
+    },
+    apply nat.le_trans h1,
+    rw add_comm (degree (rad a)) _,
+    have h2 : degree b - degree (gcd b d[b]) + degree (rad a) + (degree c - degree (gcd c d[c])) - 1 ≤ 
+    degree (rad b) + degree (rad a) + (degree c - degree (gcd c d[c])) - 1,
+    {
+      have h2a : degree b - degree (gcd b d[b]) + degree (rad a) + (degree c - degree (gcd c d[c])) - 1 = degree b - degree (gcd b d[b]) + (degree (rad a) + (degree c - degree (gcd c d[c])) - 1),
+      {
+        rw [add_assoc, nat.add_sub_assoc],
+        admit, -- admit here        
+      },
+      have h2b : degree (rad b) + degree (rad a) + (degree c - degree (gcd c d[c])) - 1 = 
+      degree (rad b) + (degree (rad a) + (degree c - degree (gcd c d[c])) - 1),
+      {
+        rw [add_assoc, nat.add_sub_assoc],
+        admit, -- admit here          
+      },
+      rw [h2a, h2b],
+      apply nat.add_le_add_right, 
+      exact Mason_Stothers_lemma' _,
+    },
+    apply nat.le_trans h2,
+    rw [add_assoc, add_comm (degree (rad a)) _, ← add_assoc, add_comm (degree (rad b)) _],
+    have h3 : degree c - degree (gcd c d[c]) + degree (rad b) + degree (rad a) - 1 ≤
+    degree (rad c) + degree (rad b) + degree (rad a) - 1,
+    {
+      have h3a : degree c - degree (gcd c d[c]) + degree (rad b) + degree (rad a) - 1 = degree c - degree (gcd c d[c]) + (degree (rad b) + degree (rad a) - 1),
+      {
+        rw [add_assoc, nat.add_sub_assoc],
+        admit, -- admit here           
+      },
+      have h3b : degree (rad c) + degree (rad b) + degree (rad a) - 1  = 
+      degree (rad c) + (degree (rad b) + degree (rad a) - 1),
+      {
+        rw [add_assoc, nat.add_sub_assoc],
+        admit, -- admit here 
+      },
+      rw [h3a, h3b],
+      apply nat.add_le_add_right, 
+      exact Mason_Stothers_lemma' _,
+    },
+    apply nat.le_trans h3,
+    rw [add_comm (degree (rad c)) _, add_assoc, add_comm (degree (rad c)) _, ← add_assoc, add_comm (degree (rad b)) _],
+    apply nat.sub_le_sub_right,
+    exact degree_rad_add,
+  },
+  exact nat.le_trans h_deg_c_le_1 h_le_rad,
 end
 
 

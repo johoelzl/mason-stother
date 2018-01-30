@@ -334,5 +334,12 @@ begin
   }
 end
 
+lemma degree_gcd_le_left [unique_factorization_domain α] {a b : polynomial α} (h : a ≠ 0): degree (gcd a b) ≤ degree a :=
+begin
+  have  h1 : gcd a b ∣ a,
+  from gcd_left,
+  apply nat.le_trans (degree_dvd h1 h),
+  exact nat.le_refl _,
+end
 
 end polynomial
