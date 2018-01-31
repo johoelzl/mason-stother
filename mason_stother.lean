@@ -624,6 +624,29 @@ begin
     apply degree_gcd_le_left,
     exact h,
   }
+end
+
+lemma degree_gcd_derivative_lt_degree_of_degree_ne_zero {a : polynomial β} (h : degree a ≠ 0) (h_char : characteristic_zero β) : degree (gcd a d[a]) < degree a :=
+begin
+  have h1 : degree (gcd a d[a]) ≤ degree d[a],
+  {
+    apply degree_dvd,
+    apply gcd_right,
+    rw [ne.def, derivative_eq_zero_iff_is_constant, is_constant_iff_degree_eq_zero],
+    exact h,
+    exact h_char,
+  },
+  have h2 : ∃ n, degree a = nat.succ n,
+  from nat.exists_eq_succ_of_ne_zero h,
+  let n := some h2,
+  have h3 : degree a = nat.succ n,
+  from some_spec h2,
+  exact calc degree (gcd a d[a]) ≤ degree d[a] : h1
+  ... ≤ degree a - 1 : degree_derivative_le
+  ... ≤ nat.succ n - 1 : by rw h3
+  ... = n : rfl
+  ... < nat.succ n : nat.lt_succ_self _
+  ... = degree a : eq.symm h3,
 
 end
 
@@ -632,6 +655,178 @@ lemma degree_rad_add {a b c : polynomial β}: degree (rad a) + degree (rad b) + 
 begin
   admit,
 end
+
+lemma gt_zero_of_ne_zero {n : ℕ} (h : n ≠ 0) : n > 0 :=
+begin
+  have h1 : ∃ m : ℕ, n = nat.succ m,
+  from nat.exists_eq_succ_of_ne_zero h,
+  let m := some h1,
+  have h2 : n = nat.succ m,
+  from some_spec h1,
+  rw h2,
+  exact nat.zero_lt_succ _,
+end
+
+lemma MS_aux_1a {c : polynomial β} (h3 : ¬degree c = 0)(h_char : characteristic_zero β) : 1 ≤ (degree c - degree (gcd c d[c])) :=
+begin
+  have h4 : degree c - degree (gcd c d[c]) > 0,
+  {
+    rw [nat.pos_iff_ne_zero, ne.def, nat.sub_eq_zero_iff_le],
+    simp,
+    exact degree_gcd_derivative_lt_degree_of_degree_ne_zero h3 h_char,
+  },
+  exact h4,
+
+end
+
+--should be in poly
+lemma MS_aux_1b {a b c : polynomial β} (h_char : characteristic_zero β) (h_add : a + b = c)
+  (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)) (h1 : is_constant b)
+(h2 : ¬is_constant a) : ¬ is_constant c :=
+begin
+  rw [is_constant_iff_degree_eq_zero] at *,
+  have h3 : c (degree a) ≠ 0,
+  {
+    rw ← h_add,
+    simp,
+    have h3 : b (degree a) = 0,
+    {
+      apply eq_zero_of_gt_degree,
+      rw h1,
+      exact gt_zero_of_ne_zero h2,
+    },
+    rw h3,
+    simp,
+    have h4 : leading_coeff a = 0 ↔ a = 0,
+    from leading_coef_eq_zero_iff_eq_zero,
+    rw leading_coeff at h4,
+    rw h4,
+    by_contradiction h5,
+    rw h5 at h2,
+    simp at h2,
+    exact h2,
+  },
+  have h4 : degree a ≤ degree c,
+  from le_degree h3,
+  by_contradiction h5,
+  rw h5 at h4,
+  have : degree a = 0,
+  from nat.eq_zero_of_le_zero h4,
+  contradiction,     
+end
+
+lemma MS_aux_1 {a b c : polynomial β} (h_char : characteristic_zero β) (h_add : a + b = c)
+  (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)) :
+  1 ≤ degree b - degree (gcd b d[b]) + (degree c - degree (gcd c d[c])) :=
+begin
+  by_cases h1 : (is_constant b),
+  {
+    by_cases h2 : (is_constant a),
+    {
+      have h3 : is_constant c,
+      from is_constant_add h2 h1 h_add,
+      simp * at *,
+    },
+    {
+      have h3 : ¬ is_constant c,
+      {
+        exact MS_aux_1b h_char h_add h_constant h1 h2,
+      },
+      rw [is_constant_iff_degree_eq_zero] at h3,
+      have h4 : 1 ≤ (degree c - degree (gcd c d[c])),
+      from MS_aux_1a h3 h_char,
+      apply nat.le_trans h4,
+      simp,
+      exact nat.zero_le _,
+    }
+  },
+  {
+    rw [is_constant_iff_degree_eq_zero] at h1,
+    have h2 : 1 ≤ degree b - degree (gcd b d[b]),
+    from MS_aux_1a h1 h_char,
+    apply nat.le_trans h2,
+    simp,
+    exact nat.zero_le _,
+  }
+
+end
+
+--Strong duplication with MS_aux_1
+lemma MS_aux_2 {a b c : polynomial β} (h_char : characteristic_zero β) (h_add : a + b = c)
+  (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)) :
+   1 ≤ degree (rad a) + (degree c - degree (gcd c d[c])) :=
+begin
+  by_cases h1 : is_constant b,
+  {
+    by_cases h2 : is_constant a,
+    {
+      have h3 : is_constant c,
+      from is_constant_add h2 h1 h_add,
+      simp * at *,
+    },
+    {
+      have h3 : ¬ is_constant c,
+      {
+        rw [is_constant_iff_degree_eq_zero] at *,
+        have h3 : c (degree a) ≠ 0,
+        {
+          rw ← h_add,
+          simp,
+          have h3 : b (degree a) = 0,
+          {
+            apply eq_zero_of_gt_degree,
+            rw h1,
+            exact gt_zero_of_ne_zero h2,
+          },
+          rw h3,
+          simp,
+          have h4 : leading_coeff a = 0 ↔ a = 0,
+          from leading_coef_eq_zero_iff_eq_zero,
+          rw leading_coeff at h4,
+          rw h4,
+          by_contradiction h5,
+          rw h5 at h2,
+          simp at h2,
+          exact h2,
+        },
+        have h4 : degree a ≤ degree c,
+        from le_degree h3,
+        by_contradiction h5,
+        rw h5 at h4,
+        have : degree a = 0,
+        from nat.eq_zero_of_le_zero h4,
+        contradiction,
+      }, 
+      rw [is_constant_iff_degree_eq_zero] at h3,
+      have h4 : 1 ≤ (degree c - degree (gcd c d[c])),
+      from MS_aux_1a h3 h_char,
+      apply nat.le_trans h4,
+      simp,
+      exact nat.zero_le _,   
+    }
+  },
+  {
+    by_cases h2 : (is_constant a),
+    {
+      rw add_comm at h_add,
+      have h_constant' : ¬(is_constant b ∧ is_constant a ∧ is_constant c),
+      {simp [*, and_comm]},
+      have h3 : ¬is_constant c,
+      from MS_aux_1b h_char h_add h_constant' h2 h1,
+      rw [is_constant_iff_degree_eq_zero] at h3,
+      have h4 : 1 ≤ (degree c - degree (gcd c d[c])),
+      from MS_aux_1a h3 h_char,
+      apply nat.le_trans h4,
+      simp,
+      exact nat.zero_le _,   
+    },
+    {
+      admit --admit here
+
+    }
+  }
+end
+
 
 theorem Mason_Stothers [field β]
   (h_char : characteristic_zero β)
@@ -807,8 +1002,50 @@ begin
       have h4 : degree c + (degree a + degree b - 1) = degree c + degree b + degree a - 1,
       {
        rw [add_comm (degree a) _, ← nat.add_sub_assoc, add_assoc],
-       apply _root_.one_le_of_ne_zero,  
-       admit, --important admit here
+       apply _root_.one_le_of_ne_zero,
+       have h4 : degree b + degree a ≠ 0, --cleaning
+       {
+         rw [is_constant_iff_degree_eq_zero, is_constant_iff_degree_eq_zero, is_constant_iff_degree_eq_zero] at h_constant,
+         rw [not_and_distrib, not_and_distrib] at h_constant,
+         cases h_constant,
+         {
+           by_contradiction h4,
+           simp at h4,
+           rw [add_eq_zero_iff_eq_zero_of_nonneg] at h4,
+           exact h_constant (and.elim_left h4),
+           exact nat.zero_le _,
+           exact nat.zero_le _,
+         },
+         {
+           cases h_constant,
+           {
+            by_contradiction h4,
+            simp at h4,
+            rw [add_eq_zero_iff_eq_zero_of_nonneg] at h4,
+            exact h_constant (and.elim_right h4),
+            exact nat.zero_le _,
+            exact nat.zero_le _,    
+           },
+           {
+             by_contradiction h4,
+             simp at h4,
+             have h5 : degree c ≤ max (degree a) (degree b),
+             {
+               rw ←h_add, 
+               exact degree_add,
+             },
+             rw [add_eq_zero_iff_eq_zero_of_nonneg] at h4,
+             rw [and.elim_left h4, and.elim_right h4] at h5,
+             simp at h5,
+             have h6 : degree c = 0,
+             from nat.eq_zero_of_le_zero h5,
+             contradiction,
+             exact nat.zero_le _,
+             exact nat.zero_le _,             
+           }
+         }
+       },
+       exact h4,
       },
       rw [h4, nat.sub_sub _ 1 _, add_comm 1 _, ←nat.sub_sub _ _ 1],
       rw [←nat.sub_sub, ←nat.sub_sub],
@@ -833,13 +1070,13 @@ begin
       degree a - degree (gcd a d[a]) + ((degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1),
       {
         rw [add_assoc, nat.add_sub_assoc],
-        admit, -- admit here
+        exact MS_aux_1 h_char h_add h_constant,
       },
       have h1b : degree (rad a) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1 =
       degree (rad a) + ((degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1),
       {
         rw [add_assoc, nat.add_sub_assoc],
-        admit, -- admit here       
+        exact MS_aux_1 h_char h_add h_constant,     
       },
       rw [h1a, h1b],
       apply @nat.add_le_add_right (degree a - degree (gcd a d[a])) (degree (rad a)), 
@@ -853,13 +1090,13 @@ begin
       have h2a : degree b - degree (gcd b d[b]) + degree (rad a) + (degree c - degree (gcd c d[c])) - 1 = degree b - degree (gcd b d[b]) + (degree (rad a) + (degree c - degree (gcd c d[c])) - 1),
       {
         rw [add_assoc, nat.add_sub_assoc],
-        admit, -- admit here        
+        exact MS_aux_2 h_char h_add h_constant,      
       },
       have h2b : degree (rad b) + degree (rad a) + (degree c - degree (gcd c d[c])) - 1 = 
       degree (rad b) + (degree (rad a) + (degree c - degree (gcd c d[c])) - 1),
       {
         rw [add_assoc, nat.add_sub_assoc],
-        admit, -- admit here          
+        exact MS_aux_2 h_char h_add h_constant,        
       },
       rw [h2a, h2b],
       apply nat.add_le_add_right, 

@@ -1491,6 +1491,15 @@ begin
   }
 end
 
+lemma is_constant_add {a b c : polynomial α} (h1 : is_constant a) (h2 : is_constant b) (h_add : a + b = c): is_constant c :=
+begin
+  rw is_constant_iff_degree_eq_zero at *,
+  have h3 : degree (a + b) ≤ max (degree a) (degree b),
+  from degree_add,
+  simp * at *,
+  exact nat.eq_zero_of_le_zero h3,
+end
+
 #print derivative._match_1
 #check derivative._match_1
 
