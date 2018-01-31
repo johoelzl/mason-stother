@@ -756,6 +756,200 @@ inductive rel_multiset {α β : Type u} (r : α → β → Prop) : multiset α �
 | nil : rel_multiset {} {}
 | cons : ∀a b xs ys, r a b → rel_multiset xs ys → rel_multiset (a::xs) (b::ys)
 --Can we do an induction on rel_multiset?
+lemma rel_multiset_cons_right {α β: Type u} {r : α → β → Prop} {a : multiset α} {t : multiset β} {h : β} : 
+  rel_multiset r a (h :: t) →  ∃ h' t', a = (h' :: t') ∧ r h' h ∧ rel_multiset r t' t :=
+begin
+  generalize h1 : (h :: t) = b,
+  intro h2,
+  induction h2 with x y a b hr1 hr2 hi generalizing t,
+  {
+    have h2 : h ∈ h :: t,
+    {simp},
+    rw h1 at h2,
+    have h3 : h ∉ ∅,
+    from multiset.not_mem_zero _,
+    contradiction,
+  },
+  by_cases h3a : (h = y),
+  {
+    rw ←h3a at hr1,
+    rw [h3a, multiset.cons_inj_right] at h1,
+    rw ←h1 at hr2,
+    exact ⟨x, a, rfl, hr1, hr2 ⟩,
+  },
+  {
+
+    have h3 : y ∈ h :: t,
+    {
+      rw h1,
+      simp,
+    },
+    rw multiset.mem_cons at h3,
+    cases h3,
+    {
+      rw h3 at h3a,
+      contradiction,
+    },
+    {
+      have h4 : ∃t', t = y :: t',
+      from multiset.exists_cons_of_mem h3,
+      let t'' := some h4,
+      have h5 : t = y :: t'',
+      from some_spec h4,
+      rw [h5, multiset.cons_swap, multiset.cons_inj_right] at h1,
+      have h6 : (∃ (h' : α) (t' : multiset α), a = h' :: t' ∧ r h' h ∧ rel_multiset r t' t''),
+      from hi h1,
+      let H := some h6,
+      have h7 : ∃(t' : multiset α), a = H :: t' ∧ r H h ∧ rel_multiset r t' t'',
+      from some_spec h6,
+      let T := some h7,
+      have h8 : a = H :: T ∧ r H h ∧ rel_multiset r T t'',
+      from some_spec h7,
+      fapply exists.intro,
+      exact H,
+      fapply exists.intro,
+      exact x :: T,
+      rw [and.elim_left h8, multiset.cons_swap],
+      constructor,
+      exact rfl,
+      constructor,
+      exact and.elim_left (and.elim_right h8),
+      rw h5,
+      apply rel_multiset.cons,
+      exact hr1,
+      exact and.elim_right (and.elim_right h8),
+
+
+    }
+
+
+  }
+
+end
+
+
+
+
+lemma rel_multiset_cons_right {α β: Type u} {r : α → β → Prop} {a : multiset α} {t : multiset β} {h : β} : 
+  rel_multiset r a (h :: t) →  ∃ h' t', a = (h' :: t') ∧ r h' h ∧ rel_multiset r t' t :=
+begin
+  generalize h1 : h :: t = b,
+  intro h2,
+  /-
+  revert t b,
+  apply multiset.induction_on a,
+  {
+    intros t b h1,
+    
+    generalize ha : (0 : multiset α) = a,
+    intro h1,
+    induction h1 with x y a b hr1 hr2 hi,
+    {
+      admit,
+    },
+    {
+      simp * at *,
+      have h2 : x ∈ x :: a,
+      {simp},
+      rw ← ha at h2,
+      have h3 : x ∉ ∅,
+      from multiset.not_mem_zero _,
+      contradiction,
+    }
+    
+  },
+  {
+    intros x a h1 b c h2 h3,
+    revert h3,
+    generalize h4 : x :: a = A,
+    intro h3,
+    revert b a,
+    induction h3 with a' b' xs ys h3a h3b h3ih,
+    {
+      admit,
+    },
+    {
+      simp * at *,
+    }
+  }-/
+  /-
+  cases h2 with x y a b hr1 hr2 hi,
+  {
+    simp * at *,
+    admit,
+  },
+  {
+    fold,
+  },-/
+  revert t,
+  induction h2 with x y a b hr1 hr2 hi,
+  {
+    admit,
+    /-
+    have h2 : h ∈ h :: t,
+    {simp},
+    rw h1 at h2,
+    have h3 : h ∉ ∅,
+    from multiset.not_mem_zero _,
+    contradiction,-/
+  },
+  {
+    by_cases h2 : (h = y),
+    {
+      have h3 : t = b,
+      {
+        rw [h2, multiset.cons_inj_right] at h1,
+        assumption,
+      },
+      rw ←h2 at hr1,
+      rw ←h3 at hr2,
+      exact ⟨x, a, rfl, hr1, hr2⟩,
+    },
+    {
+      have h3 : y ∈ h :: t,
+      {
+        rw h1,
+        simp,
+      },
+      rw multiset.mem_cons at h3,
+      cases h3,
+      {
+        rw h3 at h2,
+        contradiction,
+      },
+      {
+        have h4 : ∃t', t = y :: t',
+        from multiset.exists_cons_of_mem h3,
+        let t'' := some h4,
+        have h5 : t = y :: t'',
+        from some_spec h4,
+        rw [h5, multiset.cons_swap, multiset.cons_inj_right] at h1,
+        have h6 : (∃ (h' : α) (t' : multiset α), a = h' :: t' ∧ r h' h ∧ rel_multiset r t' t''),
+        from hi h1,
+        rw h5,
+        
+      }
+    }
+
+    /-
+    fapply exists.intro,
+    exact x,
+    fapply exists.intro,
+    exact xs,
+    constructor,
+    {
+      exact rfl,
+    },
+    constructor,
+    {
+      have h2 : h = y,
+      {
+        rw multiset.cons_inj_right at h1,
+      }
+      -/
+    
+  }
+end
 
 
 class unique_factorization_domain (α : Type u) extends integral_domain α :=
@@ -1122,6 +1316,16 @@ begin
                   },
                   contradiction,
                 },
+                /-
+                induction h14,
+                {
+                  admit
+                },
+                {
+                  
+                }-/
+
+
                 have h16 : (∃h, h ∈ b'),
                 from multiset.exists_mem_of_ne_zero h15,
                 let h := some h16,
@@ -1137,6 +1341,14 @@ begin
                 have h20 : b' + c' = h :: t,
                 from some_spec h19,
                 rw h20 at h14,
+                /-
+                induction h14,
+                {
+                 admit, 
+                },
+                {
+                  
+                }-/
 
                 
                 exact 
@@ -2108,6 +2320,14 @@ open associated
 
 set_option trace.eqn_compiler.elim_match true
 
+example : ∀ n : ℕ, n ≠ 0 → n = 3 → n ≠ 4 :=
+begin
+  intros n h1 h2,
+  revert n,
+
+end
+
+
 lemma prime_of_irreducible {α : Type u}[unique_factorization_domain α] {p : α} (h1 : irreducible p) : prime p :=
 begin
   constructor,
@@ -2250,6 +2470,20 @@ begin
                   },
                   contradiction,
                 },
+                revert h14,
+                generalize h_A : (b' + c') = A,
+                generalize h_B : (p :: d') = B,
+                intro h14,
+                induction h14,
+                {
+                  admit,
+                },
+                {
+
+                }
+
+
+
                 have h16 : (∃h, h ∈ b'),
                 from multiset.exists_mem_of_ne_zero h15,
                 let h := some h16,
