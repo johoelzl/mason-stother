@@ -1,6 +1,6 @@
 import  .Sup_fin data.finsupp order.lattice data.nat.cast .euclidean_domain unique_factorization_domain
 import .to_finsupp poly .to_multiset
-import data.multiset
+--import data.multiset
 universes u v w
 
 local notation a`~ᵤ`b := associated a b
@@ -160,8 +160,7 @@ begin
   }
 end
 
-lemma polynomial_fac [field α] {x : polynomial α} : 
-  ∃ c :  α, ∃ p : multiset (polynomial α), x = C c * p.prod ∧ (∀x∈p, irreducible x ∧ monic x)  :=
+lemma polynomial_fac [field α] {x : polynomial α} : ∃ c :  α, ∃ p : multiset (polynomial α), x = C c * p.prod ∧ (∀x∈p, irreducible x ∧ monic x)  :=
 begin
   by_cases h1 : (x = 0),
   {
@@ -333,6 +332,40 @@ begin
     }
 
   }
+end
+
+/-
+--The more general setting, avoids problem with the roots of the zero polynomial
+axiom monic_irr (p : polynomial β) : polynomial β →₀ ℕ
+axiom irr_poly_irreducible (p : polynomial β) : ∀x ∈ (monic_irr p).support, irreducible x
+axiom irr_poly_monic (p : polynomial β) : ∀x ∈ (monic_irr p).support, monic x
+axiom unique_factorization (p : polynomial β) : ∃ c : β , p = C c * ((finsupp.prod (monic_irr p) (λ k n, k ^n) ) )
+def c_fac (p : polynomial β) : β := some ( unique_factorization p)
+axiom c_fac_unit (p : polynomial β) :  is_unit (c_fac p)
+
+
+
+-/
+
+
+
+lemma polynomial_fac_finsupp [field α] (x : polynomial α) : ∃ c :  α, ∃ p :(polynomial α) →₀ ℕ, x = C c * ((finsupp.prod (p) (λ k n, k ^n) ) ) ∧ (∀x∈p.support, irreducible x ∧ monic x)  :=
+begin
+  have h1 : ∃ c :  α, ∃ p : multiset (polynomial α), x = C c * p.prod ∧ (∀x∈p, irreducible x ∧ monic x),
+  from polynomial_fac,
+  rcases h1 with ⟨c, p, h2⟩,
+  exact ⟨c, p.to_finsupp, 
+    begin
+      rw ←multiset.to_finsupp_prod,
+      constructor,
+      exact h2.1,
+      intros y h3,
+      rw multiset.to_finsupp_support at h3,
+      let h4 := h2.2,
+      rw multiset.mem_to_finset at h3,
+      exact h4 _ h3,
+      end
+  ⟩
 end
 
 lemma degree_gcd_le_left [unique_factorization_domain α] {a b : polynomial α} (h : a ≠ 0): degree (gcd a b) ≤ degree a :=

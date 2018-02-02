@@ -142,28 +142,39 @@ variables [field β]
 --variables  [algebraically_closed_field β] -- Should be an instance of algebraically closed.
 open finsupp
 
-
+#check @classical.some
 
 --axiom roots (p : polynomial β) : β →₀ ℕ Problem, because the 0 polynomial can have infinite roots.
 --axiom eq_prod_lin_fac_roots (p : polynomial β) : ∃ c : β , p = C c * (finsupp.prod (roots p) (λ k n, ( (X - C k ) ^n) )  )
 
 --The more general setting, avoids problem with the roots of the zero polynomial
-axiom monic_irr (p : polynomial β) : polynomial β →₀ ℕ
-axiom irr_poly_irreducible (p : polynomial β) : ∀x ∈ (monic_irr p).support, irreducible x
-axiom irr_poly_monic (p : polynomial β) : ∀x ∈ (monic_irr p).support, monic x
-axiom unique_factorization (p : polynomial β) : ∃ c : β , p = C c * ((finsupp.prod (monic_irr p) (λ k n, k ^n) ) )
+
+--Looks ugly still
+def monic_irr (p : polynomial β) : polynomial β →₀ ℕ := classical.some (some_spec $ polynomial_fac_finsupp p)
+def irr_poly_irreducible (p : polynomial β) : ∀x ∈ (monic_irr p).support, irreducible x :=
+assume x h, ((some_spec $ some_spec $ polynomial_fac_finsupp p).2 x h).1
+--(some_spec $ some_spec $ polynomial_fac_finsupp p).2
+def irr_poly_monic (p : polynomial β) : ∀x ∈ (monic_irr p).support, monic x :=
+assume x h, ((some_spec $ some_spec $ polynomial_fac_finsupp p).2 x h).2
+def unique_factorization (p : polynomial β) : ∃ c : β , p = C c * ((finsupp.prod (monic_irr p) (λ k n, k ^n) ) ) :=
+begin
+  have h1 : ∃ c, ∃ q :(polynomial β) →₀ ℕ, p = C c * ((finsupp.prod (q) (λ k n, k ^n) ) ) ∧ (∀x∈q.support, irreducible x ∧ monic x),
+  from polynomial_fac_finsupp p,
+  fapply exists.intro,
+  exact some h1,
+  let h2 := some_spec (some_spec h1),
+  exact h2.1,
+end
+
+--axiom monic_irr (p : polynomial β) : polynomial β →₀ ℕ
+--axiom irr_poly_irreducible (p : polynomial β) : ∀x ∈ (monic_irr p).support, irreducible x
+--axiom irr_poly_monic (p : polynomial β) : ∀x ∈ (monic_irr p).support, monic x
+--axiom unique_factorization (p : polynomial β) : ∃ c : β , p = C c * ((finsupp.prod (monic_irr p) (λ k n, k ^n) ) )
 def c_fac (p : polynomial β) : β := some ( unique_factorization p)
-axiom c_fac_unit (p : polynomial β) :  is_unit (c_fac p)
 
-def multiset.to_finsupp {α : Type*} (m : multiset α) : α →₀ ℕ := 
-(m.map $ λa, single a 1).sum
+--axiom c_fac_unit (p : polynomial β) :  is_unit (c_fac p) --Problem: c_fac can be a unit..
 
-lemma to_finsupp_add {α : Type*} (m n : multiset α) :
-  (m + n).to_finsupp = m.to_finsupp + n.to_finsupp :=
-calc (m + n).to_finsupp = ((m.map $ λa, single a 1) + (n.map $ λa, single a 1)).sum :
-    by rw [← multiset.map_add]; refl
-  ... = m.to_finsupp + n.to_finsupp :
-    by rw [multiset.sum_add]; refl
+
 
 --def facs_to_pow (p : polynomial β →₀ ℕ ) : finset (polynomial β):= p.support.image (λ a, a^(p a))
 --def to_finsupp_pow_min_one (p : polynomial β →₀ ℕ) : polynomial β →₀ ℕ := map_range  (λ n, n - 1) (by {simp}) p
