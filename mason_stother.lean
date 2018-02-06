@@ -29,6 +29,8 @@ attribute [instance] ring.to_add_comm_group
 
 universe u
 
+set_option pp.numerals false
+
 
 variable {α : Type u}
 

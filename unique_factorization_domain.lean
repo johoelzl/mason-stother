@@ -399,6 +399,7 @@ begin
   }
 end
 
+--How is this usefull?
 def unit_of_mul_eq_one {γ : Type u}[integral_domain γ]{a b : γ} (h1 : a * b = 1) : units γ :=
 units.mk a b h1 (by {rw mul_comm _ _ at h1, exact h1})
 
@@ -668,6 +669,25 @@ begin
   exact ⟨(b * ↑u⁻¹), h2 ⟩,
 end
 
+lemma is_unit_right_of_is_unit_mul [comm_semiring α] {a b : α} : is_unit (a * b) → is_unit b :=
+begin
+  rw mul_comm a b,
+  exact is_unit_left_of_is_unit_mul,
+end
+
+lemma is_unit_of_mul_eq_one_left [comm_semiring α] {a b : α} (h : a * b = 1): is_unit a :=
+begin
+  rw is_unit_left_iff_exists_mul_eq_one,
+  exact ⟨b , h⟩
+end
+
+lemma is_unit_of_mul_eq_one_right [comm_semiring α] {a b : α} (h : a * b = 1): is_unit b :=
+begin
+  rw is_unit_right_iff_exists_mul_eq_one,
+  exact ⟨a , h⟩
+end
+
+
 lemma irreducible_of_prime {α : Type u}[integral_domain α] {p : α} (h1 : prime p) : irreducible p :=
 begin
   rw prime at h1,
@@ -921,19 +941,6 @@ instance field.to_unique_factorization_domain [s : field α] : unique_factorizat
     ..s
 }
 
-def facs_to_pow  [monoid α] (p : α →₀ ℕ ) : finset α:= p.support.image (λ a, a^(p a))
-
---correct?
-
-lemma pow_mul_pow_dvd [integral_domain α] {x y z : α} {n m : ℕ}
-  (hx : irreducible x) (hy : irreducible y) (hxz: x ^ n ∣ z) (hyz : y ^ n ∣ z) (h : ¬ (x ~ᵤ y)) :
-  (x ^ n * y ^ m) ∣ z :=
-sorry
-
-lemma facs_to_pow_prod_dvd [integral_domain α] {f : α →₀ ℕ} {z : α}
-  (h1 : ∀x∈f.support, irreducible x ∧ (x^(f x)) ∣ z ∧ ∀y∈f.support, x ≠ y → ¬ (x ~ᵤ y)) :
-  f.prod (λx y, x^y) ∣ z :=
-sorry
 
 --gcds
 class has_gcd (α : Type u) [comm_semiring α] := --can we define it for comm_monoid?
@@ -967,6 +974,7 @@ begin
   from eq_zero_of_zero_dvd h2,
   contradiction
 end
+
 
 end gcd_sr
 
@@ -1619,6 +1627,14 @@ begin
   }
 end
 
+lemma prod_eq_prod_iff_eq (p q : multiset (quot α))
+  (hp : ∀a∈p, irred a) (hq : ∀a∈q, irred a) :
+  p.prod = q.prod ↔ p = q :=
+iff.intro 
+(uniqueness p q hp hq)
+(assume h, h ▸ rfl)
+
+
 def to_multiset (a : quot α) : multiset (quot α) :=
 if h : a = 0 then 0 else classical.some (representation a h)
 
@@ -1790,6 +1806,7 @@ begin
   simp * at *,
   end
 
+--should be le
 lemma prod_le_prod_iff_subset {p q : multiset (quot α)}
   (hp : ∀a∈p, irred a) (hq : ∀a∈q, irred a) :
   p.prod ≤ q.prod ↔ p ≤ q :=
@@ -1850,6 +1867,8 @@ begin
   }
 end
 
+
+
 lemma le_def {a b : quot α} : a ≤ b = ∃ c, a * c = b := rfl
 
 instance : lattice.order_bot (quot α) :=
@@ -1870,10 +1889,53 @@ lemma eq_zero_of_zero_le {a : quot α} : 0 ≤ a → a = 0 := lattice.top_unique
 def inf (a b : quot α) :=
 if a = 0 then b else if b = 0 then a else (to_multiset a ∩ to_multiset b).prod
 
+
+
+def sup (a b : quot α) := 
+if a = 0 then 0 else if b = 0 then 0 else (to_multiset a ∪ to_multiset b).prod
+
+
+lemma bot_def : ⊥ = (1 : quot α) := rfl
+lemma top_def : ⊤ = (0 : quot α) := rfl
+
 lemma zero_is_top (a : quot α) : a ≤ 0 := ⟨0, mul_zero⟩
 
-lemma inf_comm {a b : quot α} : inf a b = inf b a :=
+lemma inf_comm (a b : quot α) : inf a b = inf b a :=
 by by_cases ha0 : a = 0; by_cases hb0 : b = 0; simp [*, inf, inter_comm]
+
+--left or right?
+@[simp] lemma sup_zero_eq_zero_left {a : quot α} : sup 0 a = 0 :=
+by simp [sup]
+
+@[simp] lemma sup_zero_eq_zero_right {a : quot α} : sup a 0 = 0 :=
+by simp [sup]
+
+lemma sup_comm {a b : quot α} : sup a b = sup b a :=
+by by_cases ha0 : a = 0; by_cases hb0 : b = 0; simp [*, sup, union_comm]
+
+lemma le_sup_left {a b : quot α} : a ≤ sup a b :=
+begin
+  by_cases ha0 : a = 0,
+  {simp *,},
+  by_cases hb0 : b = 0,
+  {simp [*, zero_is_top],},
+  {
+    simp [sup, *],
+    exact calc a = (to_multiset a).prod : eq.symm $ to_multiset_prod_eq _ ha0
+    ... ≤ prod (to_multiset a ∪ to_multiset b) : 
+    begin
+      rw prod_le_prod_iff_subset,
+      exact le_union_left _ _,
+      exact to_multiset_irred _,
+      intros x h,
+      simp at *,
+      cases h ; {apply to_multiset_irred, assumption}  
+    end
+  }
+end
+
+lemma le_sup_right {a b : quot α} : b ≤ sup a b:=
+by rw [sup_comm]; exact le_sup_left
 
 lemma inf_le_left {a b : quot α} : inf a b ≤ a :=
 begin
@@ -1890,6 +1952,23 @@ end
 
 lemma inf_le_right {a b : quot α} : inf a b ≤ b :=
 by rw [inf_comm]; exact inf_le_left
+
+lemma sup_le {a b c : quot α} (hab : b ≤ a) (hac : c ≤ a) : sup b c ≤ a  :=
+begin
+  by_cases hb0 : b = 0, { simp [sup, hb0, hac] at *, assumption},
+  by_cases hc0 : c = 0, { simp [sup, hb0, hc0, hab] at *, assumption },
+  by_cases ha0 : a = 0, {simp [*, zero_is_top] at *},
+  simp [sup, *],
+  rw [←to_multiset_prod_eq a ha0] at *,
+  rw [←to_multiset_prod_eq b hb0] at hab,
+  rw [←to_multiset_prod_eq c hc0] at hac,
+  rw prod_le_prod_iff_subset at *,
+  exact union_le hab hac, --union in multiset acts like the sup on our type.
+  simp * at *,
+  intros x h1,
+  cases h1 ; {apply to_multiset_irred, assumption},
+  repeat {apply to_multiset_irred},
+end
 
 lemma le_inf {a b c : quot α} (hab : a ≤ b) (hac : a ≤ c) : a ≤ inf b c :=
 begin
@@ -1921,10 +2000,31 @@ instance : semilattice_inf_top (quot α) := --We need bot aswell
   le_top := assume a, zero_is_top _,
   .. associated.partial_order }
 
-
-
 lemma one_le :  ∀ (a : quot α), 1 ≤ a :=
 assume a, ⟨a, by simp⟩
+
+instance : bounded_lattice (quot α) := --We need bot aswell
+{ inf := inf, 
+  inf_le_left := assume a b, inf_le_left,
+  inf_le_right := assume a b, inf_le_right,
+  le_inf := assume a b c, le_inf,
+  top := 0,
+  le_top := assume a, zero_is_top _,
+  sup := sup,
+  le_sup_left := assume a b, le_sup_left,
+  le_sup_right := assume a b, le_sup_right,
+  sup_le := assume a b c, sup_le,
+  bot := 1,
+  bot_le := assume a, one_le _,
+
+  .. associated.partial_order }
+
+lemma sup_def {a b : quot α} : a ⊔ b =
+if a = 0 then 0 else if b = 0 then 0 else (to_multiset a ∪ to_multiset b).prod:=
+rfl
+
+lemma inf_def {a b : quot α} : a ⊓ b = if a = 0 then b else if b = 0 then a else (to_multiset a ∩ to_multiset b).prod :=
+rfl
 
 instance : semilattice_inf_bot (quot α) := --We need bot aswell
 { inf := inf, 
@@ -1936,12 +2036,18 @@ instance : semilattice_inf_bot (quot α) := --We need bot aswell
   .. associated.partial_order }
 
 
+
+
+
 lemma mul_mono {a b c d : quot α} (h₁ : a ≤ b) (h₂ : c ≤ d) : a * c ≤ b * d :=
 let ⟨x, hx⟩ := h₁, ⟨y, hy⟩ := h₂ in
 ⟨x * y, by simp [hx.symm, hy.symm, mul_comm, mul_assoc, mul_left_comm]⟩
 
 @[simp] lemma inf_zero {a : quot α} : a ⊓ 0 = a := @inf_top_eq (quot α) _ a
 @[simp] lemma zero_inf {a : quot α} : 0 ⊓ a = a := @top_inf_eq (quot α) _ a
+
+@[simp] lemma sup_zero {a : quot α} : a ⊔ 0 = 0 := @sup_top_eq (quot α) _ a
+@[simp] lemma zero_sup {a : quot α} : 0 ⊔ a = 0 := @top_sup_eq (quot α) _ a
 
 lemma eq_of_mul_eq_mul {a b c : quot α} : a ≠ 0 → a * b = a * c → b = c :=
 quotient.induction_on₃ a b c $ assume a b c h eq, 
@@ -1974,6 +2080,35 @@ begin
       { rw [hx], apply inf_le_left },
       { rw [hx], apply inf_le_right }
     end
+end
+
+--Easier proof then the proof above! Note that there is a latice isomorfime, from the set of multiset of irreducible elements to α excluding 0.
+--Can this be used for a more efficient omplementation.
+lemma mul_inf' {a b c : quot α} : a * (b ⊓ c) = (a * b) ⊓ (a * c) :=
+begin
+  by_cases ha0 : a = 0, { simp * at *,},
+  by_cases hb0: b = 0, {simp * at *,},
+  by_cases hc0: c = 0, {simp * at *,},
+  have hab : a * b ≠ 0,
+  from mul_ne_zero ha0 hb0,  
+  have hac : a * c ≠ 0,
+  from mul_ne_zero ha0 hc0,
+  simp [inf_def, sup_def, to_multiset_mul, *],
+  rw [multiset.add_comm (to_multiset a) _, multiset.add_comm (to_multiset a) _],
+  rw [ ←multiset.inter_add_distrib],
+  rw [←prod_mul_prod_eq_add_prod, to_multiset_prod_eq _ ha0, mul_comm],
+end
+
+lemma sup_mul_inf {a b : quot α} : (a ⊔ b) * (a ⊓ b) = a * b :=
+begin
+  by_cases ha0 : a = 0,
+    {simp [*] at *},
+  by_cases hb0 : b = 0,
+    {simp [*] at *},
+  simp [inf_def, sup_def, *],   
+  rw [←to_multiset_prod_eq a ha0, ←to_multiset_prod_eq b hb0] {occs := occurrences.pos [3]},
+  rw [prod_mul_prod_eq_add_prod, prod_mul_prod_eq_add_prod],
+  simp [multiset.union_add_inter], --Again the properties from multiset carry over
 end
 
 lemma dvd_of_mk_le_mk {a b : α} (h : mk a ≤ mk b) : a ∣ b :=
@@ -2036,7 +2171,7 @@ end
 
 
 --We need to prove the following
-lemma mul_inf_eq_inf_of_rel_prime {a b c : quot α} (h : c ⊓ b = 1) : (c * a) ⊓ b = a ⊓ b :=
+lemma mul_inf_eq_inf_of_inf_eq_one {a b c : quot α} (h : c ⊓ b = 1) : (c * a) ⊓ b = a ⊓ b :=
 begin
   
   apply le_antisymm,
@@ -2060,11 +2195,48 @@ end
 
 lemma mul_le_of_le_of_le_of_rel_prime {a b c : quot α} (h1 : a ⊓ b = 1) (h2 : a ≤ c) (h3 : b ≤ c) : a * b ≤ c :=
 begin
-  --We must do ⊔. 
-  --and that a * b = a ⊓ b * a ⊔ b. 
-  --we have that c is an upper bound of a and b, hence a ⊔ b ≤ c.
-  --And because a and b are relative prime we have that a * b = a ⊔ b. done
+  rw [← sup_mul_inf],
+  simp * at *,
+end
 
+lemma inf_def' {a b : quot α} : a ⊓ b = inf a b := 
+rfl
+
+
+lemma inf_le_inf_mul {a b c : quot α} : a ⊓ b ≤ a ⊓ (b * c) :=
+begin
+  apply le_inf,
+  exact inf_le_left,
+  exact le_trans inf_le_right le_mul_right
+end
+
+lemma inf_le_mul_inf {a b c : quot α} : a ⊓ b ≤ (a * c)  ⊓ b:=
+begin
+  rw [@lattice.inf_comm _ _ a _, @lattice.inf_comm _ _ _ b],
+  exact inf_le_inf_mul,
+end
+
+lemma inf_mul_eq_one_iff_inf_eq_one_and_inf_eq_one {a b c : quot α} : a ⊓ (b * c) = 1 ↔ (a ⊓ b = 1 ∧ a ⊓ c = 1) :=
+begin
+  split,
+  {
+    intro h,
+    have h1 : a ⊓ b ≤ a ⊓ (b * c),
+    from inf_le_inf_mul,
+    have h2 : a ⊓ c ≤ a ⊓ (b * c),
+    {
+      rw mul_comm at *,
+      exact inf_le_inf_mul,
+    },
+    rw h at *,
+    simp [bot_unique h1, bot_unique h2, bot_def, *] at *,
+  },
+  {
+    intro h,
+    rw [lattice.inf_comm],
+    rw [mul_inf_eq_inf_of_inf_eq_one] ;
+    simp [lattice.inf_comm, *] at *,
+  }
 end
 
 --le_antisymm
@@ -2284,7 +2456,7 @@ begin
   rw [rel_prime,←mk_eq_one_iff_is_unit] at h1,
   apply complete,
   simp [mul_mk] at *,
-  exact mul_inf_eq_inf_of_rel_prime h1,
+  exact mul_inf_eq_inf_of_inf_eq_one h1,
 end
 
 lemma rel_prime_mul_of_rel_prime_of_rel_prime_of_rel_prime 
@@ -2292,7 +2464,7 @@ lemma rel_prime_mul_of_rel_prime_of_rel_prime_of_rel_prime
 begin
   rw [rel_prime,←mk_eq_one_iff_is_unit] at *, --duplicate line with gcd_mul_cancel 
   simp [mul_mk] at *,
-  rw mul_inf_eq_inf_of_rel_prime; assumption
+  rw mul_inf_eq_inf_of_inf_eq_one; assumption
 end
 
 /-
@@ -2314,21 +2486,88 @@ a ⊓ b = 1
 gcd (a * b) c = (gcd a c) * (gcd b c)
 
 -/
+--open associated
+
+--lemma asso
+
+lemma is_unit_quot_iff_eq_one {a : quot α} : is_unit_quot a ↔ a = 1 :=
+begin
+  split,
+  apply quot.induction_on a,  
+  {
+    intros a h,
+    apply quot.sound,
+    apply (asssociated_one_iff_is_unit).2,
+    exact h,
+  },
+  {
+    intros h,
+    rw [h, one_def, ←mk_def],
+    exact is_unit_one,  
+  }
+end
+
+--open associated
+lemma mul_eq_one_iff_eq_one_and_eq_one {a b : quot α} : a * b = 1 ↔ a = 1 ∧ b = 1 :=
+begin
+  apply @quotient.induction_on₂ _ _ (setoid α) (setoid α) _ a b,
+  intros a b,
+  rw [←mk_def, ←mk_def] {occs := occurrences.all},
+  split,
+  {
+    intro h,
+    rw [←mul_mk, one_def, ←mk_def] at h,
+    have h1 : (a * b ~ᵤ 1),
+    from complete h,
+    have h2 : is_unit (a * b),
+    from is_unit_of_associated is_unit_one h1.symm,
+    have h3 : is_unit a,
+    from is_unit_left_of_is_unit_mul h2,
+    have h4 : is_unit b,
+    from is_unit_right_of_is_unit_mul h2,
+    repeat {rw ←is_unit_quot_iff_eq_one},
+    split; assumption,
+  },
+  {
+    intro h,
+    simp * at *,
+  }
+end
+
+lemma rel_prime_iff_mk_inf_mk_eq_one {a b : α} : rel_prime a b ↔ (mk a) ⊓ (mk b) = 1 :=
+begin
+  split,
+  {
+    intro h,
+    simp [rel_prime, gcd, has_gcd.gcd] at h,
+    have h1 : is_unit_quot (inf (mk a) (mk b)),
+    {
+      rw ←quot.out_eq (inf (mk a) (mk b)),
+      exact h,
+    },
+    rw is_unit_quot_iff_eq_one at h1,
+    exact h1,
+  },
+  {
+    intro h,
+    simp [rel_prime, gcd, has_gcd.gcd],
+    have h1 : inf (mk a) (mk b) = 1, --anoying, that this step needs to be made.
+    from h,
+    rw h1,
+    apply is_unit_of_associated is_unit_one,
+    apply complete,
+    simp [one_def],
+    exact associated.refl 1, 
+  }
+end
+
 
 lemma mul_dvd_of_dvd_of_dvd_of_rel_prime {α : Type u}{a b c: α} [unique_factorization_domain α] (h1 : rel_prime a b)(h2 : a ∣ c)(h3 : b ∣ c) : (a * b) ∣ c:=
 begin
-  rw rel_prime at *,
-  have h4 : gcd a b ∣ a,
-  from gcd_left,
-  let a' := some h4,
-  have h5: a = (gcd a b) * a',
-  from some_spec h4,
-  have h6 : (a ~ᵤ a'),
-  admit,
-  let d := some h2,
-  have h7 : c = a * d,
-  from some_spec h2,
-  have 
+  rw dvd_iff_mk_le_mk at *,
+  rw [mul_mk],
+  rw rel_prime_iff_mk_inf_mk_eq_one at h1, 
+  exact mul_le_of_le_of_le_of_rel_prime h1 h2 h3,
 end
 
 lemma rel_prime_comm {γ : Type u} [unique_factorization_domain γ] {a b : γ} : rel_prime a b → rel_prime b a :=
@@ -2337,5 +2576,108 @@ begin
   rw rel_prime at *,
   apply is_unit_of_associated h1 gcd_comm
 end
+
+lemma one_def' : mk (1 : α) = 1 := rfl
+
+def facs_to_pow  [monoid α] (p : α →₀ ℕ ) : finset α:= p.support.image (λ a, a^(p a))
+
+--Was not consistant everywhere --I think the left should refer to the variable
+@[simp] lemma gcd_one_left {a : α} : (gcd 1 a ~ᵤ 1) :=
+begin
+  apply complete,
+  simp [one_def'],
+  exact lattice.bot_inf_eq,
+end
+
+@[simp] lemma gcd_one_right {a : α} : (gcd a 1 ~ᵤ 1) :=
+begin
+  apply complete,
+  simp [one_def'],
+  exact lattice.inf_bot_eq,
+end
+
+@[simp] lemma is_unit_gcd_one_left {a : α } : is_unit (gcd 1 a) :=
+begin
+  apply is_unit_of_associated is_unit_one gcd_one_left.symm,
+end
+
+@[simp] lemma is_unit_gcd_one_right {a : α } : is_unit (gcd a 1) :=
+begin
+  apply is_unit_of_associated is_unit_one gcd_one_right.symm,
+end
+
+lemma rel_prime_mul_iff_rel_prime_and_rel_prime {a b c : α} : rel_prime a (b * c) ↔ rel_prime a b ∧ rel_prime a c :=
+begin
+  repeat {rw [rel_prime_iff_mk_inf_mk_eq_one]},
+  rw mul_mk,
+  exact inf_mul_eq_one_iff_inf_eq_one_and_inf_eq_one,
+end
+
+
+lemma rel_prime_pow {x y : α } {n : ℕ} (h : n ≠ 0) : rel_prime x (y ^ n) ↔ rel_prime x y :=
+begin
+  induction n with n ih,
+  {
+    contradiction,
+  },
+  { 
+    by_cases hn : n = 0,
+      simp [hn], --clear?
+    simp only [pow_succ] at *,   
+    split,
+    {
+      intro h,
+      rw rel_prime_mul_iff_rel_prime_and_rel_prime at h,
+      exact h.1,
+    },
+    {
+      intro h1,
+      rw rel_prime_mul_iff_rel_prime_and_rel_prime,
+      split,
+        exact h1,
+      {
+        exact (ih hn).2 h1,
+      }
+    }
+  }
+end
+
+@[simp] lemma rel_prime_one_left {x : α} : rel_prime x 1 :=
+begin
+  simp [rel_prime],
+end
+
+@[simp] lemma rel_prime_one_right{x : α} : rel_prime 1 x :=
+begin
+  simp [rel_prime],
+end
+
+lemma rel_prime_pow_pow_of_rel_prime {x y : α}{n m : ℕ}(h  : rel_prime x y) : rel_prime (x ^ n) (y ^ m) :=
+begin
+  by_cases h1 : n = 0,
+    {simp [h1]},
+    by_cases h2 : m = 0,
+      {simp [h2]},
+      {
+        rw [rel_prime_pow h2],
+        apply rel_prime_comm,
+        rw [rel_prime_pow h1],
+        exact rel_prime_comm h,
+      }
+end
+
+lemma pow_mul_pow_dvd [unique_factorization_domain α] {x y z : α} {n m : ℕ}
+  (hx : irreducible x) (hy : irreducible y) (hxz: x ^ n ∣ z) (hyz : y ^ n ∣ z) (h : ¬ (x ~ᵤ y)) :
+  (x ^ n * y ^ m) ∣ z :=
+begin
+  apply @mul_dvd_of_dvd_of_dvd_of_rel_prime _ (x ^ n) (y ^ m) z,
+
+end
+
+lemma facs_to_pow_prod_dvd [integral_domain α] {f : α →₀ ℕ} {z : α}
+  (h1 : ∀x∈f.support, irreducible x ∧ (x^(f x)) ∣ z ∧ ∀y∈f.support, x ≠ y → ¬ (x ~ᵤ y)) :
+  f.prod (λx y, x^y) ∣ z :=
+sorry
+
 
 end ufd
