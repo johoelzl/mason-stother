@@ -1081,6 +1081,7 @@ variables {α}
 @[reducible] def mk (a : α) : quot α := ⟦ a ⟧
 
 lemma mk_def {a : α} : mk a = ⟦a⟧ := rfl
+lemma mk_def' {a : α} : mk a = quot.mk setoid.r a := rfl
 
 instance : has_zero (quot α) := ⟨⟦ 0 ⟧⟩
 instance : has_one (quot α) := ⟨⟦ 1 ⟧⟩
@@ -1676,6 +1677,8 @@ begin
   { simp [*] },
   { exact to_multiset_irred' _ h }
 end
+
+
 
 --Think it should be le not subset
 --lemma prod_le_prod_of_subset {p q : multiset (quot α)} (h : p ⊆ q) : p.prod ≤ q.prod :=
@@ -2534,6 +2537,81 @@ begin
   }
 end
 
+/-
+lemma mk_eq_zero_iff_eq_zero {a : α} : mk a = 0 ↔ a = 0:=
+begin
+  split,
+  {
+    intro h,
+    rw [zero_def, ←mk_def] at h,
+    have : (a ~ᵤ 0),
+    from complete h,
+    rw associated_zero_iff_eq_zero at this ; assumption,
+  },
+  {
+    intro h,
+    simp * at *,
+  }
+end
+-/
+
+lemma ne_zero_of_irred {a : quot α} (h : irred a) : a ≠ 0 :=
+begin
+  revert h,
+  apply quot.induction_on a,
+  intros a h,
+  simp,
+  have h1 : irreducible a,
+  from h,
+  have h2 : a ≠ 0,
+  from h1.1,
+  rw [←mk_def'],
+  rw @mk_eq_zero_iff_eq_zero _ _ a,
+  exact h2,
+end
+
+lemma to_multiset_eq_singleton_of_irred {a : quot α} (h : irred a) : to_multiset a = a::0 :=
+begin
+  apply uniqueness,
+  exact to_multiset_irred _,
+  {
+    intros x h1,
+    simp [mem_singleton, *] at *,
+  },
+  rw [to_multiset_prod_eq a (ne_zero_of_irred h)],
+  simp,
+end
+
+
+lemma inf_eq_one_of_irred_of_irred_of_ne {a b : quot α} (ha : irred a) (hb : irred b) (h : a ≠ b) : a ⊓ b = 1 :=
+begin
+  by_cases h1 : a = 0,
+    {
+      have h2 : a ≠ 0,
+      from ne_zero_of_irred ha,
+      contradiction,
+    },
+    by_cases h2 : b = 0,
+    {
+        have h3 : b ≠ 0,
+        from ne_zero_of_irred hb,
+        contradiction,    
+    },
+    {
+      simp [inf_def, *],
+      rw [to_multiset_eq_singleton_of_irred ha, to_multiset_eq_singleton_of_irred hb], --Need to proof the to_multiset of a single irreducible element.
+      have h3 : (a :: 0) ∩ (b :: 0) = 0,
+      {
+        apply eq_zero_of_forall_not_mem,
+        intros x h3,
+        simp at h3,
+        rw [←h3.1, ←h3.2] at h,
+        contradiction,
+      },
+      simp *,
+    }
+end
+
 lemma rel_prime_iff_mk_inf_mk_eq_one {a b : α} : rel_prime a b ↔ (mk a) ⊓ (mk b) = 1 :=
 begin
   split,
@@ -2666,18 +2744,276 @@ begin
       }
 end
 
+--This could simplify things
+lemma associated_iff_mk_eq_mk {x y : α} : x ~ᵤ y ↔ mk x = mk y :=
+iff.intro
+  quot.sound
+  complete
+
+lemma rel_prime_of_irreducible_of_irreducible_of_not_associated {x y : α} (hx : irreducible x) (hy : irreducible y) (h : ¬ (x ~ᵤ y)) : rel_prime x y :=
+begin
+  rw associated_iff_mk_eq_mk at h,
+  rw [rel_prime_iff_mk_inf_mk_eq_one],
+  apply inf_eq_one_of_irred_of_irred_of_ne _ _ h ; assumption,
+end
+
 lemma pow_mul_pow_dvd [unique_factorization_domain α] {x y z : α} {n m : ℕ}
-  (hx : irreducible x) (hy : irreducible y) (hxz: x ^ n ∣ z) (hyz : y ^ n ∣ z) (h : ¬ (x ~ᵤ y)) :
+  (hx : irreducible x) (hy : irreducible y) (hxz: x ^ n ∣ z) (hyz : y ^ m ∣ z) (h : ¬ (x ~ᵤ y)) :
   (x ^ n * y ^ m) ∣ z :=
 begin
   apply @mul_dvd_of_dvd_of_dvd_of_rel_prime _ (x ^ n) (y ^ m) z,
+  apply rel_prime_pow_pow_of_rel_prime,
+  apply rel_prime_of_irreducible_of_irreducible_of_not_associated,
+  repeat {assumption},
+end
+
+lemma facs_to_pow_prod_dvd'' {f : α →₀ ℕ} 
+  (h1 : ∀x∈f.support, irreducible x ∧ ∀y∈f.support, x ≠ y → ¬ (x ~ᵤ y)) :
+  ∀x∈f.support, rel_prime (x^(f x)) ((finset.prod (finset.erase f.support x) (λ (a : α), a ^ f a))):=
+begin
+  revert h1,
+  apply @finset.induction_on _ _ (λ q, (∀ (x : α),
+     x ∈ q →
+     irreducible x ∧  ∀ (y : α), y ∈ q → x ≠ y → ¬(x~ᵤ y)) →
+  ∀ (x : α),
+    x ∈ q →
+    rel_prime (x ^ f x) (finset.prod (finset.erase (q) x) (λ (a : α), a ^ f a))) (finsupp.support f),
+  {
+    simp * at *,
+  },
+  {
+    intros a s h1 h2 h3 x h4,
+    
+    have h4a :  ∀ (x : α), x ∈ s → rel_prime (x ^ f x) (finset.prod (finset.erase s x) (λ (a : α), a ^ f a)),
+    {admit},
+    rw finset.mem_insert at h4,
+    cases h4,
+    {
+
+      subst h4,
+      rw finset.erase_insert h1,
+    },
+    {
+
+    }
+    
+
+    /-
+    by_cases h5 : a = x,
+    {
+      subst h5,
+      rw finset.erase_insert h1,
+      by_cases h6 : s = ∅,
+      {
+        simp * at *,
+      },
+      {
+
+    
+
+        have h7 : ∃ z, z ∈ s,
+        from finset.exists_mem_of_ne_empty h6,
+        rcases h7 with ⟨z, hz⟩,
+        rw ←finset.insert_erase hz,
+        simp,
+      }
+    },-/
+
+  }
 
 end
 
-lemma facs_to_pow_prod_dvd [integral_domain α] {f : α →₀ ℕ} {z : α}
+
+
+lemma rel_prime_aux' {y: α} {s : multiset α} (h : ∀x ∈ s, irreducible x): rel_prime y s.prod ↔ ∀x ∈ s, rel_prime y x :=
+begin
+  split,
+  {
+    intros h1 x h2,
+    admit,
+  },
+  {
+    intros h1,
+    by_cases h2 : gcd y s.prod = 0,--Not so helpfull
+    {
+      rw gcd_eq_zero_iff_eq_zero_and_eq_zero at h2,
+      simp * at *,
+      rw [rel_prime],
+      simp,
+      have : prod s ≠ 0,
+      {admit},--from prod_ne_zero_of_irreducible h,--need to prove this one.
+      let h3 := h2.2,
+      contradiction,
+      --apply not_is_unit_zero,
+      
+    },
+    {
+      have h3 : (gcd y (prod s) ∣ (prod s)),
+      from gcd_right,
+      --Show that gcd y (prod s) and s must have an irreducible factor in common, say X.
+      --Then gcd y X is X, and not a unit. Which gives a contradiction. --Prove them in the quotient in general form.enmfavvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvi
+    }
+  }
+end
+
+
+--Problem if I rename y as a, has to be cause by namespace convolution
+--Think I can prove this one
+lemma rel_prime_aux' {y: α} {s : multiset α} : rel_prime y s.prod ↔ ∀x ∈ s, rel_prime y x :=
+begin
+  apply multiset.induction_on s,
+  {
+    simp * at *,
+  },
+  {
+    intros a' s' h1,
+    split,
+    {
+      simp,
+      intro h2,
+      rw rel_prime_mul_iff_rel_prime_and_rel_prime at h2,
+      --have h3 : ∀ (x : α), x ∈ s' → rel_prime y x,
+    --{admit},
+    intros x h4,
+    cases h4,
+    {
+      subst h4,
+      exact h2.1,
+    },
+    {
+      rw h1 at h2,
+      exact h2.2 x h4,
+    }
+
+    },
+    {
+      intros h2,
+      simp,
+      rw rel_prime_mul_iff_rel_prime_and_rel_prime,
+      split,
+      {
+        have h3 : a' ∈ a' :: s,
+        {simp},
+        {
+          exact h2 a' h3,
+        }
+      },
+      {
+
+      }
+    }
+  }
+
+end
+
+--Would be more efficient if it could be obtained by translating from finsupp
+lemma rel_prime_aux'' {y: α} {s : α →₀ ℕ} : rel_prime y (s.prod (λx z, x^z)) ↔ ∀x ∈ s.support, rel_prime y x :=
+begin
+  rw finsupp.prod,
+  apply @finset.induction_on _ _ (λ z, rel_prime y (finset.prod (z) (λ (a : α), a ^ s a)) ↔
+    ∀ (x : α), x ∈ z → rel_prime y x) s.support,
+  {
+    simp * at *,
+  },
+  {
+    intros a' s' h1 h2,
+    split,
+    {
+      simp,
+      intros h3 x h4,
+      simp [finset.prod_insert h1] at h3,
+      rw rel_prime_mul_iff_rel_prime_and_rel_prime at h3,     
+      cases h4,
+      {
+        subst h4,
+        simp [finset.prod_insert h1] at h3,
+        have h4 : rel_prime y (x ^ s x),
+        {
+
+        } 
+      },
+      {
+
+      }
+      
+    },
+    {
+
+    }
+  }
+end
+
+lemma rel_prime_aux {f : α →₀ ℕ}{a : α} {s : finset α} (h : a ∉ s) :
+(∀ (x : α),
+    x ∈ insert a s →
+    irreducible x ∧ ∀ (y : α), y ∈ insert a s → x ≠ y → ¬(x~ᵤ y))
+→  rel_prime (a ^ f a) (finset.prod s (λ (a : α), a ^ f a)) :=
+begin
+  intro h1,
+end
+
+--Problem? could be that I need it for intergral domain?? [integral_domain α] 
+lemma facs_to_pow_prod_dvd {f : α →₀ ℕ} {z : α}
   (h1 : ∀x∈f.support, irreducible x ∧ (x^(f x)) ∣ z ∧ ∀y∈f.support, x ≠ y → ¬ (x ~ᵤ y)) :
   f.prod (λx y, x^y) ∣ z :=
-sorry
+begin
+
+
+
+
+  revert h1,
+  rw finsupp.prod,
+  apply @finset.induction_on _ _ (λ b, (∀ (x : α),
+     x ∈ b →
+     irreducible x ∧ x ^ f x ∣ z ∧ ∀ (y : α), y ∈ b → x ≠ y → ¬(x~ᵤ y)) →
+  finset.prod (b) (λ (a : α), a ^ f a) ∣ z) (finsupp.support f),
+  {
+    simp * at *,
+  },
+  {
+    intros a s h2 h3 h4,
+    simp [finset.prod_insert h2],
+    apply mul_dvd_of_dvd_of_dvd_of_rel_prime,
+    {
+      admit,  --separate induction prove?
+    },
+    {
+      have h5 : a ∈ insert a s,
+      {
+        rw finset.mem_insert,
+        simp,
+      },
+      exact (h4 a h5).2.1,
+    },
+    {
+      apply h3,
+      intros x h5,
+      have h6 : x ∈ insert a s,
+      {
+        rw finset.mem_insert,
+        simp *,
+      },
+      have h5 : irreducible x ∧ x ^ f x ∣ z ∧ ∀ (y : α), y ∈ insert a s → x ≠ y → ¬(x~ᵤ y),
+      from h4 x h6,
+      {
+        split,
+        exact h5.1,
+        split,
+        exact h5.2.1,
+        intros q h6,
+        have : q ∈ insert a s, --duplicate
+        {
+          rw finset.mem_insert,
+          simp *,
+        },
+        apply h5.2.2 q this,
+      }
+    }
+
+    
+  }
+
+end
 
 
 end ufd
