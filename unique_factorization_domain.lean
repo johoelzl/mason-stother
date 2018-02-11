@@ -18,6 +18,11 @@ variable {α : Type u}
 
 def is_unit {t : Type u}[semiring t] (a : t) : Prop := ∃b : units t, a = b
 
+/-
+We might want to define composite numbers:
+With a possible defintion: a product of at least two irred elem.
+-/
+
 def to_unit {t : Type u}[semiring t] {x : t} (h : is_unit x) : units t :=
 some h
 
@@ -688,6 +693,7 @@ begin
 end
 
 
+
 lemma irreducible_of_prime {α : Type u}[integral_domain α] {p : α} (h1 : prime p) : irreducible p :=
 begin
   rw prime at h1,
@@ -1066,7 +1072,8 @@ end
 end gcd_id
 
 
-namespace associated
+namespace associated -- Can we Prove the existence of a gcd here? Problem is has_dvd, why is it not defined here??
+--If we can show the existence of a gcd here, we can reuse some lemmas
 
 variables (α) [unique_factorization_domain α]
 
@@ -1420,6 +1427,11 @@ begin
   }
 end
 
+lemma some_spec_representation (a' : quot α) (h : a' ≠ 0) : 
+(∀a∈(some (representation a' h)), irred a) ∧ a' = (some (representation a' h)).prod :=
+some_spec (representation a' h)
+
+
 lemma exists_eq_map_mk (p : multiset (quot α)) : ∃q:multiset α, p = q.map mk :=
 multiset.induction_on p ⟨0, rfl⟩ $ 
   assume a', quotient.induction_on a' $ assume a p ⟨q, hq⟩,
@@ -1727,7 +1739,7 @@ begin
   exact mul_ne_zero h1 h2,
 end
 
-
+--Can possibly be simplified, because we have prod_ne_zero_of_ne_zero
 lemma prod_ne_zero_of_irred {q : multiset (quot α)}: (∀ (a : quot α), a ∈ q → irred a) → multiset.prod q ≠ 0 :=
 begin
   apply multiset.induction_on q,
@@ -1776,6 +1788,42 @@ begin
   }
 end
 
+--is eq_one better then is_unit_quot?
+lemma is_unit_quot_of_mul_eq_one_left [unique_factorization_domain α] {a b : quot α} (h : a * b = 1) : is_unit_quot a :=
+begin
+  revert h,
+  apply quot.induction_on a,
+  apply quot.induction_on b,
+  intros a' b' h,
+  rw [←mk_def',←mk_def',←mul_mk, mk_eq_one_iff_is_unit] at h,
+  have h1 : is_unit_quot (mk (b' * a')),
+  from h,
+  have h2 : is_unit b',
+  from is_unit_left_of_is_unit_mul h1,
+  exact h2,
+end
+
+lemma is_unit_quot_of_mul_eq_one_right [unique_factorization_domain α] {a b : quot α} (h : a * b = 1) : is_unit_quot b :=
+begin
+  rw mul_comm at h,
+  exact is_unit_quot_of_mul_eq_one_left h,
+end
+
+lemma prod_ne_one_of_ne_zero_of_irred {q : multiset (quot α)} (h : q ≠ 0) : (∀ (a : quot α), a ∈ q → irred a) → multiset.prod q ≠ 1 :=
+begin
+  revert h,
+  apply multiset.induction_on q,
+  {
+    simp * at *,
+  },
+  {
+    intros a s h1 h2 h3,
+    simp * at *,
+    --by_contradiction h4,
+
+
+  }
+end
 
 lemma to_multiset_mul {a b : quot α} (h1 : a ≠ 0) (h2 : b ≠ 0): to_multiset (a * b) = to_multiset a + to_multiset b :=
 begin
@@ -2246,8 +2294,75 @@ end
   --_
   --(inf_le_inf le_mul_left (le_refl b))
 
+lemma inf_eq_zero_iff_eq_zero_and_eq_zero {a b : quot α} : a ⊓ b = 0 ↔ a = 0 ∧ b = 0 :=
+begin
+  split,
+  {
+    by_cases ha : a = 0,
+      {simp * at *},
+      by_cases hb : b = 0,
+        {simp * at *},
+        simp [inf_def, *],
+        intro h,
+        have : prod (to_multiset a ∩ to_multiset b) ≠ 0,
+        {
+          apply prod_ne_zero_of_irred,
+          intros x h1,
+          simp at h1,
+          apply to_multiset_irred a,
+          exact h1.1,
+        },
+        contradiction,
+  },
+  {
+    intro h,
+    rw [h.1, h.2],
+    simp [inf_def]    
+  }     
+end
+
+lemma prod_to_mulitset_eq_one_iff_to_multiset_eq_zero {a : quot α} : (to_multiset a).prod = 1 ↔ (to_multiset a) = 0 :=
+begin 
+  split,
+    {
+      intro h,
+      
+    },
+    {
+      intro h,
+      simp * at *,
+    }
+    
+  
+end
 
 
+
+lemma to_multiset_ne_zero_of_ne_zero {a : quot α} (h : a ≠ 0) : to_multiset a ≠ 0 :=
+begin
+
+end
+
+lemma exists_mem_to_multiset_of_le {a b : quot α} (ha : a ≠ 0) (hb : b ≠ 0) (h : a ≤ b) : ∃x, x ∈ to_multiset a ∧ x ∈ to_multiset b :=
+begin
+  rw [le_def] at h,
+  rcases h with ⟨c, hc⟩,
+  by_cases h1 : c = 0,
+    {simp * at *},
+    rw [←to_multiset_prod_eq a ha, ←to_multiset_prod_eq b hb, ← to_multiset_prod_eq c h1] at hc,
+    rw [prod_mul_prod_eq_add_prod, prod_eq_prod_iff_eq] at hc,
+    have h2 :  (to_multiset a + to_multiset c).to_finset = (to_multiset b).to_finset,
+    {simp * at *},
+    rw finset.ext at h2,
+
+    
+
+end
+
+lemma exists_mem_to_multiset_inf_ne_zero_of_inf_ne_one {a b : quot α} (ha : a ≠ 0) (hb : b ≠ 0) (h1 : a ⊓ b ≠ 0) (h2 : a ⊓ b ≠ 1) : ∃x, x ∈ to_multiset a ∧ x ∈ to_multiset b :=
+begin
+  simp [to_multiset, *] at *,
+end
 
 end associated
 
@@ -2824,6 +2939,39 @@ begin
 end
 
 
+lemma rel_prime_aux_quot {y: quot α} {s : multiset (quot α)} (h : ∀x ∈ s, irred x): y ⊓ s.prod = 1 ↔ ∀x ∈ s, y ⊓ x = 1 :=
+begin
+  split,
+  {
+    intros h1 x h2,
+    have h3 : ∃ t, s = x :: t,
+    from exists_cons_of_mem h2,
+    rcases h3 with ⟨t, ht⟩,
+    simp [ht] at h1,
+    rw inf_mul_eq_one_iff_inf_eq_one_and_inf_eq_one at h1,
+    exact h1.1,
+  },
+  {
+    intros h1,
+    by_cases h2 : y ⊓ s.prod = 0,--Not so helpfull
+    {
+      rw inf_eq_zero_iff_eq_zero_and_eq_zero at h2,
+      simp * at *,
+      have : prod s ≠ 0,
+      from prod_ne_zero_of_irred h,
+      have : false,
+      from this h2.2,
+      contradiction,      
+    },
+    {
+      by_contradiction h3, --We need to define is_composit.
+      --have h3 : (gcd y (prod s) ∣ (prod s)),
+      --from gcd_right,
+      --Show that gcd y (prod s) and s must have an irreducible factor in common, say X.
+      --Then gcd y X is X, and not a unit. Which gives a contradiction. --Prove them in the quotient in general form.enmfavvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvi
+    }
+  }
+end
 
 lemma rel_prime_aux' {y: α} {s : multiset α} (h : ∀x ∈ s, irreducible x): rel_prime y s.prod ↔ ∀x ∈ s, rel_prime y x :=
 begin
