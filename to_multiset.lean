@@ -183,4 +183,56 @@ iff.intro
     exact h3 h2,
   end
 
+lemma sum_map_eq_zero_iff_forall_eq_zero (f : α → multiset α) (s : multiset α) : sum (map f s) = 0 ↔ ∀ x ∈ s, f x = 0 :=
+begin
+  split,
+  {
+    apply multiset.induction_on s,
+    {
+      simp * at *,
+    },
+    {
+      intros a s h1 h2 y h3,
+      simp * at *,
+      cases h3,
+      {
+        simp * at *,
+      },
+      {
+        exact h1 y h3,
+      }    
+    }
+  },
+  {
+    intros h1,
+    revert h1,
+    apply multiset.induction_on s,
+    {
+      simp * at *,
+    },
+    {
+      intros a s h1 h2,
+      simp * at *,
+      apply h1,
+      intros x h3,
+      apply h2,
+      simp * at *,
+    }
+  }
+end
+
+lemma sum_map_singleton {α : Type u} {s : multiset α} : sum (map (λ x, {x}) s) = s :=
+begin
+  apply multiset.induction_on s,
+  {
+    simp * at *,
+  },
+  {
+    intros a s h1,
+    simp * at *,
+    rw add_comm,
+    exact singleton_add _ _,
+  }
+end
+
 end multiset

@@ -1656,6 +1656,7 @@ begin
   simp [to_multiset]
 end
 
+--Name is a bit wrong should have been prod_to_multiset_eq
 lemma to_multiset_prod_eq (a : quot α) (h : a ≠ 0) :
   (to_multiset a).prod = a :=
 begin
@@ -1809,6 +1810,43 @@ begin
   exact is_unit_quot_of_mul_eq_one_left h,
 end
 
+
+
+lemma not_is_unit_quot_of_irred {a : quot α} (h : irred a) : ¬ is_unit_quot a :=
+begin
+  revert h,
+  apply quot.induction_on a,
+  intros a h,
+  have : irreducible a,
+  from h,
+  have : ¬ is_unit a,
+  from this.2.1,
+  exact this,
+end
+
+
+@[simp] lemma to_multiset_one : to_multiset (1 : quot α) = 0 :=
+begin
+  by_contradiction h1,
+  have h2 : ∃x, x ∈ (to_multiset 1),
+  from exists_mem_of_ne_zero h1,
+  rcases h2 with ⟨x, hx⟩,
+  have h3 : ∃t, (to_multiset 1) = x :: t,
+  from exists_cons_of_mem hx,
+  rcases h3 with ⟨t, ht⟩,
+  have h4 : irred x,
+  from to_multiset_irred _ _ hx,
+  have h5 : (to_multiset (1 : quot α)).prod = 1,
+  from to_multiset_prod_eq _ (@ne.symm (quot α) _ _ zero_ne_one),
+  rw ht at h5,
+  simp at h5,
+  have h6 : is_unit_quot x,
+  from is_unit_quot_of_mul_eq_one_left h5,
+  have : ¬ is_unit_quot x,
+  from not_is_unit_quot_of_irred h4,
+  contradiction,
+end
+
 lemma prod_ne_one_of_ne_zero_of_irred {q : multiset (quot α)} (h : q ≠ 0) : (∀ (a : quot α), a ∈ q → irred a) → multiset.prod q ≠ 1 :=
 begin
   revert h,
@@ -1819,9 +1857,16 @@ begin
   {
     intros a s h1 h2 h3,
     simp * at *,
-    --by_contradiction h4,
-
-
+    by_contradiction h4,
+    have h5 : is_unit_quot a,
+    from is_unit_quot_of_mul_eq_one_left h4,
+    have : ¬is_unit_quot a,
+    {
+      apply not_is_unit_quot_of_irred,
+      apply h3,
+      simp,
+    },
+    contradiction,
   }
 end
 
@@ -2326,24 +2371,46 @@ begin
   split,
     {
       intro h,
-      
+      by_contradiction h4,
+      have : prod (to_multiset a) ≠ 1,
+      from prod_ne_one_of_ne_zero_of_irred h4 (to_multiset_irred _),
+      contradiction,  
     },
     {
       intro h,
       simp * at *,
-    }
-    
-  
+    } 
 end
 
 
 
-lemma to_multiset_ne_zero_of_ne_zero {a : quot α} (h : a ≠ 0) : to_multiset a ≠ 0 :=
+lemma to_multiset_ne_zero_of_ne_zero_of_ne_one {a : quot α} (h : a ≠ 0) (h1 : a ≠ 1): to_multiset a ≠ 0 :=
 begin
-
+  by_contradiction h2,
+  simp at h2,
+  have h3 : prod (to_multiset a) = a,
+  from to_multiset_prod_eq _ h,
+  simp * at *,
 end
 
-lemma exists_mem_to_multiset_of_le {a b : quot α} (ha : a ≠ 0) (hb : b ≠ 0) (h : a ≤ b) : ∃x, x ∈ to_multiset a ∧ x ∈ to_multiset b :=
+lemma to_multiset_eq_zero_iff_eq_zero_or_eq_one{a : quot α} : to_multiset a = 0 ↔ (a = 0 ∨ a = 1) :=
+begin
+  split,
+  {
+    rw [←not_imp_not, not_or_distrib],
+    intro h,
+    exact to_multiset_ne_zero_of_ne_zero_of_ne_one h.1 h.2,
+  },
+  {
+    intro h,
+    cases h,
+      simp * at *,
+      simp * at *,
+  }
+end
+
+--Should be made stronger: all factors that are in a are in b --We might delete this one, because we have a stronger statement with a smaller proof.
+lemma exists_mem_to_multiset_of_le {a b : quot α} (ha : a ≠ 0) (ha1 : a ≠ 1) (hb : b ≠ 0) (hb1 : b ≠ 1) (h : a ≤ b) : ∃x, x ∈ to_multiset a ∧ x ∈ to_multiset b :=
 begin
   rw [le_def] at h,
   rcases h with ⟨c, hc⟩,
@@ -2354,14 +2421,73 @@ begin
     have h2 :  (to_multiset a + to_multiset c).to_finset = (to_multiset b).to_finset,
     {simp * at *},
     rw finset.ext at h2,
-
-    
-
+    have h3 : to_multiset a ≠ 0,
+    from to_multiset_ne_zero_of_ne_zero_of_ne_one ha ha1,
+    rcases (exists_mem_of_ne_zero h3) with ⟨x, hx⟩,
+    have h4 : x ∈ to_multiset b,
+    {
+      rw ← hc,
+      simp [hx],
+    },
+    exact ⟨x, hx, h4⟩,
+    {--Bad structuring
+      simp,
+      intros a h,
+      cases h ;
+        exact to_multiset_irred _ _ h,
+    },
+    exact to_multiset_irred _,
 end
+
+--Can this one be a iff?
+lemma to_multiset_le_to_multiset_of_le {a b : quot α} (hb : b ≠ 0) (h : a ≤ b) : to_multiset a ≤ to_multiset b :=
+begin
+  by_cases ha : a = 0,
+    {simp * at *},
+    {
+      rcases h with ⟨c, hc⟩,
+      rw [←hc, to_multiset_mul],
+      simp,
+      exact ha,
+      by_contradiction h1,
+      simp * at *,
+    }
+end
+
+lemma le_of_to_multiset_le_to_multiset {a b : quot α} (ha : a ≠ 0) (h : to_multiset a ≤ to_multiset b) : a ≤ b :=
+begin
+  by_cases hb : b = 0,
+    {simp [*, zero_is_top] at *,},
+    rw [←to_multiset_prod_eq a ha, ←to_multiset_prod_eq b hb, prod_le_prod_iff_subset],
+    simp [*],
+    exact to_multiset_irred _,
+    exact to_multiset_irred _,
+end
+
+lemma le_iff_to_multiset_le_to_multiset_of_ne_zero_of_ne_zero {a b : quot α} (ha : a ≠ 0) (hb : b ≠ 0) : a ≤ b ↔ to_multiset a ≤ to_multiset b :=
+iff.intro
+  (to_multiset_le_to_multiset_of_le hb)
+  (le_of_to_multiset_le_to_multiset ha)
+
 
 lemma exists_mem_to_multiset_inf_ne_zero_of_inf_ne_one {a b : quot α} (ha : a ≠ 0) (hb : b ≠ 0) (h1 : a ⊓ b ≠ 0) (h2 : a ⊓ b ≠ 1) : ∃x, x ∈ to_multiset a ∧ x ∈ to_multiset b :=
 begin
-  simp [to_multiset, *] at *,
+  have h3 : a ⊓ b ≤ a,
+  from inf_le_left,
+  have h4 : a ⊓ b ≤ b,
+  from inf_le_right,
+  have h5 : to_multiset (a ⊓ b) ≤ to_multiset a,
+  {rw ←le_iff_to_multiset_le_to_multiset_of_ne_zero_of_ne_zero ; assumption},
+  have h6 : to_multiset (a ⊓ b) ≤ to_multiset b,
+  {rw ←le_iff_to_multiset_le_to_multiset_of_ne_zero_of_ne_zero ; assumption},
+  have h7 : to_multiset (a ⊓ b) ≠ 0,
+  from to_multiset_ne_zero_of_ne_zero_of_ne_one h1 h2,
+  rcases (exists_mem_of_ne_zero h7) with ⟨x, hx⟩,
+  have h8 : x ∈ to_multiset a,
+  from mem_of_le h5 hx,
+  have h9 : x ∈ to_multiset b,
+  from mem_of_le h6 hx,
+  exact ⟨x, (by simp *)⟩,
 end
 
 end associated
@@ -2938,6 +3064,140 @@ begin
 
 end
 
+lemma prod_eq_zero_iff_zero_mem {s : multiset (quot α)} : prod s = 0 ↔ (0 : quot α) ∈ s :=
+begin
+  split,
+  {
+    apply multiset.induction_on s,
+    {
+      simp * at *,
+      intro h1,
+      exact zero_ne_one h1.symm,      
+    },
+    {
+      intros a s h1 h2,
+      simp * at *,
+      by_cases ha : a = 0,
+      {
+        simp * at *,
+      },
+      {
+        have h3 : prod s = 0,
+        {
+          by_contradiction h4,
+          have : a * prod s ≠ 0,
+          from mul_ne_zero ha h4,
+          contradiction,
+        },
+        simp [h1 h3],
+      }
+    }
+  },
+  {
+    intro h,
+    rcases (exists_cons_of_mem h) with ⟨t, ht⟩,
+    subst ht,
+    simp * at *,
+  }
+end
+
+lemma to_multiset_prod_of_zero_not_mem {s : multiset (quot α)} (h0 : (0 : quot α) ∉ s) : to_multiset (s.prod) = (multiset.map to_multiset s).sum :=
+begin --We need some non_zero constraint here
+  by_cases hs : s = 0,
+    {simp * at *},
+    {
+      
+      by_cases hs1 : s.prod = 1,
+      {
+        simp * at *,
+        apply eq.symm,
+        rw sum_map_eq_zero_iff_forall_eq_zero,
+        intros x h1,
+        rw to_multiset_eq_zero_iff_eq_zero_or_eq_one,
+        rcases (exists_cons_of_mem h1) with ⟨t, ht⟩,
+        subst ht,
+        simp * at *,
+        have : is_unit_quot x,
+        from is_unit_quot_of_mul_eq_one_left hs1,
+        rw is_unit_quot_iff_eq_one at this,
+        simp * at *,        
+      },
+      {
+        by_cases hs2 : prod s = 0,
+        {
+          rw prod_eq_zero_iff_zero_mem at hs2,
+          contradiction,
+        },
+        {
+          revert hs1 hs2 hs h0,
+          apply multiset.induction_on s,
+          {
+            simp * at *,
+          },
+          {
+            intros a s h1 h2 h3 h4 h5,
+            simp * at *,
+            rw not_or_distrib at h5,
+            have h6 : ¬prod s = 0,
+            {
+              by_contradiction h6,
+              simp * at *,
+            },
+            rw to_multiset_mul (ne.symm h5.1) h6,
+            simp,
+            by_cases hs1 : prod s = 1,
+            {
+
+              simp * at *, --Complete duplication!
+              apply eq.symm,
+              rw sum_map_eq_zero_iff_forall_eq_zero,
+              intros x h1,
+              rw to_multiset_eq_zero_iff_eq_zero_or_eq_one,
+              rcases (exists_cons_of_mem h1) with ⟨t, ht⟩,
+              subst ht,
+              simp * at *,
+              have : is_unit_quot x,
+              from is_unit_quot_of_mul_eq_one_left hs1,
+              rw is_unit_quot_iff_eq_one at this,
+              simp * at *, 
+
+            },
+            {
+              apply h1 hs1 h6,
+              {
+                by_contradiction h7,
+                simp * at *,
+              },
+              exact h5.2
+            }
+          }
+        }
+      }
+    }
+
+
+end
+
+--Maybe we need a general lemma for to multiset prod?
+lemma to_multiset_prod_eq_of_irred {s : multiset (quot α)} (h : ∀x, x ∈ s → irred x) : (to_multiset (s.prod)) = s :=
+begin
+  rw to_multiset_prod_of_zero_not_mem,
+  rw [←@sum_map_singleton _ s] {occs := occurrences.pos [2]},
+  apply congr_arg,
+  apply map_congr,
+  {
+    intros x h1,
+    exact to_multiset_eq_singleton_of_irred (h x h1),
+  },
+  {
+    by_contradiction h1,
+    have : irred 0,
+    from h _ h1,
+    have : (0 : quot α) ≠ 0,
+    from ne_zero_of_irred this,
+    contradiction,
+  }
+end
 
 lemma rel_prime_aux_quot {y: quot α} {s : multiset (quot α)} (h : ∀x ∈ s, irred x): y ⊓ s.prod = 1 ↔ ∀x ∈ s, y ⊓ x = 1 :=
 begin
@@ -2969,6 +3229,8 @@ begin
       --from gcd_right,
       --Show that gcd y (prod s) and s must have an irreducible factor in common, say X.
       --Then gcd y X is X, and not a unit. Which gives a contradiction. --Prove them in the quotient in general form.enmfavvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvi
+      have h4 : y ⊓ prod s ≤ prod s,
+      from inf_le_right,
     }
   }
 end
