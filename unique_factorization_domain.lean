@@ -3199,6 +3199,22 @@ begin
   }
 end
 
+lemma le_of_mem_to_multiset {y : quot α} : ∀x ∈ to_multiset y, x ≤ y :=
+begin
+  intros x h1,
+  by_cases h2 : y = 0,
+  {
+    simp * at *,
+  },
+  {
+    rw ←to_multiset_prod_eq y h2,
+    rcases (exists_cons_of_mem h1) with ⟨t, ht⟩,
+    rw ht,
+    simp * at *,
+    exact le_mul_right,
+  }
+end
+
 lemma rel_prime_aux_quot {y: quot α} {s : multiset (quot α)} (h : ∀x ∈ s, irred x): y ⊓ s.prod = 1 ↔ ∀x ∈ s, y ⊓ x = 1 :=
 begin
   split,
@@ -3231,9 +3247,94 @@ begin
       --Then gcd y X is X, and not a unit. Which gives a contradiction. --Prove them in the quotient in general form.enmfavvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvi
       have h4 : y ⊓ prod s ≤ prod s,
       from inf_le_right,
+      by_cases h5 : prod s = 0,
+      {
+        simp * at *,
+        rw prod_eq_zero_iff_zero_mem at h5,
+        have h6 : irred 0,
+        from h 0 h5,
+        have h7 : (0 : quot α) ≠ 0,
+        from ne_zero_of_irred h6,
+        contradiction,
+      },
+      {
+        have h8 : y ⊓ prod s ≤ y,
+        from inf_le_left,
+        by_cases h9 : y = 0,
+        {
+          subst h9,
+          simp * at *,
+          by_cases h10 : s = 0,
+          {
+            subst h10,
+            simp * at *,
+          },
+          {
+            rcases (exists_mem_of_ne_zero h10) with ⟨y, hy⟩,
+            have h11 : y = 1,
+            from h1 y hy,
+            have h12 : irred y,
+            from h y hy,
+            subst h11,
+            have h13 : ¬is_unit_quot 1,
+            from not_is_unit_quot_of_irred h12,
+            rw is_unit_quot_iff_eq_one at h13,
+            contradiction,
+          }
+        },
+        { 
+          by_cases hy : y = 1,
+          {
+            subst hy,
+            rw ←bot_def at *,
+            simp * at *,
+          },
+          --use exists_mem of -- doesn't work because you can get a different term in both les -- Maar die moet wel in beide zitten
+          have h10 : ∃ (x : quot α), x ∈ to_multiset (y ⊓ prod s) ∧ x ∈ to_multiset y,
+          from exists_mem_to_multiset_of_le h2 h3 h9 hy h8,
+          rcases h10 with ⟨z, hz⟩,
+          
+          have h4b : to_multiset (y ⊓ prod s) ≤ to_multiset (prod s),
+          from to_multiset_le_to_multiset_of_le h5 h4,
+
+          have h11 : z ∈ to_multiset (prod s),
+          from mem_of_le h4b hz.1,
+          rw to_multiset_prod_eq_of_irred h at h11,
+          have h12 : y ⊓ z = 1,
+          from h1 z h11,
+          have h13 : z ≤ y,
+          from le_of_mem_to_multiset _ hz.2,
+          have h14 : z ≤ z,
+          from le_refl z,
+          have h15 : z ≤ y ⊓ z,
+          from le_inf h13 h14,
+          have h15 : z = 1,
+          {
+            rw h12 at h15,
+            exact lattice.bot_unique h15,
+          },
+          have h16 : irred z,
+          from h z h11, --duplicate
+          have h17 : ¬is_unit_quot z,
+          from not_is_unit_quot_of_irred h16,
+          rw is_unit_quot_iff_eq_one at h17,
+          contradiction,
+          /-
+          have h8b : to_multiset (y ⊓ prod s) ≤ to_multiset (y),
+          from to_multiset_le_to_multiset_of_le h9 h8,
+          rw to_multiset_prod_of_zero_not_mem at h4b,-/
+
+        }
+      }
     }
   }
 end
+
+lemma rel_prime_aux {y: α} {s : multiset α} (h : ∀x ∈ s, irreducible x): rel_prime y s.prod ↔ ∀x ∈ s, rel_prime y x :=
+begin
+  
+end
+
 
 lemma rel_prime_aux' {y: α} {s : multiset α} (h : ∀x ∈ s, irreducible x): rel_prime y s.prod ↔ ∀x ∈ s, rel_prime y x :=
 begin
