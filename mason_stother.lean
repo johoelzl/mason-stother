@@ -29,7 +29,6 @@ attribute [instance] ring.to_add_comm_group
 
 universe u
 
-set_option pp.numerals false
 
 
 variable {α : Type u}
@@ -628,11 +627,71 @@ begin
   exact h1,
 end
 
+#check @degree_derivative_le
+
+lemma eq_zero_of_le_pred {n : ℕ} (h : n ≤ nat.pred n) : n = 0 :=
+begin
+  cases n,
+    simp,
+    simp at h,
+    have h1 : nat.succ n = n,
+    from le_antisymm h (nat.le_succ n),
+    have h2 : nat.succ n ≠ n,
+    from nat.succ_ne_self n,
+    contradiction,
+end
+
+lemma derivative_eq_zero_of_dvd_derivative_self {a : polynomial β} (h : a ∣ d[a]) : d[a] = 0 :=
+begin
+  by_contradiction hc,
+  have h1 : degree d[a] ≤ degree a - 1,
+  from degree_derivative_le,
+  have h2 : degree a ≤ degree d[a],
+  from degree_dvd h hc,
+  have h3 : degree a = 0,
+  {
+    have h3 : degree a ≤ degree a - 1,
+    from le_trans h2 h1,
+    exact eq_zero_of_le_pred h3,
+  },
+  rw ←is_constant_iff_degree_eq_zero at h3,
+  have h5 : d[a] = 0,
+  from derivative_eq_zero_of_is_constant h3,
+  contradiction,
+end
+
+--In MS detailed I call this zero wronskian
 lemma derivative_eq_zero_and_derivative_eq_zero_of_rel_prime_of_wron_eq_zero
 {a b : polynomial β} 
 (h1 : rel_prime a b)
 (h2 : d[a] * b - a * d[b] = 0)
-: d[a] = 0 ∧  d[b] = 0 := sorry
+: d[a] = 0 ∧  d[b] = 0 := 
+begin
+  have h3 : d[a] * b = a * d[b],
+  {
+    exact calc d[a] * b = d[a] * b + (-a * d[b] + a * d[b]) : by simp
+    ... = d[a] * b - (a * d[b]) + a * d[b] : by simp [add_assoc]
+    ... = 0 + a * d[b] : by rw [h2]
+    ... = _ : by simp
+  },
+  have h4 : a ∣ d[a] * b,
+  from dvd.intro _ h3.symm,
+  rw mul_comm at h4,
+  have h5 : a ∣ d[a],
+  exact dvd_of_dvd_mul_of_rel_prime h4 h1,
+  have h6 : d[a] = 0,
+  from derivative_eq_zero_of_dvd_derivative_self h5,
+
+  --duplication
+  rw mul_comm at h3,
+  have h7 : b ∣ a * d[b],
+  from dvd.intro _ h3,
+  have h8 : b ∣ d[b],
+  exact dvd_of_dvd_mul_of_rel_prime h7 (rel_prime_comm h1),
+  have h9 : d[b] = 0,
+  from derivative_eq_zero_of_dvd_derivative_self h8,
+  exact ⟨h6, h9⟩,
+end
 
 lemma rel_prime_gcd_derivative_gcd_derivative_of_rel_prime {a b : polynomial β} (h : rel_prime a b) : rel_prime (gcd a d[a]) (gcd b d[b]) :=
 sorry

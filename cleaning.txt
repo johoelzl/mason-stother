@@ -1,0 +1,8 @@
+How do you order the arguments of a lemma?? 
+How do you name a lemma, in particular if you have a right and a left version of the lemma, do you place right and left at the end?
+
+
+Cleaning steps:
+-) structuring
+-) remove duplication
+-) replace the lets by rcases

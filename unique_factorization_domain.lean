@@ -189,7 +189,8 @@ begin
   contradiction
 end
 
-lemma is_unit_unit_mul_unit {a b : α} [semiring α] (h1 : is_unit a) (h2 : is_unit b) : is_unit (a * b) :=
+
+lemma is_unit_mul_of_is_unit_of_is_unit {a b : α} [semiring α] (h1 : is_unit a) (h2 : is_unit b) : is_unit (a * b) :=
 begin
   let aᵤ := to_unit h1,
   let bᵤ := to_unit h2,
@@ -303,7 +304,7 @@ begin
       simp
     },
     have h9 : is_unit (↑u * b),
-    from is_unit_unit_mul_unit this a,
+    from is_unit_mul_of_is_unit_of_is_unit this a,
     rw ←h3 at h9,
     contradiction,
   },
@@ -2223,27 +2224,18 @@ iff.intro mk_le_mk_of_dvd dvd_of_mk_le_mk
 @[simp] lemma mk_quot_out {a : quot α} : mk (quot.out a) = a :=
 quot.out_eq _
 
-lemma le_of_le_mul_of_le_rel_prime {a b c : quot α} (h1 : a ⊓ b = 1) (h2 : a ≤ (c * b)) : a ≤ c :=
+--I have a duplicate of this lemma with wrong naming: see dvd_right bla bla
+--Do we use the case c = 0.
+lemma le_of_le_mul_of_le_of_inf_eq_one {a b c : quot α} (h1 : a ⊓ b = 1) (h2 : a ≤ (c * b)) : a ≤ c :=
 begin
-  by_cases h3 : (c = 0),
-  {
-    rw [h3],
-    exact le_top,
-  },
-  {
     have h4: (c * a) ⊓ (c * b) = c,
     {
       rw  ←mul_inf,
       simp *,
     },
     have h5 : a ≤  (c * a) ⊓ (c * b),
-    {
-      apply le_inf,
-      exact le_mul_left,
-      exact h2,
-    },
+    from le_inf le_mul_left h2,
     simp * at *,
-  }
 end
 
 lemma inf_assoc {a b c : quot α} : a ⊓ b ⊓ c = a ⊓ (b ⊓ c) :=
@@ -2272,7 +2264,7 @@ begin
   
   apply le_antisymm,
   {
-    apply @le_of_le_mul_of_le_rel_prime _ _ _ c,
+    apply @le_of_le_mul_of_le_of_inf_eq_one _ _ _ c,
     rw lattice.inf_comm at h,
     rw @inf_assoc _ _ (c * a ) b _,
     simp *,
@@ -2489,6 +2481,35 @@ begin
   from mem_of_le h6 hx,
   exact ⟨x, (by simp *)⟩,
 end
+
+@[simp] lemma le_self {a : quot α} : a ≤ a:=
+begin
+  exact ⟨1, by simp⟩,
+end
+
+--Do we need a right variant here?
+lemma mul_inf_eq_self {a b  : quot α}: a * b ⊓ a = a :=
+begin
+  apply le_antisymm inf_le_right,
+  apply le_inf le_mul_right; simp,
+end
+
+/- We already have this one and problem in naming
+lemma dvd_right_of_dvd_mul_inf_eq_one [unique_factorization_domain α] {a b c : quot α} (h1 : a ≤ b * c) (h2 : a ⊓ b = 1) : a ≤ c :=
+begin
+  apply lattice.le_of_inf_eq,
+  rcases h1 with ⟨d, hd⟩,
+  have h3 : (a * d) ⊓ a = (b * c) ⊓ a,
+  {
+    rw hd,
+  },
+  simp [mul_inf_eq_self, mul_inf_eq_inf_of_inf_eq_one h2] at h3,
+  rw lattice.inf_comm at h2,
+  rw [mul_inf_eq_inf_of_inf_eq_one h2, lattice.inf_comm] at h3,
+  exact h3.symm,
+end
+-/
+
 
 end associated
 
@@ -3008,6 +3029,7 @@ begin
   repeat {assumption},
 end
 
+--Do we need this one??
 lemma facs_to_pow_prod_dvd'' {f : α →₀ ℕ} 
   (h1 : ∀x∈f.support, irreducible x ∧ ∀y∈f.support, x ≠ y → ¬ (x ~ᵤ y)) :
   ∀x∈f.support, rel_prime (x^(f x)) ((finset.prod (finset.erase f.support x) (λ (a : α), a ^ f a))):=
@@ -3215,253 +3237,210 @@ begin
   }
 end
 
-lemma rel_prime_aux_quot {y: quot α} {s : multiset (quot α)} (h : ∀x ∈ s, irred x): y ⊓ s.prod = 1 ↔ ∀x ∈ s, y ⊓ x = 1 :=
+lemma inf_prod_eq_one_iff_forall_inf_eq_one {y: quot α} {s : multiset (quot α)} : y ⊓ s.prod = 1 ↔ ∀x ∈ s, y ⊓ x = 1 :=
 begin
   split,
   {
-    intros h1 x h2,
-    have h3 : ∃ t, s = x :: t,
-    from exists_cons_of_mem h2,
-    rcases h3 with ⟨t, ht⟩,
-    simp [ht] at h1,
-    rw inf_mul_eq_one_iff_inf_eq_one_and_inf_eq_one at h1,
-    exact h1.1,
-  },
-  {
-    intros h1,
-    by_cases h2 : y ⊓ s.prod = 0,--Not so helpfull
+    apply multiset.induction_on s,
     {
-      rw inf_eq_zero_iff_eq_zero_and_eq_zero at h2,
+      intros h x h1,
       simp * at *,
-      have : prod s ≠ 0,
-      from prod_ne_zero_of_irred h,
-      have : false,
-      from this h2.2,
-      contradiction,      
     },
     {
-      by_contradiction h3, --We need to define is_composit.
-      --have h3 : (gcd y (prod s) ∣ (prod s)),
-      --from gcd_right,
-      --Show that gcd y (prod s) and s must have an irreducible factor in common, say X.
-      --Then gcd y X is X, and not a unit. Which gives a contradiction. --Prove them in the quotient in general form.enmfavvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvi
-      have h4 : y ⊓ prod s ≤ prod s,
-      from inf_le_right,
-      by_cases h5 : prod s = 0,
+      intros a s h1 h2 x h3,
+      simp * at *,
+      rw inf_mul_eq_one_iff_inf_eq_one_and_inf_eq_one at h2,
+      cases h3,
       {
-        simp * at *,
-        rw prod_eq_zero_iff_zero_mem at h5,
-        have h6 : irred 0,
-        from h 0 h5,
-        have h7 : (0 : quot α) ≠ 0,
-        from ne_zero_of_irred h6,
+        subst h3,
+        exact h2.1,
+      },
+      {
+        exact h1 h2.2 x h3,
+      }
+    }
+  },
+  {
+    apply multiset.induction_on s,
+    {
+      intros x,
+      simp * at *,
+      exact lattice.inf_bot_eq,
+    },
+    {
+      intros a t h1 h2,
+      simp * at *,
+      rw inf_mul_eq_one_iff_inf_eq_one_and_inf_eq_one,
+      split,
+      {
+        apply h2 a,
+        simp,
+      },
+      {
+        apply h1,
+        intros x h,
+        apply h2,
+        simp *,
+      }
+    }
+  }
+end
+
+
+
+
+lemma forall_map_mk_irred_of_forall_irreducible {s : multiset α}(h : ∀x ∈ s, irreducible x) : ∀ x ∈ map mk s, irred x :=
+begin
+  intros x,
+  apply quot.induction_on x,
+  intros a h1,
+  rw mem_map at h1,
+  rcases h1 with ⟨b, hb⟩,
+  rw ← hb.2,
+  exact h b hb.1,
+end
+
+--Why do we need irreucible here?? (h : ∀x ∈ s, irreducible x)
+lemma rel_prime_prod_iff_forall_rel_prime  {y: α} {s : multiset α}: rel_prime y s.prod ↔ ∀x ∈ s, rel_prime y x :=
+begin
+  rw rel_prime_iff_mk_inf_mk_eq_one,
+  rw [mk_def, mk_def],
+  rw [←prod_mk],
+  --have h4 : ∀ x, x ∈ map mk s → irred x,
+  --from forall_map_mk_irred_of_forall_irreducible h,
+  rw inf_prod_eq_one_iff_forall_inf_eq_one, -- h4,
+  split,
+  {
+    intros h1 z h3,
+    rw rel_prime_iff_mk_inf_mk_eq_one,
+    apply h1 (mk z),
+    rw mem_map,
+    exact ⟨z, h3, rfl⟩,
+  },
+  {
+    intros h1 x,
+    apply quot.induction_on x,
+    intros a h2,
+    rw mem_map at h2,
+    rcases h2 with ⟨b, hb⟩,
+    rw ←hb.2,
+    have h2: rel_prime y b,
+    from h1 b hb.1,
+    rw rel_prime_iff_mk_inf_mk_eq_one at h2,
+    exact h2,
+  }
+end
+
+
+
+lemma succ_eq_succ_iff_eq {n m : ℕ} : nat.succ n = nat.succ m ↔ n = m :=
+begin
+  split,
+    exact nat.succ_inj,
+    intro h,
+    simp *,
+end
+
+lemma eq_zero_or_exists_eq_succ_succ_of_ne_one {n : ℕ} (h : n ≠ 1) : n = 0 ∨ ∃ m, n = nat.succ (nat.succ m) := 
+begin
+  by_cases h2 : n = 0,
+    {simp *},
+    {
+      rcases (nat.exists_eq_succ_of_ne_zero h2) with ⟨m, hm⟩,
+      subst hm,
+      simp * at *,
+      rw succ_eq_succ_iff_eq at h,     
+      rcases (nat.exists_eq_succ_of_ne_zero h) with ⟨s, hs⟩,
+      subst hs,
+      exact ⟨s, rfl⟩,
+    }     
+end
+
+lemma not_irreducible_one : ¬ irreducible (1 : α) :=
+begin
+  by_contradiction h,
+  have : ¬is_unit (1 : α),
+  from (h.2).1,
+  have : is_unit (1 : α),
+  from is_unit_one,
+  contradiction,
+end
+
+lemma is_unit_of_mul_is_unit_left {a b : α} (h : is_unit (a * b)) : is_unit a :=
+begin
+  rcases h with ⟨c, hc⟩,
+  have h1: a * b * c.inv = 1,
+  {
+    rw [hc, units.val_coe c, c.val_inv],      
+  },
+  rw mul_assoc at h1,
+  exact is_unit_of_mul_eq_one_left h1,     
+end
+
+lemma is_unit_of_mul_is_unit_right {a b : α} (h : is_unit (a * b)) : is_unit b :=
+begin
+  rw mul_comm at h,
+  exact is_unit_of_mul_is_unit_left h,  
+end
+
+
+lemma is_unit_mul_iff_is_unit_and_is_unit {a b : α} : is_unit (a * b) ↔ is_unit a ∧ is_unit b :=
+begin
+  split,
+  {
+    intros h,
+    exact ⟨is_unit_of_mul_is_unit_left h, is_unit_of_mul_is_unit_right h⟩,  
+  },
+  {
+    intros h,
+    exact is_unit_mul_of_is_unit_of_is_unit h.1 h.2,
+  }
+end
+
+lemma irreducible_pow {a : α} {n : ℕ} (h : irreducible a) : irreducible (a^n) ↔ n = 1 :=
+begin
+  split,
+  {
+    intros h1,
+    by_contradiction h2,
+    have h3 : n = 0 ∨ ∃ m, n = nat.succ (nat.succ m),
+    from eq_zero_or_exists_eq_succ_succ_of_ne_one h2,
+    cases h3,
+    {
+      simp * at *,
+      have : ¬ irreducible (1 : α),
+      from  not_irreducible_one,
+      contradiction,
+    },
+    {
+      rcases h3 with ⟨m, hm⟩,
+      subst hm,
+      rw pow_succ at *,
+      rw irreducible_iff_irreducible' at h1,
+      unfold irreducible' at h1,
+      have h4: is_unit a ∨ is_unit (a ^ nat.succ m),
+      from h1.2.2 _ _ rfl,
+      cases h4,
+      {
+        have : ¬is_unit a,
+        from h.2.1,
         contradiction,
       },
       {
-        have h8 : y ⊓ prod s ≤ y,
-        from inf_le_left,
-        by_cases h9 : y = 0,
-        {
-          subst h9,
-          simp * at *,
-          by_cases h10 : s = 0,
-          {
-            subst h10,
-            simp * at *,
-          },
-          {
-            rcases (exists_mem_of_ne_zero h10) with ⟨y, hy⟩,
-            have h11 : y = 1,
-            from h1 y hy,
-            have h12 : irred y,
-            from h y hy,
-            subst h11,
-            have h13 : ¬is_unit_quot 1,
-            from not_is_unit_quot_of_irred h12,
-            rw is_unit_quot_iff_eq_one at h13,
-            contradiction,
-          }
-        },
-        { 
-          by_cases hy : y = 1,
-          {
-            subst hy,
-            rw ←bot_def at *,
-            simp * at *,
-          },
-          --use exists_mem of -- doesn't work because you can get a different term in both les -- Maar die moet wel in beide zitten
-          have h10 : ∃ (x : quot α), x ∈ to_multiset (y ⊓ prod s) ∧ x ∈ to_multiset y,
-          from exists_mem_to_multiset_of_le h2 h3 h9 hy h8,
-          rcases h10 with ⟨z, hz⟩,
-          
-          have h4b : to_multiset (y ⊓ prod s) ≤ to_multiset (prod s),
-          from to_multiset_le_to_multiset_of_le h5 h4,
-
-          have h11 : z ∈ to_multiset (prod s),
-          from mem_of_le h4b hz.1,
-          rw to_multiset_prod_eq_of_irred h at h11,
-          have h12 : y ⊓ z = 1,
-          from h1 z h11,
-          have h13 : z ≤ y,
-          from le_of_mem_to_multiset _ hz.2,
-          have h14 : z ≤ z,
-          from le_refl z,
-          have h15 : z ≤ y ⊓ z,
-          from le_inf h13 h14,
-          have h15 : z = 1,
-          {
-            rw h12 at h15,
-            exact lattice.bot_unique h15,
-          },
-          have h16 : irred z,
-          from h z h11, --duplicate
-          have h17 : ¬is_unit_quot z,
-          from not_is_unit_quot_of_irred h16,
-          rw is_unit_quot_iff_eq_one at h17,
-          contradiction,
-          /-
-          have h8b : to_multiset (y ⊓ prod s) ≤ to_multiset (y),
-          from to_multiset_le_to_multiset_of_le h9 h8,
-          rw to_multiset_prod_of_zero_not_mem at h4b,-/
-
-        }
+        rw pow_succ at h4,
+        rw is_unit_mul_iff_is_unit_and_is_unit at h4,
+        have : ¬is_unit a,
+        from h.2.1,
+        exact this h4.1,
       }
     }
-  }
-end
 
-lemma rel_prime_aux {y: α} {s : multiset α} (h : ∀x ∈ s, irreducible x): rel_prime y s.prod ↔ ∀x ∈ s, rel_prime y x :=
-begin
-  
-end
-
-
-lemma rel_prime_aux' {y: α} {s : multiset α} (h : ∀x ∈ s, irreducible x): rel_prime y s.prod ↔ ∀x ∈ s, rel_prime y x :=
-begin
-  split,
-  {
-    intros h1 x h2,
-    admit,
   },
   {
-    intros h1,
-    by_cases h2 : gcd y s.prod = 0,--Not so helpfull
-    {
-      rw gcd_eq_zero_iff_eq_zero_and_eq_zero at h2,
-      simp * at *,
-      rw [rel_prime],
-      simp,
-      have : prod s ≠ 0,
-      {admit},--from prod_ne_zero_of_irreducible h,--need to prove this one.
-      let h3 := h2.2,
-      contradiction,
-      --apply not_is_unit_zero,
-      
-    },
-    {
-      have h3 : (gcd y (prod s) ∣ (prod s)),
-      from gcd_right,
-      --Show that gcd y (prod s) and s must have an irreducible factor in common, say X.
-      --Then gcd y X is X, and not a unit. Which gives a contradiction. --Prove them in the quotient in general form.enmfavvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvi
-    }
-  }
-end
-
-
---Problem if I rename y as a, has to be cause by namespace convolution
---Think I can prove this one
-lemma rel_prime_aux' {y: α} {s : multiset α} : rel_prime y s.prod ↔ ∀x ∈ s, rel_prime y x :=
-begin
-  apply multiset.induction_on s,
-  {
+    intro h,
     simp * at *,
-  },
-  {
-    intros a' s' h1,
-    split,
-    {
-      simp,
-      intro h2,
-      rw rel_prime_mul_iff_rel_prime_and_rel_prime at h2,
-      --have h3 : ∀ (x : α), x ∈ s' → rel_prime y x,
-    --{admit},
-    intros x h4,
-    cases h4,
-    {
-      subst h4,
-      exact h2.1,
-    },
-    {
-      rw h1 at h2,
-      exact h2.2 x h4,
-    }
-
-    },
-    {
-      intros h2,
-      simp,
-      rw rel_prime_mul_iff_rel_prime_and_rel_prime,
-      split,
-      {
-        have h3 : a' ∈ a' :: s,
-        {simp},
-        {
-          exact h2 a' h3,
-        }
-      },
-      {
-
-      }
-    }
   }
-
-end
-
---Would be more efficient if it could be obtained by translating from finsupp
-lemma rel_prime_aux'' {y: α} {s : α →₀ ℕ} : rel_prime y (s.prod (λx z, x^z)) ↔ ∀x ∈ s.support, rel_prime y x :=
-begin
-  rw finsupp.prod,
-  apply @finset.induction_on _ _ (λ z, rel_prime y (finset.prod (z) (λ (a : α), a ^ s a)) ↔
-    ∀ (x : α), x ∈ z → rel_prime y x) s.support,
-  {
-    simp * at *,
-  },
-  {
-    intros a' s' h1 h2,
-    split,
-    {
-      simp,
-      intros h3 x h4,
-      simp [finset.prod_insert h1] at h3,
-      rw rel_prime_mul_iff_rel_prime_and_rel_prime at h3,     
-      cases h4,
-      {
-        subst h4,
-        simp [finset.prod_insert h1] at h3,
-        have h4 : rel_prime y (x ^ s x),
-        {
-
-        } 
-      },
-      {
-
-      }
-      
-    },
-    {
-
-    }
-  }
-end
-
-lemma rel_prime_aux {f : α →₀ ℕ}{a : α} {s : finset α} (h : a ∉ s) :
-(∀ (x : α),
-    x ∈ insert a s →
-    irreducible x ∧ ∀ (y : α), y ∈ insert a s → x ≠ y → ¬(x~ᵤ y))
-→  rel_prime (a ^ f a) (finset.prod s (λ (a : α), a ^ f a)) :=
-begin
-  intro h1,
-end
+end 
 
 --Problem? could be that I need it for intergral domain?? [integral_domain α] 
 lemma facs_to_pow_prod_dvd {f : α →₀ ℕ} {z : α}
@@ -3486,7 +3465,33 @@ begin
     simp [finset.prod_insert h2],
     apply mul_dvd_of_dvd_of_dvd_of_rel_prime,
     {
-      admit,  --separate induction prove?
+      rw finset_prod_eq_map_prod,
+      rw rel_prime_prod_iff_forall_rel_prime,
+      {
+        intros y h5,
+        rw mem_map at h5,
+        rcases h5 with ⟨b, hb⟩,
+        rw ←hb.2,
+        apply rel_prime_pow_pow_of_rel_prime,
+        have h5 : a ∈ insert a s,
+        {simp},
+        have h6 : b ∈ s,
+        from hb.1,        
+        have h7 : b ∈ insert a s,
+        {simp *},
+        have h8 : (¬(a ~ᵤ b)),
+        {
+          apply (h4 a h5).2.2 b h7,
+          by_contradiction h9,
+          simp at h9,
+          subst h9,
+          exact h2 h6,
+        },
+        exact rel_prime_of_irreducible_of_irreducible_of_not_associated (h4 a h5).1 (h4 b h7).1 h8,
+      },
+
+
+      --admit,  --separate induction prove?
     },
     {
       have h5 : a ∈ insert a s,
@@ -3526,5 +3531,15 @@ begin
 
 end
 
+lemma dvd_of_dvd_mul_of_rel_prime {a b c : α} (h1 : a ∣ b * c) (h2 : rel_prime a b) : a ∣ c :=
+begin
+  rw rel_prime_iff_mk_inf_mk_eq_one at h2,
+  rw dvd_iff_mk_le_mk at *,
+  rw [mul_mk] at h1,
+  apply le_of_le_mul_of_le_of_inf_eq_one h2,
+  have h3 : mk c ≤ mk b * mk c,
+  from le_mul_left,
+  cc,
+end
 
 end ufd

@@ -235,4 +235,9 @@ begin
   }
 end
 
+lemma finset_prod_eq_map_prod {α β : Type u} [comm_monoid β] {s : finset α} (f : α → β) : finset.prod s f = (map f s.val).prod :=
+begin
+  exact rfl, --nice
+end
+
 end multiset
