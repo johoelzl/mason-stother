@@ -1503,9 +1503,6 @@ begin
   exact h2,
 end
 
-
---#check --(has_mul α).mul
-
 lemma uniqueness (p q : multiset (quot α))
   (hp : ∀a∈p, irred a) (hq : ∀a∈q, irred a)
   (h : p.prod = q.prod) : p = q :=

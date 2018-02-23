@@ -356,9 +356,6 @@ begin
   }
 end
 
-#check @X
-
-
 --Still need to obtain an integral domain from field α 
 instance {α : Type u} [field α] : euclidean_domain (polynomial α) :=
 { eq_zero_or_eq_zero_of_mul_eq_zero := eq_zero_or_eq_zero_of_mul_eq_zero,

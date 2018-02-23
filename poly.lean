@@ -10,7 +10,14 @@ local attribute [instance] finsupp.to_comm_semiring
 local attribute [instance] finsupp.to_semiring
 local infix ^ := monoid.pow
 
+-- TODO: for some reasons these rules don't work
+@[simp] lemma nat_rec_zero {C : ℕ → Sort u} (h₁ : C 0) (h₂ : Π (n : ℕ), C n → C (nat.succ n)) :
+  @nat.rec C h₁ h₂ 0 = h₁ :=
+rfl
 
+@[simp] lemma nat_rec_add_one {C : ℕ → Sort u} (h₁ : C 0) (h₂ : Π (n : ℕ), C n → C (nat.succ n)) {n : ℕ} :
+  @nat.rec C h₁ h₂ (n + 1) = h₂ n (nat.rec h₁ h₂ n) :=
+rfl
 
 -- TODO: relax semiring to semi-algebra?
 def polynomial (α : Type u) [semiring α] := ℕ →₀ α
@@ -1231,8 +1238,6 @@ begin
     rw h5
   }
 end
-
-#check add_monoid.smul
 
 lemma degree_pow {x : polynomial α}{n : ℕ} : degree (x ^ n) = n * degree x :=
 begin

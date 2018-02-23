@@ -149,8 +149,6 @@ variables [field β]
 --variables  [algebraically_closed_field β] -- Should be an instance of algebraically closed.
 open finsupp
 
-#check @classical.some
-
 --axiom roots (p : polynomial β) : β →₀ ℕ Problem, because the 0 polynomial can have infinite roots.
 --axiom eq_prod_lin_fac_roots (p : polynomial β) : ∃ c : β , p = C c * (finsupp.prod (roots p) (λ k n, ( (X - C k ) ^n) )  )
 
@@ -641,8 +639,6 @@ begin
   exact h1,
 end
 
-#check @degree_derivative_le
-
 lemma eq_zero_of_le_pred {n : ℕ} (h : n ≤ nat.pred n) : n = 0 :=
 begin
   cases n,
@@ -923,7 +919,6 @@ begin
   }
 end
 
-
 --h_deg_c_le_1
 lemma rw_aux_1 [field β]
   (h_char : characteristic_zero β)
@@ -933,13 +928,34 @@ lemma rw_aux_1 [field β]
   (h_rel_prime_ca : rel_prime c a)
   (h_add : a + b = c)
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)) 
-  
-  (h_deg_add_le : degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c]) ≤ degree a + degree b - 1):
-  degree c ≤ (degree a - degree (gcd a d[a])) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1:=
-begin
-  admit
-end 
-
+  (h_deg_add_le : degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c]) ≤ degree a + degree b - 1) :
+  degree c ≤
+    (degree a - degree (gcd a d[a])) +
+    (degree b - degree (gcd b d[b])) +
+    (degree c - degree (gcd c d[c])) - 1 :=
+have 1 ≤ degree a + degree b, from sorry,
+have h : ∀p:polynomial β, degree (gcd p d[p]) ≤ degree p, from sorry,
+have (degree (gcd a d[a]) : ℤ) + (degree (gcd b d[b]) : ℤ) + (degree (gcd c d[c]) : ℤ) ≤
+    (degree a : ℤ) + (degree b : ℤ) - 1,
+  by rwa [← int.coe_nat_add, ← int.coe_nat_add, ← int.coe_nat_add, ← int.coe_nat_one,
+    ← int.coe_nat_sub this, int.coe_nat_le],
+have (degree c : ℤ) ≤
+    ((degree a : ℤ) - (degree (gcd a d[a]) : ℤ)) +
+    ((degree b : ℤ) - (degree (gcd b d[b]) : ℤ)) +
+    ((degree c : ℤ) - (degree (gcd c d[c]) : ℤ)) - 1,
+  from calc (degree c : ℤ) ≤
+    ((degree c : ℤ) + ((degree a : ℤ) + (degree b : ℤ) - 1)) -
+      ((degree (gcd a d[a]) : ℤ) + (degree (gcd b d[b]) : ℤ) + (degree (gcd c d[c]) : ℤ)) : 
+      le_sub_iff_add_le.mpr $ add_le_add_left this _
+    ... = _ : by simp,
+have 1 + (degree c : ℤ) ≤
+    ((degree a : ℤ) - (degree (gcd a d[a]) : ℤ)) +
+    ((degree b : ℤ) - (degree (gcd b d[b]) : ℤ)) +
+    ((degree c : ℤ) - (degree (gcd c d[c]) : ℤ)),
+  from add_le_of_le_sub_left this,
+nat.le_sub_left_of_add_le $
+  by rwa [← int.coe_nat_sub (h _), ← int.coe_nat_sub (h _), ← int.coe_nat_sub (h _),
+      ← int.coe_nat_add, ← int.coe_nat_add, ← int.coe_nat_one, ← int.coe_nat_add, int.coe_nat_le] at this
 
 /-
 lemma Mason_Stothers_lemma
