@@ -1261,11 +1261,4 @@ begin
   exact nat.le_trans h_deg_c_le_1 h_le_rad,
 end
 
-
-
-
-
-
-
 end algebraically_closed
-

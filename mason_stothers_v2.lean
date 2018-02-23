@@ -1,3 +1,5 @@
+#exit -- currently not used
+
 import poly
 import euclidean_domain
 import unique_factorization_domain

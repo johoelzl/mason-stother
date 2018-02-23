@@ -147,7 +147,6 @@ end
 
 lemma induction_on_X {M : polynomial α → Prop} (p : polynomial α)
   (M_C : ∀(a : α), M (C a))
-  (M_X : M X)
   (M_add : ∀{p q}, M p → M q → M (p + q))
   (M_mul_X : ∀{p}, M p → M (p * X) ):
   M p :=
@@ -687,20 +686,17 @@ begin
     --conv (degree (f * g)) {rw [(rfl : (degree (f * g) = n))]},
 end
 
-
-
-
-
-
-
 def derivative (p : polynomial α) : polynomial α :=
-p.sum (λn a, match n with 0 := 0 | (n + 1) := single n (a * (n + 1)) end)
+p.sum (λn a, nat.cases_on n 0 (λn, single n (a * (n + 1))))
+-- TODO: the following form breaks derivative_single
+-- p.sum (λn a, match n with 0 := 0 | n + 1 := single n (a * (n + 1)) end)
+
 
 @[simp] lemma derivative_zero : derivative (0 : polynomial α) = 0 :=
 finsupp.sum_zero_index
 
 lemma derivative_single {n : ℕ} {a : α} :
-  derivative (single n a) = @nat.cases_on (λn, polynomial α) n 0 (λn, single n (a * (n + 1))) :=
+  derivative (single n a) = nat.cases_on n 0 (λn, single n (a * (n + 1))) :=
 finsupp.sum_single_index $ match n with 0 := rfl | n + 1 := by simp [derivative]; refl end
 
 @[simp] lemma derivative_single_zero {a : α} : derivative (single 0 a) = 0 :=
@@ -722,8 +718,10 @@ by simp [X]; refl
 @[simp] lemma derivative_add {f g : polynomial α} :
   derivative (f + g) = derivative f + derivative g :=
 finsupp.sum_add_index
-  (assume n, match n with 0 := by simp [derivative] | n + 1 := by simp [derivative]; refl end)
-  (assume n, match n with 0 := by simp [derivative] | n + 1 := by simp [derivative, add_mul] end)
+  (assume n, match n with 0 := rfl | n + 1 := by simp [derivative]; refl end)
+  (assume n, match n with
+    0     := assume b₁ b₂, (add_zero _).symm
+  | n + 1 := assume b₁ b₂, begin rw [← nat.succ_eq_add_one], simp [add_mul] end end)
 
 @[simp] lemma derivative_sum {β : Type w} {s : finset β} {f : β → polynomial α} :
   derivative (s.sum f) = s.sum (λb, derivative (f b)) :=
@@ -767,22 +765,19 @@ begin
 
 end
 
-lemma mul_C_eq_sum {f : polynomial α} {a : α} :
-  f * C a = f.sum (λi c, single i (a * c)) :=
+lemma mul_C_eq_sum {f : polynomial α} {a : α} : f * C a = f.sum (λi c, single i (a * c)) :=
 calc f * C a = (f.sum single) * C a : by rw [sum_single]
   ... = f.sum (λi c, single i c * C a) : finset.sum_mul
   ... = f.sum (λi c, single i (a * c)) :
     by simp [single_eq_X_pow, C_mul_C, mul_assoc, mul_comm, mul_left_comm]
 
-lemma mul_X_eq_sum {f : polynomial α} :
-  f * X = f.sum (λi c, single (i + 1) c) :=
+lemma mul_X_eq_sum {f : polynomial α} : f * X = f.sum (λi c, single (i + 1) c) :=
 calc f * X = (f.sum single) * X : by rw [sum_single]
   ... = f.sum (λi c, single i c * X) : finset.sum_mul
   ... = f.sum (λi c, single (i + 1) c) :
     by simp [single_eq_X_pow, pow_add, pow_one, mul_assoc, mul_comm, mul_left_comm]
 
-lemma derivative_mul_C {f : polynomial α} :
-  derivative (f * C a) = derivative f * C a :=
+@[simp] lemma derivative_mul_C {f : polynomial α} : derivative (f * C a) = derivative f * C a :=
 have ∀i c, derivative (single i (a * c)) = derivative (single i c) * C a,
   by intros i c; cases i; simp [C, single_mul_single, mul_comm, mul_left_comm, mul_assoc],
 calc derivative (f * C a) = derivative (f.sum (λi c, single i (a * c))) :
@@ -793,31 +788,27 @@ calc derivative (f * C a) = derivative (f.sum (λi c, single i (a * c))) :
   ... = derivative (f.sum single) * C a : by simp [finsupp.sum, derivative_sum]
   ... = _ : by rw [sum_single]
 
-lemma derivative_C_mul {f : polynomial α} : 
-  derivative (C a * f) = C a * (derivative f) :=
-   by rw [mul_comm,derivative_mul_C,mul_comm]
- 
+@[simp] lemma derivative_C_mul {f : polynomial α} : derivative (C a * f) = C a * (derivative f) :=
+by rw [mul_comm, derivative_mul_C, mul_comm]
 
-
-lemma derivative_mul_X {f : polynomial α} :
-  derivative (f * X) = derivative f * X + f:=
-  have temp: derivative f * X = f.sum (λi c, single i (c * i)), from
-have ∀ a (b : α ),(  finsupp.sum (derivative._match_1 b a) (λ (i : ℕ), single (i + 1)) = single a (b * a) ),from
-begin
-  intros,
-  cases a,
-  { simp [derivative._match_1], apply sum_zero_index },
-  { simp [derivative._match_1], simp [sum_single_index] }
-end,
-have (λ (a : ℕ) (b : α ),(  finsupp.sum (derivative._match_1 b a) (λ (i : ℕ), single (i + 1)) ) ) = (λ (a : ℕ) (b : α ),  single a (b * a) ), from
-(funext(λ _, funext $ this _)),
-calc (derivative f) * X = sum (derivative f) (λi c, single (i + 1) c) : by rw [mul_X_eq_sum]
-  ... = sum (sum f (λ (n : ℕ) (a : α), derivative._match_1 a n)) (λ (i : ℕ), single (i + 1)) : by rw [derivative]
-  ... = sum f (λa b, sum ((λ n d, derivative._match_1 d n) a b) (λ i, single (i + 1))  ) :  begin rw [sum_sum_index  ], {intro, apply single_zero}, {intros, apply (@single_add _ _ _ _ _ _)}  end
-  ... = sum f (λa b, sum (derivative._match_1 b a) (λ i, single (i + 1))) : rfl
-  ... = f.sum (λi c, single i (c * i)) : begin rw [this] end,
-
-
+lemma derivative_mul_X {f : polynomial α} : derivative (f * X) = derivative f * X + f :=
+have derivative f * X = f.sum (λi c, single i (c * i)), from
+  calc derivative f * X = (derivative f).sum (λi c, single (i + 1) c) : by rw [mul_X_eq_sum]
+    ... = _ :
+  begin
+    rw [derivative],
+    rw [sum_sum_index],
+    { apply finsupp.sum_congr rfl, 
+      { intros n hnf,
+        cases n,
+        { simp, apply sum_zero_index },
+        { simp [sum_single_index],
+          rw [sum_single_index],
+          simp,
+          refl } } },
+    { simp, refl },
+    { simp }
+  end,
 calc derivative (f * X) = derivative (f.sum (λi c, single (i + 1) c)) :
     by rw [mul_X_eq_sum]
   ... = f.sum (λi c, derivative (single (i + 1) c)) :
@@ -826,19 +817,17 @@ calc derivative (f * X) = derivative (f.sum (λi c, single (i + 1) c)) :
     by simp [derivative_single, (nat.succ_eq_add_one _).symm]
   ... = f.sum (λi c, single i (c * i) + single i c) : by simp [single_add, mul_add]
   ... = f.sum (λi c, single i (c * i)) + f: by simp [sum_add, sum_single]
-  ... = derivative f * X + f : by rw [temp]
-
-
-
+  ... = derivative f * X + f : by rw [this]
 
 lemma derivative_mul {f : polynomial α} :
   ∀{g}, derivative (f * g) = derivative f * g + f * derivative g :=
 begin
-  apply f.induction_on,
+  apply f.induction_on_X,
   { simp [derivative_mul_C, mul_assoc, mul_comm, mul_left_comm] },
-  { simp [derivative_mul_X, mul_assoc, mul_comm, mul_left_comm] },
   { simp [add_mul, mul_add] {contextual := tt} },
-  { simp [add_mul, mul_add, mul_assoc, mul_comm, mul_left_comm] {contextual := tt} }
+  { intros p hp q,
+    rw [mul_assoc, hp, hp, mul_comm X q, derivative_mul_X],
+    simp [mul_add, add_mul, add_assoc, add_comm, add_left_comm, mul_assoc, mul_comm, mul_left_comm] }
 end
 
 open finset
@@ -1314,122 +1303,48 @@ begin
   }
 end
 
+lemma derivative_apply {p : polynomial α} {n : ℕ} : derivative p n = (n + 1) * p (n + 1) :=
+calc derivative p n = ({n + 1} : finset ℕ).sum (λm, (nat.cases_on m 0 (λn, single n (p m * (↑n + 1))) : polynomial α) n) :
+  begin
+    rw [derivative, sum_apply],
+    apply finset.sum_bij_ne_zero (λx _ _, x),
+    { intro m, cases m,
+      { dsimp, simp },
+      { by_cases m = n,
+        { dsimp, simp [single_apply, h] },
+        { dsimp, simp [single_apply, h] } } },
+    { intros m hm, exact id },
+    { intros a₁ a₂ _ _ _ _, exact id },
+    { dsimp, simp,
+      intro h,
+      refine ⟨n + 1, _, _, _⟩, 
+      { change (single n (p (n + 1) * (n + 1)) n ≠ 0) at h,
+        simp [mul_eq_zero, not_or_distrib] at h,
+        exact h.left },
+      { assumption },
+      { refl } },
+    { dsimp, simp }
+  end
+  ... = _ :
+  begin
+    simp,
+    change single n (p (n + 1) * (n + 1)) n = (1 + n) * p (n + 1),
+    simp [mul_comm]
+  end
+
 --Problem with decidability propagated
-lemma derivative_degree_sub_one_equ_C_degree_mul_leading_coeff_X_pow_degree_sub_one {p : polynomial α} :
-  (derivative p) ((degree p)-1) = (degree p * (leading_coeff p)) :=
+lemma derivative_degree_sub_one_eq_degree_mul_leading_coeff {p : polynomial α} :
+  derivative p (degree p - 1) = degree p * (leading_coeff p) :=
 begin
-  by_cases h1 : (is_constant p),
-  {
-    have h2 : degree p = 0,
-    {
-      rw is_constant_iff_degree_eq_zero at h1,
-      exact h1,
-    },
-    rw is_constant at h1,
-    let c := some h1,
-    have h3 : p = C c,
-    from some_spec h1,
-    simp [h2],
-    rw h3,
-    rw derivative_C,
-    simp
-  },
-  {
-    have h2 : degree p ≠ 0,
-    {
-      rw is_constant_iff_degree_eq_zero at h1,
-      exact h1,
-    },
-    rw [derivative],
-    rw sum_apply, 
-    have h3 : ∀ ( m n: ℕ) (b : α), ((derivative._match_1 b n) : ℕ → α) m =  if (n = 0) then (0 : α) else single (n - 1) (b * n) m,
-    {
-      intros m n b,
-      induction n with s,
-      {
-        simp,
-        rw derivative._match_1,
-        simp,
-      },
-      {
-        simp,
-        rw derivative._match_1,
-        rw [single_apply],
-        have : ¬ nat.succ s = 0,
-        from nat.succ_ne_zero _,
-        rw [if_neg this], --problem witk simp
-        rw [nat.succ_sub_one _, single_apply],
-        rw nat.cast_succ,
-      }
-    },
-    have h4 : sum p (λ (n : ℕ) (b : α), ((derivative._match_1 b n) : ℕ → α) (degree p - 1)) = sum p (λ (n : ℕ) (b : α), ite (n = 0) 0 (((single (n - 1) (b * ↑n)):ℕ → α) (degree p - 1))),
-    {
-      apply finsupp.sum_congr_2,
-      exact rfl,
-      intros n h4,
-      apply h3
-    },
-
-    rw [h4, finsupp.sum],
-    rw [finset.sum_ite_general''],
-    rw [finset.sum_const_zero],
-    simp only [integral_domain.zero_add],
-    have h5 : finset.sum (finset.filter (λ (x : ℕ), ¬x = 0) (support p))
-      (λ (z : ℕ), (single (z - 1) (p z * ↑z) : ℕ → α) (degree p - 1))  = 
-      finset.sum (finset.filter (λ (x : ℕ), ¬x = 0) (support p))
-      (λ (z : ℕ), if (z = degree p) then (p z * ↑z) else 0),
-    {
- 
-      rw [finset.sum_congr],
-      exact rfl,
-      intros x h5,
-      rw [single_apply],
-      have h6 : x - 1 = degree p - 1 ↔ x = degree p,
-      {
-        constructor,
-        {
-          intro h6,
-          have h7 : x - 1 + 1 = degree p - 1 + 1,
-          {cc},
-          rw [nat.sub_add_cancel, nat.sub_add_cancel] at h7,
-          exact h7,
-          exact one_le_of_ne_zero h2,
-          rw [finset.mem_filter] at h5,
-          exact one_le_of_ne_zero (and.elim_right h5)
-        },
-        {
-          intro h6,
-          cc
-        }
-      },
-      rw [h6]
-    },
-    have h6 : finset.sum (finset.filter (λ (x : ℕ), ¬x = 0) (support p))
-      (λ (z : ℕ), ite (z = degree p) (p z * ↑z) 0) = ↑(degree p) * leading_coeff p,
-    {
-      have h6: degree p ∈ support p ∧ ¬degree p = 0,
-      from ⟨degree_mem_support_of_ne_zero (ne_zero_of_degree_ne_zero h2),h2⟩,
-      rw [finset.sum_ite_general, finset.mem_filter, if_pos h6],
-      rw [mul_comm _ (leading_coeff p)],
-      exact rfl
-    },
-    rw [h6] at h5,
- --   rw [subsingleton.elim (@not.decidable (a = 0) $ prop_decidable $ a = 0) _],
-    have h7 : (λ a, @not.decidable (a = 0) $ prop_decidable $ a = 0) = (λ a, prop_decidable $  a ≠ 0),
-    {
-      apply funext,
-      intro x,
-      apply subsingleton.elim, --Type contains either 1 or zero elements.
-
-
-    },
-    rw h7,
-    exact h5, --Problem with decidability
-  }
+  rw [leading_coeff],
+  cases h : degree p,
+  { have : is_constant p, { rwa [is_constant_iff_degree_eq_zero] },
+    rcases this with ⟨a, ha⟩,
+    rw [ha, derivative_C],
+    simp },
+  exact derivative_apply
 end
 
-
-#check subsingleton
 --set_option pp.notation false
 lemma derivative_eq_zero_of_is_constant {p : polynomial α} : (is_constant p) → (derivative p = 0) :=
 begin
@@ -1443,7 +1358,8 @@ begin
 end
 
 --We need characteristic_zero for derivative_eq_zero -> is_constant
-lemma derivative_eq_zero_iff_is_constant {p : polynomial α} (h : characteristic_zero α) : (derivative p = 0) ↔ (is_constant p) :=
+lemma derivative_eq_zero_iff_is_constant {p : polynomial α} (h : characteristic_zero α) :
+  (derivative p = 0) ↔ (is_constant p) :=
 begin
   constructor,
   {
@@ -1461,7 +1377,7 @@ begin
       from degree_mem_support_of_ne_zero h1,
       rw mem_support_iff at h3,
       have h4 : (derivative p) ((degree p)-1) = (degree p * (leading_coeff p)),
-      from derivative_degree_sub_one_equ_C_degree_mul_leading_coeff_X_pow_degree_sub_one,
+      from derivative_degree_sub_one_eq_degree_mul_leading_coeff,
       have h5 : (derivative p) (degree p - 1) ≠ 0,
       {
         rw h4,
@@ -1500,86 +1416,16 @@ begin
   exact nat.eq_zero_of_le_zero h3,
 end
 
-#print derivative._match_1
-#check derivative._match_1
-
-lemma derivative_match_zero {a : α}: derivative._match_1 a 0 = (0 : polynomial α) :=
-begin
-  exact rfl
-end
-
-lemma derivative_match_succ {a : α}{n : ℕ}: derivative._match_1 a (nat.succ n) = single n (a * (n + 1)) :=
-begin
-  exact rfl
-end
-
-
 --Why placed here?
 lemma degree_derivative_le {p : polynomial α} : degree (derivative p) ≤ degree p - 1 :=
-begin
-  by_cases h_a : (degree p = 0),
-  {
-    rw ←is_constant_iff_degree_eq_zero at h_a,
-    have h1 : derivative p = 0,
-    from derivative_eq_zero_of_is_constant h_a,
-    rw [h1, degree_zero],
-    exact nat.zero_le _,
-  },
-  {
-    have h1 : ∀ n ≥ degree p, (derivative p) n = 0,
-    {
-      intros n h2,
-      rw [derivative, finsupp.sum_apply],
-      have h3 : sum p (λ (a₁ : ℕ) (b : α), ((derivative._match_1 b a₁) : polynomial α) n) = sum p (λ (a₁ : ℕ) (b : α), 0),
-      {
-        apply finsupp.sum_congr,
-        exact rfl,
-        intros x h3,
-        cases x,
-        {
-          exact rfl
-        },
-        {
-          rw [derivative_match_succ, single_apply],
-          by_cases h4 : (x = n),
-          {
-            rw [if_pos h4],
-            have h5 : nat.succ x ≤ degree p,
-            from le_degree_of_mem_support h3,
-            rw ←h4 at h2,
-            have h6 : nat.succ x ≤ x,
-            from nat.le_trans h5 h2,
-            have h7 : ¬ nat.succ x ≤ x,
-            from nat.not_succ_le_self _,
-            contradiction
-          },
-          {
-            rw [if_neg h4]
-          }
-        }
-  
-      },
-      rw [h3, finsupp.sum_zero] 
-    },
-    have h2 :∀ (n : ℕ), n > (degree p - 1) → (derivative p) n = 0,
-    {
-      intros n h2,
-      have h3 : n ≥ nat.succ (degree p - 1),
-      from h2,
-      rw [nat.succ_eq_add_one _, nat.sub_add_cancel] at h3,
-      apply h1,
-      exact h3,
-      exact one_le_of_ne_zero h_a,
-    },
-    exact degree_le h2
-  }
-
-end
- 
---local notation `d[`a`]` := polynomial.derivative a
---set_option trace.simplify true
---set_option trace.class_instances true
-
+degree_le $ assume m hm,
+  have degree p < m + 1,
+    from calc degree p ≤ (degree p - 1) + 1 : nat.le_sub_add (degree p) 1
+      ... ≤ m : hm
+      ... < m + 1 : nat.lt_succ_self _,
+  have p (m + 1) = 0,
+    from eq_zero_of_gt_degree this,
+  by rw [derivative_apply, this, mul_zero]
 
 end integral_domain
 end polynomial

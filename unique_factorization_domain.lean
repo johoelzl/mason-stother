@@ -874,13 +874,6 @@ instance discrete_field.to_integral_domain [s : discrete_field α] : integral_do
   ..s }
 -/
 
---Priority lowered (doesn't help),aim was to prevent diamond problem, div_ring to domain and integral_dom to domain
-instance field.to_integral_domain [s : field α] : integral_domain α := 
-{
-    eq_zero_or_eq_zero_of_mul_eq_zero := @eq_zero_or_eq_zero_of_mul_eq_zero _ _, --How does it get the no_zero_divisors? -- division ring -> domain
-    ..s
-}
-
 
 --is there a conversion from a division ring to a group over the multiplication? 
 
@@ -2896,8 +2889,7 @@ begin
     rw h1,
     apply is_unit_of_associated is_unit_one,
     apply complete,
-    simp [one_def],
-    exact associated.refl 1, 
+    simp [one_def]
   }
 end
 
@@ -3027,63 +3019,6 @@ begin
   apply rel_prime_pow_pow_of_rel_prime,
   apply rel_prime_of_irreducible_of_irreducible_of_not_associated,
   repeat {assumption},
-end
-
---Do we need this one??
-lemma facs_to_pow_prod_dvd'' {f : α →₀ ℕ} 
-  (h1 : ∀x∈f.support, irreducible x ∧ ∀y∈f.support, x ≠ y → ¬ (x ~ᵤ y)) :
-  ∀x∈f.support, rel_prime (x^(f x)) ((finset.prod (finset.erase f.support x) (λ (a : α), a ^ f a))):=
-begin
-  revert h1,
-  apply @finset.induction_on _ _ (λ q, (∀ (x : α),
-     x ∈ q →
-     irreducible x ∧  ∀ (y : α), y ∈ q → x ≠ y → ¬(x~ᵤ y)) →
-  ∀ (x : α),
-    x ∈ q →
-    rel_prime (x ^ f x) (finset.prod (finset.erase (q) x) (λ (a : α), a ^ f a))) (finsupp.support f),
-  {
-    simp * at *,
-  },
-  {
-    intros a s h1 h2 h3 x h4,
-    
-    have h4a :  ∀ (x : α), x ∈ s → rel_prime (x ^ f x) (finset.prod (finset.erase s x) (λ (a : α), a ^ f a)),
-    {admit},
-    rw finset.mem_insert at h4,
-    cases h4,
-    {
-
-      subst h4,
-      rw finset.erase_insert h1,
-    },
-    {
-
-    }
-    
-
-    /-
-    by_cases h5 : a = x,
-    {
-      subst h5,
-      rw finset.erase_insert h1,
-      by_cases h6 : s = ∅,
-      {
-        simp * at *,
-      },
-      {
-
-    
-
-        have h7 : ∃ z, z ∈ s,
-        from finset.exists_mem_of_ne_empty h6,
-        rcases h7 with ⟨z, hz⟩,
-        rw ←finset.insert_erase hz,
-        simp,
-      }
-    },-/
-
-  }
-
 end
 
 lemma prod_eq_zero_iff_zero_mem {s : multiset (quot α)} : prod s = 0 ↔ (0 : quot α) ∈ s :=

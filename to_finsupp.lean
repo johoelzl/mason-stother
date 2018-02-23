@@ -3,7 +3,7 @@ universes u v w
 
 open finset
 
-lemma finset.sum_ite_general'' {α : Type u} {β : Type v} [decidable_eq α][add_comm_monoid β] {f g : α → β} (s : finset α) 
+lemma finset.sum_ite_general'' {α : Type u} {β : Type v} [decidable_eq α] [add_comm_monoid β] {f g : α → β} (s : finset α) 
   (p : α → Prop) [decidable_pred p] : 
 s.sum (λ z, if p z then f z else g z) = (s.filter p).sum f + (s.filter $ λx, ¬ p x).sum g :=
 begin
@@ -130,10 +130,9 @@ begin
   exact finset.sum_congr h1
 end
 
-
 --Should be placed in finset
 lemma finset.sum_ite {α : Type u} {β : Type v} [add_comm_monoid β] {x : α} {y : β} (s : finset α) : 
-s.sum (λ z, if (z = x) then y else 0) = if (x ∈ s) then y else 0:=
+  s.sum (λ z, if (z = x) then y else 0) = if (x ∈ s) then y else 0:=
 begin 
   fapply finset.induction_on s,
   simp,
@@ -168,46 +167,6 @@ begin
     }
   }
 end
-
---Should be placed in finset
-lemma finset.sum_ite' {α : Type u} {β : Type v} [add_comm_monoid β] {x : α} {y : β} {g : α → β } (s : finset α) (h : ∀ x, x ∉ s → g x = 0) : 
-s.sum (λ z, if (z = x) then y else g z) = if (x ∈ s) then y else g x:=
-begin 
-  fapply finset.induction_on s,
-  simp,
-  intros a s h1a h2,
-  have h1: finset.sum (insert a s) (λ (z : α), ite (z = x) y 0) =  (λ (z : α), ite (z = x) y 0) a + finset.sum (s) (λ (z : α), ite (z = x) y 0),
-  apply finset.sum_insert,
-  assumption,
-  rw h1,
-  rw h2,
-  simp,
-  by_cases h3 :(a = x),
-  {
-    simp [*, if_pos],
-    rw h3 at h1a,
-    simp [*, if_neg],
-  },
-  {
-    simp [*, if_neg],
-    by_cases h4 : (x ∈ s),
-    {
-      simp [*, if_pos]
-    },
-    {
-      simp [*, if_neg],
-      have : ¬ x = a,
-      intro h5,
-      rw h5 at h3,
-      have : a = a,
-      simp,
-      contradiction,
-      simp [*, if_neg]
-    }
-  }
-end
-
---set_option pp.implicit true
 
 --Should be placed in finset -should the more specific lemma be local?
 lemma finset.sum_ite_general {α : Type u} {β : Type v} [add_comm_monoid β] {x : α} {f : α → β} (s : finset α) : 
@@ -227,26 +186,6 @@ begin
   rw this,
   apply @finset.sum_ite _ _ _ x (f x) s,
 end
---Should be placed in finset -should the more specific lemma be local?
-lemma finset.sum_ite_general' {α : Type u} {β : Type v} [add_comm_monoid β] {x : α} {f : α → β} {g : α → β } (s : finset α) : 
-s.sum (λ z, if (z = x) then f z else g z) = if (x ∈ s) then f x else g x:=
-begin
-  have :  s.sum (λ z, if (z = x) then f z else g z) = s.sum (λ z, if (z = x) then f x else g z),
-  apply finset.sum_congr,
-  simp,
-  intros y h1,
-  by_cases h2: (y = x),
-  {
-    simp [*, if_pos]
-  },
-  {
-    simp [*, if_neg],
-  },
-  rw this,
-  apply @finset.sum_ite _ _ _ x (f x) s,
-end
-
-
 
 -- should be placed in finsupp
 lemma finsupp.sum_ite {α : Type u}{β : Type v}{γ : Type w} [has_zero β] [add_comm_monoid γ] {x : α}{s : α →₀ β} {f : α → β → γ} :
@@ -290,6 +229,7 @@ begin
   rw [nat.zero_sub 1] at h1,
   exact h1 rfl,
 end
+
 lemma mem_sdiff_support_support_pow_min_one_iff_eq_one {α : Type u} {f : α →₀ ℕ} : ∀x, x ∈ support f \ support (to_finsupp_pow_min_one f) ↔ f x = 1 :=
 begin
   intros x,
@@ -336,4 +276,3 @@ begin
 end
 
 end polynomial
-

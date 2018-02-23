@@ -16,14 +16,10 @@ local infix ^ := monoid.pow
 namespace polynomial
 variables {α : Type u} {a a' a₁ a₂ : α} --{n m : ℕ} --do we want n and m?
 
-
-
 instance {α : Type u} [unique_factorization_domain α]: unique_factorization_domain (polynomial α) :=
 { fac := sorry,
   unique := sorry,
   .. polynomial.integral_domain}
-
-set_option trace.check true
 
 lemma degree_eq_zero_of_is_unit [integral_domain α]{p : polynomial α}(h : is_unit p) : degree p = 0 :=
 begin
@@ -342,12 +338,7 @@ axiom irr_poly_monic (p : polynomial β) : ∀x ∈ (monic_irr p).support, monic
 axiom unique_factorization (p : polynomial β) : ∃ c : β , p = C c * ((finsupp.prod (monic_irr p) (λ k n, k ^n) ) )
 def c_fac (p : polynomial β) : β := some ( unique_factorization p)
 axiom c_fac_unit (p : polynomial β) :  is_unit (c_fac p)
-
-
-
 -/
-
-
 
 lemma polynomial_fac_finsupp [field α] (x : polynomial α) : ∃ c :  α, ∃ p :(polynomial α) →₀ ℕ, x = C c * ((finsupp.prod (p) (λ k n, k ^n) ) ) ∧ (∀x∈p.support, irreducible x ∧ monic x)  :=
 begin
