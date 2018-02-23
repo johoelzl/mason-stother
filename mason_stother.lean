@@ -114,6 +114,8 @@ have h4: degree f = 0, calc degree f = degree 0 : by rw [h3] ... = 0 : degree_ze
 apply a h4
  end
 
+/- NOT USED:
+
 --Why is there no instance for has subtract?
 lemma root_iff_lin_fac : ∀p : polynomial β, ∀k:β, (root_of p k) ↔ (X - C k ∣ p) :=
 begin intros, apply iff.intro,
@@ -122,10 +124,13 @@ begin intros, apply iff.intro,
   have h2 :  degree (X + (- (C k ))) ≠ 0,
   from calc degree (X + (- (C k))) = 1 : @deg_ln_fac _ _ k
   ... ≠ 0 : one_ne_zero,
-  have h3 : (X + (- (C k))) ≠ 0, from degree_ne_zero_ne_zero h2,--Mogelijk gaat deze fout omdat het lemma niet was gedefinieerd voor een integral domain.
+  have h3 : (X + (- (C k))) ≠ 0,
+    from degree_ne_zero_ne_zero2 _ h2,
+  --Mogelijk gaat deze fout omdat het lemma niet was gedefinieerd voor een integral domain.
   --Lemma is gedefinieerd voor semiring, maar mogelijk is het niet zo dat de integral domain kan worden omgezet in een semiring?
   -- Ik zie dat er wel een instance is met naar comm_semi_ring vanaf comm_ring. En een comm_semiring is een ring.
-  have h4 : (∃ q : polynomial β, ∃ r : polynomial β ,( (p = q *  (X + (- (C k))) + r) ∧ ((r = 0)  ∨  ( (norm r ) < (norm (X + (- (C k))))) )  ) ),
+  have h4 : (∃ q : polynomial β, ∃ r : polynomial β ,( (p = q *  (X + (- (C k))) + r) ∧ ((r = 0) ∨
+     ( (norm r ) < (norm (X + (- (C k))))) )  ) ),
   apply @h_norm (polynomial β) _ p (X + (- (C k))) (degree_ne_zero_ne_zero2 β  h2) , --dom.h p (X + (- (C α))) h3
   --Er gaat gebeurt iets geks met de type universes, want degree h2, zit in type universe max 1 (u+1), en de andere zir in (u+1).
   --Of mogelijk heeft het te maken met field, integral_domain enzovoort. Maar snapt ie zelf dan niet dat max 1 (1+u) = 1 + u?
@@ -133,6 +138,7 @@ begin intros, apply iff.intro,
 admit
 } , {admit} end
 
+-/
 
 lemma finite_roots {a : polynomial β} : set.finite (roots_of_as_set a):= sorry --How do we do an induction on the degree?
 
@@ -151,13 +157,18 @@ open finsupp
 --The more general setting, avoids problem with the roots of the zero polynomial
 
 --Looks ugly still
-def monic_irr (p : polynomial β) : polynomial β →₀ ℕ := classical.some (some_spec $ polynomial_fac_finsupp p)
-def irr_poly_irreducible (p : polynomial β) : ∀x ∈ (monic_irr p).support, irreducible x :=
+def monic_irr (p : polynomial β) : polynomial β →₀ ℕ :=
+classical.some (some_spec $ polynomial_fac_finsupp p)
+
+lemma irr_poly_irreducible (p : polynomial β) : ∀x ∈ (monic_irr p).support, irreducible x :=
 assume x h, ((some_spec $ some_spec $ polynomial_fac_finsupp p).2 x h).1
+
 --(some_spec $ some_spec $ polynomial_fac_finsupp p).2
 def irr_poly_monic (p : polynomial β) : ∀x ∈ (monic_irr p).support, monic x :=
-assume x h, ((some_spec $ some_spec $ polynomial_fac_finsupp p).2 x h).2
-def unique_factorization (p : polynomial β) : ∃ c : β , p = C c * ((finsupp.prod (monic_irr p) (λ k n, k ^n) ) ) :=
+λx h, ((some_spec $ some_spec $ polynomial_fac_finsupp p).2 x h).2
+
+lemma unique_factorization (p : polynomial β) :
+  ∃ c : β , p = C c * ((finsupp.prod (monic_irr p) (λ k n, k ^n) ) ) :=
 begin
   have h1 : ∃ c, ∃ q :(polynomial β) →₀ ℕ, p = C c * ((finsupp.prod (q) (λ k n, k ^n) ) ) ∧ (∀x∈q.support, irreducible x ∧ monic x),
   from polynomial_fac_finsupp p,
@@ -202,11 +213,10 @@ end
 -/
 open classical
 section algebraically_closed
---set_option pp.numerals false
 
 --It might be good to remove the attribute to domain of integral domain?
-
-def rad (p : polynomial β) : polynomial β := finset.prod (finsupp.support (monic_irr p)) id --The radiacal
+def rad (p : polynomial β) : polynomial β :=
+finset.prod (finsupp.support (monic_irr p)) id --The radiacal
 
 lemma rad_ne_zero {p : polynomial β} : rad p ≠ 0 :=
 begin
@@ -218,7 +228,8 @@ begin
   exact and.elim_left h2,
 end
 
-lemma degree_rad_eq_sum_support_degree {f : polynomial β} : degree (rad f) = (finset.sum (finsupp.support (monic_irr f)) degree ) :=
+lemma degree_rad_eq_sum_support_degree {f : polynomial β} :
+  degree (rad f) = (finset.sum (finsupp.support (monic_irr f)) degree ) :=
 begin 
   rw rad,
   have h1 : finset.prod (support (monic_irr f)) id ≠ 0,
@@ -232,11 +243,11 @@ begin
   rw degree_prod_eq_sum_degree_of_prod_ne_zero h1
 end
 
-
-lemma prod_pow_min_on_ne_zero [unique_factorization_domain β]{f : polynomial β}: finsupp.prod (to_finsupp_pow_min_one (monic_irr f)) (λ (x : ~β) (y : ℕ), x ^ y) ≠ 0 :=
+lemma prod_pow_min_on_ne_zero {f : polynomial β} :
+  finsupp.prod (to_finsupp_pow_min_one (monic_irr f)) (λ (x : ~β) (y : ℕ), x ^ y) ≠ 0 :=
 begin
   rw [finsupp.prod],
-  apply prod_ne_zero_of_forall_mem_ne_zero',
+  refine prod_ne_zero_of_forall_mem_ne_zero' _ _ _ _,
   {
     intros x h2,
     exact pow_ne_zero _ h2,
@@ -257,7 +268,10 @@ end
 
 --lemma degree_monic_monic_irr_pow_min_one {f : polynomial β} : degree ()
 
-lemma degree_eq_add_degree_rad_degree_pow_min_one {f : polynomial β} : degree (finsupp.prod (monic_irr f) (λ x n, x^n)) = degree (finsupp.prod (to_finsupp_pow_min_one (monic_irr f)) (λ (x : ~β) (y : ℕ), x ^ y)) + (degree (rad f)) :=
+lemma degree_eq_add_degree_rad_degree_pow_min_one {f : polynomial β} :
+  degree (finsupp.prod (monic_irr f) (λ x n, x^n)) =
+    degree (finsupp.prod (to_finsupp_pow_min_one (monic_irr f)) (λ (x : ~β) (y : ℕ), x ^ y)) +
+    degree (rad f) :=
 begin
 --!!!!! we need to add 'in' when using conv.
   have h1 : (support (to_finsupp_pow_min_one (monic_irr f))) ⊆ support (monic_irr f),
@@ -464,8 +478,8 @@ begin
   }
 end
 
-lemma Mason_Stothers_lemma
-(f : polynomial β) : degree f ≤ degree (gcd f (derivative f )) + degree (rad f) := --I made degree radical from this one
+lemma Mason_Stothers_lemma (f : polynomial β) :
+  degree f ≤ degree (gcd f (derivative f )) + degree (rad f) := --I made degree radical from this one
 begin
   by_cases hf : (f = 0),
   {
