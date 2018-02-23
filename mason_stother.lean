@@ -910,6 +910,54 @@ begin
 end
 
 
+--h_deg_c_le_1
+lemma rw_aux_1 [field β]
+  (h_char : characteristic_zero β)
+  (a b c : polynomial β)
+  (h_rel_prime_ab : rel_prime a b)
+  (h_rel_prime_bc : rel_prime b c)
+  (h_rel_prime_ca : rel_prime c a)
+  (h_add : a + b = c)
+  (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)) 
+  
+  (h_deg_add_le : degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c]) ≤ degree a + degree b - 1):
+  degree c ≤ (degree a - degree (gcd a d[a])) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1:=
+begin
+  admit
+end 
+
+
+/-
+lemma Mason_Stothers_lemma
+(f : polynomial β) : degree f ≤ degree (gcd f (derivative f )) + degree (rad f) -/
+/-
+lemma Mason_Stothers_lemma'
+(f : polynomial β) : degree f - degree (gcd f (derivative f )) ≤  degree (rad f) := 
+ -/
+ /-
+--We will need extra conditions here
+lemma degree_rad_add {a b c : polynomial β}: degree (rad a) + degree (rad b) + degree (rad c) ≤ degree (rad (a * b * c)) :=
+begin
+  admit,
+end-/
+
+
+--h_le_rad
+lemma rw_aux_2 [field β] --We want to use the Mason Stothers lemmas here
+  (h_char : characteristic_zero β)
+  (a b c : polynomial β)
+  (h_rel_prime_ab : rel_prime a b)
+  (h_rel_prime_bc : rel_prime b c)
+  (h_rel_prime_ca : rel_prime c a)
+  (h_add : a + b = c)
+  (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)) 
+   : degree a - degree (gcd a d[a]) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1 ≤
+  degree (rad (a * b * c)) - 1:=
+begin
+  admit,
+end
+
+
 theorem Mason_Stothers [field β]
   (h_char : characteristic_zero β)
   (a b c : polynomial β)
@@ -1000,7 +1048,8 @@ begin
     exact dvd_sub h2 h1,
   },
   have h_gcds_dvd : (gcd a d[a]) * (gcd b d[b]) * (gcd c d[c]) ∣ d[a] * b - a * d[b],
-  {   
+  {   admit
+    /-
     apply mul_dvd_of_dvd_of_dvd_of_rel_prime,
     apply rel_prime_mul_of_rel_prime_of_rel_prime_of_rel_prime,
     exact rel_prime_gcd_derivative_gcd_derivative_of_rel_prime h_rel_prime_ab,
@@ -1010,7 +1059,7 @@ begin
     exact rel_prime_gcd_derivative_gcd_derivative_of_rel_prime h_rel_prime_ab,
     exact h_dvd_wron_a,
     exact h_dvd_wron_b,
-    exact h_dvd_wron_c
+    exact h_dvd_wron_c-/
   },
   have h_wron_ne_zero : d[a] * b - a * d[b] ≠ 0,
   {
