@@ -862,6 +862,47 @@ begin
     simp [ih, has, finset.prod_insert, derivative_mul, sum_insert, erase_insert, this] }
 end
 
+lemma derivative_prod_multiset {s : multiset (polynomial α)} :
+  derivative (s.prod) = (s.map (λb, derivative (b) * (s.erase b).prod)).sum :=
+begin
+  apply multiset.induction_on s,
+  {
+    simp * at *,    
+  },
+  {
+    intros a s has,
+    simp * at *,
+    rw derivative_mul,
+    have h : multiset.sum (multiset.map (λ (b : polynomial α), derivative b * multiset.prod (multiset.erase (a :: s) b)) s) =
+    a * multiset.sum (multiset.map (λ (b : polynomial α), derivative b * multiset.prod (multiset.erase s b)) s),
+    {
+      exact calc multiset.sum (multiset.map (λ (b : polynomial α), derivative b * multiset.prod (multiset.erase (a :: s) b)) s) =
+      multiset.sum (multiset.map (λ (b : polynomial α), a * (derivative b * multiset.prod (multiset.erase (s) b))) s) : 
+      begin
+        apply congr_arg,
+        apply multiset.map_congr,
+        intros x h,
+        by_cases h2 : x = a,
+        {
+          subst h2,
+          rw multiset.erase_cons_head,
+          rcases multiset.exists_cons_of_mem h with ⟨t, h⟩,
+          subst h,
+          simp [mul_comm x (derivative x)],
+          rw [←mul_assoc, ←mul_assoc, mul_comm x _], 
+        },
+        {
+          simp [multiset.erase_cons_tail s (ne.symm h2), mul_comm a _,mul_assoc],
+        }
+      end
+      ... = _ : @multiset.sum_map_mul (polynomial α) _ _ a _ s,     
+    },
+    rw [h, has],   
+  }
+end
+
+
+
 lemma derivative_pow {n : ℕ} {p : polynomial α}:
    derivative (p^n) = ite (n = 0) 0 (n*p^(n-1)*derivative p) :=
 begin

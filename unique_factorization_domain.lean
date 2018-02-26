@@ -2271,6 +2271,7 @@ begin
 
 end
 
+--naming??
 lemma mul_le_of_le_of_le_of_rel_prime {a b c : quot α} (h1 : a ⊓ b = 1) (h2 : a ≤ c) (h3 : b ≤ c) : a * b ≤ c :=
 begin
   rw [← sup_mul_inf],

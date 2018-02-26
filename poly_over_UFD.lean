@@ -156,7 +156,7 @@ begin
   }
 end
 
-lemma polynomial_fac [field α] {x : polynomial α} : ∃ c :  α, ∃ p : multiset (polynomial α), x = C c * p.prod ∧ (∀x∈p, irreducible x ∧ monic x)  :=
+lemma polynomial_fac [field α] (x : polynomial α) : ∃ c :  α, ∃ p : multiset (polynomial α), x = C c * p.prod ∧ (∀x∈p, irreducible x ∧ monic x)  :=
 begin
   by_cases h1 : (x = 0),
   {
@@ -343,7 +343,7 @@ axiom c_fac_unit (p : polynomial β) :  is_unit (c_fac p)
 lemma polynomial_fac_finsupp [field α] (x : polynomial α) : ∃ c :  α, ∃ p :(polynomial α) →₀ ℕ, x = C c * ((finsupp.prod (p) (λ k n, k ^n) ) ) ∧ (∀x∈p.support, irreducible x ∧ monic x)  :=
 begin
   have h1 : ∃ c :  α, ∃ p : multiset (polynomial α), x = C c * p.prod ∧ (∀x∈p, irreducible x ∧ monic x),
-  from polynomial_fac,
+  from polynomial_fac _,
   rcases h1 with ⟨c, p, h2⟩,
   exact ⟨c, p.to_finsupp, 
     begin

@@ -240,4 +240,124 @@ begin
   exact rfl, --nice
 end
 
+lemma prod_ne_zero_of_forall_mem_ne_zero {α : Type u} [integral_domain α] (s : multiset α) (h : ∀x : α, x ∈ s → x ≠ 0) : s.prod ≠ 0 :=
+begin
+  revert h,
+  apply multiset.induction_on s,
+  {
+    simp, 
+  },
+  {
+    intros a s h1 h2,
+    simp * at *,
+    apply mul_ne_zero,
+    {
+      apply h2 a,
+      simp,
+    },
+    {
+      apply h1,
+      intros x h3,
+      apply h2 x,
+      simp *,
+    }
+  }
+end
+
+lemma sub_erase_dup_add_erase_dup_eq {α : Type u} (s : multiset α) : s - s.erase_dup + s.erase_dup = s :=
+multiset.sub_add_cancel (erase_dup_le _)
+
+lemma sum_map_mul {α β: Type u} [semiring β] (a : β) (f : α → β) (s : multiset α): 
+  multiset.sum (multiset.map (λ (b : α), a * f b) s) =
+  a * multiset.sum (multiset.map (λ (b : α), f b) s):=
+begin
+  apply multiset.induction_on s,
+  {
+    simp * at *,
+  },
+  {
+    intros a s h,
+    simp [*, mul_add],
+  }
+end
+
+--Naming correct or dvd_sum_of_forall_mem_dvd
+lemma dvd_sum [comm_semiring α] (s : multiset α) (p : α) : (∀x ∈ s, p ∣ x) → p ∣ s.sum :=
+begin
+  apply multiset.induction_on s,
+  {
+    simp * at *,
+  },
+  {
+    intros a s h1 h2,
+    simp * at *,
+    apply dvd_add,
+    {
+      apply h2,
+      simp,
+    },
+    {
+      apply h1,
+      intros x h3,
+      apply h2,
+      simp [h3],
+    }
+  }
+end
+
+
+lemma forall_pow_count_dvd_prod {α : Type u} [comm_semiring α] (s : multiset α) : ∀x : α , x ^ count x s ∣ prod s :=
+begin
+  intros x,
+  by_cases hx : x ∈ s,
+  {
+    apply multiset.induction_on s,
+    {
+      simp,
+    },
+    {
+      intros a s h,
+      simp,
+      by_cases h1 : x = a,
+      {
+        subst h1,
+        rw [count_cons_self, pow_succ],
+        apply mul_dvd_mul_left,
+        assumption,  
+      },
+      {
+        rw count_cons_of_ne h1,
+        apply dvd_mul_of_dvd_right,
+        exact h,
+      }
+    }
+  },
+  {
+    rw ←count_eq_zero at hx,
+    simp *,
+  }
+end
+
+lemma pow_count_sub_one_dvd_pow_count {α : Type u} [comm_semiring α] (s : multiset α) (x : α) : x ^ (count x s - 1) ∣ x ^ count x s :=
+begin
+  by_cases h1 : (count x s) ≥ 1,
+  {
+    rw [←nat.sub_add_cancel h1] {occs := occurrences.pos [2]},
+    rw [pow_add],
+    apply dvd_mul_of_dvd_left,
+    simp,
+  },
+  {
+    have : count x s < 1,
+      from lt_of_not_ge h1,
+    have : nat.succ (count x s) ≤ 1,
+      from this,
+    have : count x s ≤ 0,
+      from nat.le_of_succ_le_succ this,
+    have : count x s = 0,
+      from nat.eq_zero_of_le_zero this,
+    simp *,
+  }
+end
+
 end multiset
