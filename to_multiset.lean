@@ -360,4 +360,18 @@ begin
   }
 end
 
+lemma prod_dvd_prod_of_le [comm_semiring α] {p q : multiset (α)} (h : p ≤ q) : p.prod ∣ q.prod :=
+begin
+  have h1 : p + (q - p) = q,
+  from multiset.add_sub_of_le h,
+  rw ← h1,
+  simp,
+end
+
+lemma prod_sub_dvd_prod [comm_semiring α] {s t : multiset α} : (s - t).prod ∣ s.prod :=
+begin
+  apply prod_dvd_prod_of_le,
+  apply sub_le_self,
+end
+
 end multiset

@@ -35,22 +35,21 @@ attribute [instance] field.to_unique_factorization_domain --correct?
 variable {β : Type u}
 variables [field β]
 
---Looks ugly still
-def polynomial.factors (p : polynomial β) : multiset (~β) := --place in polynomial namespace
+
+def polynomial.c_fac (p : polynomial β) : β := some (polynomial_fac p)
+
+def polynomial.factors (p : polynomial β) : multiset (~β) :=
 classical.some (some_spec $ polynomial_fac p)
 
 lemma polynomial.factors_irred (p : polynomial β) : ∀x ∈ (p.factors), irreducible x :=
 assume x h, ((some_spec $ some_spec $ polynomial_fac p).2 x h).1
 
-def polynomial.factors_monic (p : polynomial β) : ∀x ∈ (p.factors), monic x :=
+lemma polynomial.factors_monic (p : polynomial β) : ∀x ∈ (p.factors), monic x :=
 λx h, ((some_spec $ some_spec $ polynomial_fac p).2 x h).2
-
-def polynomial.c_fac (p : polynomial β) : β := some ( polynomial_fac p)
 
 lemma polynomial.factors_eq (p : polynomial β) : p = C (p.c_fac) * p.factors.prod :=
 (some_spec (some_spec ( polynomial_fac p))).1
 
---def facs_to_pow_min_one (p : polynomial β →₀ ℕ ) : finset (polynomial β):= p.support.image (λ a, a^(p a - 1))
 
 open classical multiset
 section mason_stothers
@@ -115,7 +114,7 @@ end
 lemma degree_eq_add_degree_rad_degree_pow_min_one  {f : polynomial β} : 
   degree (f.factors.prod) = degree ((f.factors)-(f.factors.erase_dup)).prod + degree (rad f) :=
 begin
-  rw [← sub_erase_dup_add_erase_dup_eq f.factors]  {occs := occurrences.pos [1]},
+  rw [← sub_erase_dup_add_erase_dup_eq f.factors] {occs := occurrences.pos [1]},
   rw [←prod_mul_prod_eq_add_prod],
   apply degree_mul_eq_add_of_mul_ne_zero,
   exact mul_ne_zero prod_pow_min_on_ne_zero rad_ne_zero,
@@ -151,6 +150,12 @@ begin
   },
 end
 
+private lemma Mason_Stothers_lemma_aux_2 (f : polynomial β): 
+  (map (λx, x^(count x f.factors - 1)) f.factors.erase_dup).prod ∣ gcd f d[f] :=
+begin
+  
+end
+--  ∀x ∈ f.factors, x^(count x f.factors - 1) ∣ gcd f d[f] :=
 
 lemma Mason_Stothers_lemma (f : polynomial β) :
   degree f ≤ degree (gcd f (derivative f )) + degree (rad f) := --I made degree radical from this one
@@ -160,8 +165,28 @@ begin
     simp [hf, nat.zero_le],
   },
   {
-    have h_der : ∀x ∈ f.factors, x^(count x f.factors - 1) ∣ d[f.factors.prod],
-      from Mason_Stothers_lemma_aux_1 f,
+    have h_dvd_der : ∀x ∈ f.factors, x^(count x f.factors - 1) ∣ d[f],
+    {
+      rw [f.factors_eq] {occs := occurrences.pos [3]},
+      rw [derivative_C_mul],
+      intros x h,
+      apply dvd_mul_of_dvd_right,
+      exact Mason_Stothers_lemma_aux_1 f x h,
+    },
+    have h_dvd_f : ∀x ∈ f.factors, x^(count x f.factors - 1) ∣ f,
+    {
+      rw [f.factors_eq] {occs := occurrences.pos [3]},
+      intros x hx, --We have intros x hx a lot here, duplicate?
+      apply dvd_mul_of_dvd_right,
+      refine dvd_trans _ (forall_pow_count_dvd_prod _ x), --Duplicate 2 lines with Mason_Stothers_lemma_aux_1
+      apply pow_count_sub_one_dvd_pow_count,
+    },
+    have h_dvd_gcd_f_der : ∀x ∈ f.factors, x^(count x f.factors - 1) ∣ gcd f d[f],
+    {
+      intros x hx,
+      exact gcd_min (h_dvd_f x hx) (h_dvd_der x hx),
+    },
+
   }  
 end
 

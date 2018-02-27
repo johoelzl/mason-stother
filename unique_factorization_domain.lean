@@ -3380,10 +3380,6 @@ lemma facs_to_pow_prod_dvd {f : α →₀ ℕ} {z : α}
   (h1 : ∀x∈f.support, irreducible x ∧ (x^(f x)) ∣ z ∧ ∀y∈f.support, x ≠ y → ¬ (x ~ᵤ y)) :
   f.prod (λx y, x^y) ∣ z :=
 begin
-
-
-
-
   revert h1,
   rw finsupp.prod,
   apply @finset.induction_on _ _ (λ b, (∀ (x : α),
@@ -3461,8 +3457,112 @@ begin
 
     
   }
+end
+
+--Problem? could be that I need it for intergral domain?? [integral_domain α] 
+lemma facs_to_pow_prod_dvd_multiset {s : multiset α} {z : α}
+  (h1 : ∀x∈s, irreducible x ∧ (x^(count x s)) ∣ z ∧ ∀y∈s, x ≠ y → ¬ (x ~ᵤ y)) :
+  s.prod∣ z :=
+begin
+  revert h1,
+  apply multiset.induction_on s,
+  {
+    simp * at *,
+  },
+  {
+    intros a t h1 h2,
+    simp * at *,
+    have : repeat a (count a t) ≤ t,
+    {
+      rw ←multiset.le_count_iff_repeat_le,
+    },
+    have h3 : t - repeat a (count a t) + repeat a (count a t) = t,
+      from multiset.sub_add_cancel this,
+    rw [←h3, ←prod_mul_prod_eq_add_prod, mul_comm a, mul_assoc],
+    apply mul_dvd_of_dvd_of_dvd_of_rel_prime,
+    {
+      apply rel_prime_comm,
+      rw [rel_prime_prod_iff_forall_rel_prime],
+      intros x h,
+      have : x ≠ a,
+      {
+        by_contradiction hc,
+        simp at hc,
+        subst hc,
+        rw ←count_pos at h,
+        have : count x (t - repeat x (count x t)) = 0,
+        {
+          simp [nat.sub_self],         
+        },
+        rw this at h,
+        exact nat.not_lt_zero 0 h,
+      },
+      rw [prod_repeat, mul_comm, ←pow_succ, ←pow_one x],
+      apply rel_prime_pow_pow_of_rel_prime,
+      have ht : x ∈ t,
+      {
+        refine mem_of_le _ h,
+        apply multiset.sub_le_self,
+      },      
+      apply rel_prime_of_irreducible_of_irreducible_of_not_associated,
+      {
+        refine (h2 a _).1,
+        simp,
+      },
+      {
+        refine (h2 x _).1,
+        simp *,  
+      },
+      {
+        refine (h2 a _).2.2 x _ _,
+        simp *,
+        simp *,
+        simp [ne.symm, *],
+      }
+    },
+    {
+      have : prod (t - repeat a (count a t)) ∣ prod t,
+        from prod_sub_dvd_prod _,
+      apply dvd_trans this,
+      apply h1,
+      intros x h,
+      split,
+      {
+        refine (h2 x _).1,
+        simp *,
+      },
+      split,
+      {
+        have : x ^ count x (a :: t) ∣ z,
+        {
+          refine (h2 x _).2.1,
+          simp *,            
+        },
+        admit,      --fill in
+      },
+      {
+        intros y hy,
+        refine (h2 x _).2.2 y _,
+        simp *,
+        simp *,         
+      }
+    },
+    {
+      rw [prod_repeat, mul_comm, ←pow_succ],
+      have : a ^ count a (a :: t) ∣ z,
+      {
+        refine (h2 a _).2.1,
+        simp *,
+      },
+      simp at this,
+      exact this,
+    }
+    
+  }
+
 
 end
+
 
 lemma dvd_of_dvd_mul_of_rel_prime {a b c : α} (h1 : a ∣ b * c) (h2 : rel_prime a b) : a ∣ c :=
 begin
