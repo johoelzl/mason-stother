@@ -58,6 +58,14 @@ section mason_stothers
 def rad (p : polynomial β) : polynomial β :=
 p.factors.erase_dup.prod
 
+lemma c_fac_ne_zero_of_ne_zero (f : polynomial β) (h : f ≠ 0) : f.c_fac ≠ 0 :=
+begin
+  by_contradiction h1,
+  simp at h1,
+  rw f.factors_eq at h,
+  simp * at *,
+end
+
 lemma rad_ne_zero {p : polynomial β} : rad p ≠ 0 :=
 begin
   rw [rad],
@@ -93,6 +101,13 @@ begin
     ... = sum (map degree ((to_finset (polynomial.factors f)).val)) : degree_prod_eq_sum_degree_of_prod_ne_zero h1,
 end
 
+private lemma mem_factors_of_mem_factors_sub_factors_erase_dup (f : polynomial β) (x : polynomial β) (h : x ∈ (f.factors)-(f.factors.erase_dup)) :   x ∈ f.factors :=
+begin
+  have : ((f.factors)-(f.factors.erase_dup)) ≤ f.factors,
+    from multiset.sub_le_self _ _,
+  exact mem_of_le this h,
+end
+
 --naming
 lemma prod_pow_min_on_ne_zero {f : polynomial β} :
   ((f.factors)-(f.factors.erase_dup)).prod ≠ 0 :=
@@ -100,18 +115,14 @@ begin
   apply multiset.prod_ne_zero_of_forall_mem_ne_zero,
   intros x h,
   have h1 : x ∈ f.factors,
-    {
-      have : ((f.factors)-(f.factors.erase_dup)) ≤ f.factors,
-        from multiset.sub_le_self _ _,
-      exact mem_of_le this h,
-    },
+    from mem_factors_of_mem_factors_sub_factors_erase_dup f x h,
   have : irreducible x,
     from f.factors_irred x h1,
   exact this.1,
 end
 
 
-lemma degree_eq_add_degree_rad_degree_pow_min_one  {f : polynomial β} : 
+lemma degree_factors_prod_eq_degree_factors_sub_erase_dup_add_degree_rad {f : polynomial β} : 
   degree (f.factors.prod) = degree ((f.factors)-(f.factors.erase_dup)).prod + degree (rad f) :=
 begin
   rw [← sub_erase_dup_add_erase_dup_eq f.factors] {occs := occurrences.pos [1]},
@@ -150,12 +161,75 @@ begin
   },
 end
 
-private lemma Mason_Stothers_lemma_aux_2 (f : polynomial β): 
-  (map (λx, x^(count x f.factors - 1)) f.factors.erase_dup).prod ∣ gcd f d[f] :=
+private lemma count_factors_sub_one (f x : polynomial β) :  (count x f.factors - 1) = count x (factors f - erase_dup (factors f))  :=
 begin
-  
+  rw count_sub,
+  by_cases h1 : x ∈ f.factors,
+  {
+    have : count x (erase_dup (factors f)) = 1,
+    {
+      have h2: 0 < count x (erase_dup (factors f)),
+      {
+        rw [count_pos, mem_erase_dup],
+        exact h1
+      },
+      have h3: count x (erase_dup (factors f)) ≤ 1,
+      {
+        have : nodup (erase_dup (factors f)),
+          from nodup_erase_dup _,
+        rw nodup_iff_count_le_one at this,
+        exact this x,
+      },
+      have : 1 ≤ count x (erase_dup (factors f)),
+        from h2,
+      exact nat.le_antisymm h3 this,
+    },
+    rw this,
+  },
+  {
+    rw ←count_eq_zero at h1,
+    simp *,
+  }
 end
---  ∀x ∈ f.factors, x^(count x f.factors - 1) ∣ gcd f d[f] :=
+
+private lemma Mason_Stothers_lemma_aux_2 (f : polynomial β) (h_dvd : ∀x ∈ f.factors, x^(count x f.factors - 1) ∣ gcd f d[f]): 
+  (f.factors - f.factors.erase_dup).prod ∣ gcd f d[f] :=
+begin
+  apply facs_to_pow_prod_dvd_multiset,
+  intros x h,
+  have h1 : x ∈ f.factors,
+    from mem_factors_of_mem_factors_sub_factors_erase_dup f x h,  
+  split,
+  {
+    exact f.factors_irred x h1,
+  },
+  split,
+  {
+    rw ←count_factors_sub_one,
+    exact h_dvd x h1,
+  },
+  {
+    intros y hy h2,
+    have : y ∈ f.factors,
+      from mem_factors_of_mem_factors_sub_factors_erase_dup f y hy,
+    have h3: monic x,
+      from f.factors_monic x h1,
+    have h4: monic y,
+      from f.factors_monic y this,   
+    rw associated_iff_eq h3 h4, --naming not correct
+    exact h2,
+  }
+end
+
+private lemma degree_factors_prod (f : polynomial β) (h : f ≠ 0): degree (f.factors.prod) = degree f :=
+begin
+  rw [f.factors_eq] {occs := occurrences.pos [2]},
+  rw [degree_mul_eq_add_of_mul_ne_zero, degree_C],
+  simp,
+  rw ←f.factors_eq,
+  exact h,
+end
+
 
 lemma Mason_Stothers_lemma (f : polynomial β) :
   degree f ≤ degree (gcd f (derivative f )) + degree (rad f) := --I made degree radical from this one
@@ -186,7 +260,24 @@ begin
       intros x hx,
       exact gcd_min (h_dvd_f x hx) (h_dvd_der x hx),
     },
-
+    have h_prod_dvd_gcd_f_der : (f.factors - f.factors.erase_dup).prod ∣ gcd f d[f],
+      from Mason_Stothers_lemma_aux_2 _ h_dvd_gcd_f_der,
+    have h_gcd : gcd f d[f] ≠ 0,
+    {
+      rw [ne.def, gcd_eq_zero_iff_eq_zero_and_eq_zero],
+      simp [hf]
+    },
+    have h1 : degree ((f.factors - f.factors.erase_dup).prod) ≤ degree (gcd f d[f]),
+      from degree_dvd h_prod_dvd_gcd_f_der h_gcd,
+    have h2 : degree f = degree ((f.factors)-(f.factors.erase_dup)).prod + degree (rad f),
+    {
+      rw ←degree_factors_prod,
+      exact degree_factors_prod_eq_degree_factors_sub_erase_dup_add_degree_rad,
+      exact hf,
+    },
+    rw h2,
+    apply add_le_add_right,
+    exact h1,
   }  
 end
 

@@ -425,10 +425,10 @@ begin
       simp [hf]
     },
     have h1 : degree (finsupp.prod (to_finsupp_pow_min_one (factors f)) (λ (x : ~β) (y : ℕ), x ^ y)) ≤ degree (gcd f d[f]),
-    from degree_dvd h_prod_dvd_gcd_f_der h_gcd,
+      from degree_dvd h_prod_dvd_gcd_f_der h_gcd,
     have h2 : degree f = degree (finsupp.prod (to_finsupp_pow_min_one (factors f)) (λ (x : ~β) (y : ℕ), x ^ y)) + (degree (rad f)),
     {
-      have h2: (C (c_fac f) * finsupp.prod (factors f) (λ (k : ~β) (n : ℕ), k ^ n) ≠ 0),
+      have h2: (C (c_fac f) * finsupp.prod (factors f) (λ (k : ~β) (n : ℕ), k ^ n) ≠ 0), --Had a lemma for this?
       {
         rw [←h_fac],
         exact hf
