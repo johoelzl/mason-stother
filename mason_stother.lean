@@ -192,7 +192,7 @@ begin
 end
 
 
-lemma one_le_of_ne_zero {n : ℕ } (h : n ≠ 0) : 1 ≤ n :=
+lemma one_le_of_ne_zero {n : ℕ } (h : n ≠ 0) : 1 ≤ n := 
 begin
   let m := some (nat.exists_eq_succ_of_ne_zero h),
   have h1 : n = nat.succ m,
@@ -450,6 +450,7 @@ end
 --We don't use factors below this point.
 
 --needs cleaning
+
 lemma Mason_Stothers_lemma'
 (f : polynomial β) : degree f - degree (gcd f (derivative f )) ≤  degree (rad f) := 
 begin
