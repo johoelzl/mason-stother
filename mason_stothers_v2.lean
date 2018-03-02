@@ -37,20 +37,61 @@ variable {β : Type u}
 variables [field β]
 
 
-def polynomial.c_fac (p : polynomial β) : β := some (polynomial_fac p)
+def polynomial.c_fac (p : polynomial β) : β := 
+if (p = 0) then 0 else some (polynomial_fac p)
 
-def polynomial.factors (p : polynomial β) : multiset (~β) := --Problem is that 0 can have 0.factors ≠ 0
-classical.some (some_spec $ polynomial_fac p)
+def polynomial.factors (p : polynomial β) : multiset (~β) :=
+if (p = 0) then 0 else classical.some (some_spec $ polynomial_fac p)
 
 lemma polynomial.factors_irred (p : polynomial β) : ∀x ∈ (p.factors), irreducible x :=
-assume x h, ((some_spec $ some_spec $ polynomial_fac p).2 x h).1
+begin
+  intros x h,
+  rw [polynomial.factors] at h,
+  by_cases h1: p = 0,
+  {
+    simp * at *,
+  },
+  {
+    simp * at *,
+    exact ((some_spec $ some_spec $ polynomial_fac p).2 x h).1,
+  }
+end
 
 lemma polynomial.factors_monic (p : polynomial β) : ∀x ∈ (p.factors), monic x :=
-λx h, ((some_spec $ some_spec $ polynomial_fac p).2 x h).2
+begin
+  intros x h,
+  rw [polynomial.factors] at h,
+  by_cases h1: p = 0,
+  {
+    simp * at *,
+  },
+  {
+    simp * at *,
+    exact ((some_spec $ some_spec $ polynomial_fac p).2 x h).2,
+  }
+end
 
 lemma polynomial.factors_eq (p : polynomial β) : p = C (p.c_fac) * p.factors.prod :=
-(some_spec (some_spec ( polynomial_fac p))).1
+begin
+  by_cases h1: p = 0,
+  {
+    simp [polynomial.c_fac,*] at *,
+  },
+  {
+    simp [polynomial.c_fac, polynomial.factors, *] at *,
+    exact (some_spec (some_spec ( polynomial_fac p))).1,
+  }
+end
 
+@[simp] lemma c_fac_zero : (0 : polynomial β).c_fac = 0 :=
+begin
+  simp [polynomial.c_fac],
+end
+
+@[simp] lemma factors_zero : (0 : polynomial β).factors = 0 :=
+begin
+  simp [polynomial.factors],
+end
 
 open classical multiset
 section mason_stothers
@@ -417,45 +458,79 @@ begin
 
 end
 
-lemma factors_zero : (0 : polynomial β).factors = 0 ∨ (0 : polynomial β).c_fac = 0 :=
+open associated
+
+lemma not_zero_mem_factors {a : polynomial β} : (0 : polynomial β) ∉ a.factors :=
 begin
-  have : (0 : polynomial β) = C ((0 : polynomial β).c_fac) * (0 : polynomial β).factors.prod,
-    from (0 : polynomial β).factors_eq,
-  by_cases h1 : (0 : polynomial β).c_fac = (0 : β),
+  by_contradiction h1,
+  have : irreducible (0 : polynomial β),
+    from a.factors_irred 0 h1,
+  have : ¬ irreducible (0 : polynomial β),
+  {  simp},
+  contradiction,
+end
+
+lemma c_fac_eq_zero_iff_eq_zero {a : polynomial β} : a.c_fac = 0 ↔ a = 0 :=
+begin
+  split,
   {
-    simp * at *,
+    intro h,
+    rw a.factors_eq,
+    simp *,
   },
   {
-    have h2: C (c_fac 0) = 0 ∨ prod (factors 0) = 0,
-      from eq_zero_or_eq_zero_of_mul_eq_zero this.symm,
-    have h3: ¬C (c_fac 0) = 0,
+    intro h,
+    rw [a.factors_eq, mul_eq_zero_iff_eq_zero_or_eq_zero] at h,
+    cases h,
     {
-      rw C_eq_zero_iff_eq_zero,
-      exact h1,
+      rw C_eq_zero_iff_eq_zero at h,
+      exact h,
     },
-    have h4: prod (factors 0) = 0,
-      from h2.resolve_left h3,
-    rw prod_eq_zero_iff_zero_mem' at h4,
-    have : irreducible (0 : polynomial β),
-      from (0 : polynomial β).factors_irred (0 : polynomial β) h4,
-    have : ¬ irreducible (0 : polynomial β),
-    {  simp},
-    contradiction,
+    {
+      rw prod_eq_zero_iff_zero_mem' at h,
+      have : (0 : polynomial β) ∉ a.factors,
+        from not_zero_mem_factors,
+      contradiction,
+    }
   }
 end
 
-open associated
+private lemma mk_C_c_fac_eq_one_of_ne_zero {a : polynomial β} (h : a ≠ 0) : mk (C a.c_fac) = 1 :=
+begin
+  rw [ne.def, ←c_fac_eq_zero_iff_eq_zero] at h,
+  have h1 : is_unit a.c_fac,
+    from for_all_is_unit_of_not_zero h,
+  have h2 : is_unit (C a.c_fac),
+    from is_unit_of_is_unit h1,
+  rw mk_eq_one_iff_is_unit,
+  exact h2,
+end
+
 lemma factors_inter_factors_eq_zero_of_rel_prime (a b : polynomial β) (h : rel_prime a b) : a.factors ∩ b.factors = 0 :=
 begin
-  by_cases ha : a = 0,
+  by_cases ha: a = 0,
   {
-    
+    subst ha,
+    simp,
   },
   {
-
+    by_cases hb: b = 0,
+    {
+      subst hb,
+      simp,
+    },
+    {
+      rw [rel_prime_iff_mk_inf_mk_eq_one, a.factors_eq, b.factors_eq, mul_mk, mul_mk] at h, --we go to the quotient structure with respect to units.
+      have ha1 : mk (C a.c_fac) = 1,
+        from mk_C_c_fac_eq_one_of_ne_zero ha,
+      have hb1 : mk (C b.c_fac) = 1,
+        from mk_C_c_fac_eq_one_of_ne_zero hb,
+      simp * at h,
+      rw [mk_prod],
+    }
   }
-  rw rel_prime_iff_mk_inf_mk_eq_one at h, --we go to the quotient structure with respect to units.
-  rw [a.factors_eq, b.factors_eq, mul_mk] at h,
+
+
 end
 
 

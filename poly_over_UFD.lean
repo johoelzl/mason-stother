@@ -83,7 +83,7 @@ begin
 
 end
 
-
+--Naming is incorrect, need C in the name here
 lemma is_unit_of_is_unit [integral_domain α] {a : α}(h1 : is_unit a) : is_unit (C a) :=
 begin
   simp [is_unit] at *,
