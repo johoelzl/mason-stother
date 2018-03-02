@@ -39,7 +39,7 @@ variables [field β]
 
 def polynomial.c_fac (p : polynomial β) : β := some (polynomial_fac p)
 
-def polynomial.factors (p : polynomial β) : multiset (~β) :=
+def polynomial.factors (p : polynomial β) : multiset (~β) := --Problem is that 0 can have 0.factors ≠ 0
 classical.some (some_spec $ polynomial_fac p)
 
 lemma polynomial.factors_irred (p : polynomial β) : ∀x ∈ (p.factors), irreducible x :=
@@ -417,8 +417,68 @@ begin
 
 end
 
+lemma factors_zero : (0 : polynomial β).factors = 0 ∨ (0 : polynomial β).c_fac = 0 :=
+begin
+  have : (0 : polynomial β) = C ((0 : polynomial β).c_fac) * (0 : polynomial β).factors.prod,
+    from (0 : polynomial β).factors_eq,
+  by_cases h1 : (0 : polynomial β).c_fac = (0 : β),
+  {
+    simp * at *,
+  },
+  {
+    have h2: C (c_fac 0) = 0 ∨ prod (factors 0) = 0,
+      from eq_zero_or_eq_zero_of_mul_eq_zero this.symm,
+    have h3: ¬C (c_fac 0) = 0,
+    {
+      rw C_eq_zero_iff_eq_zero,
+      exact h1,
+    },
+    have h4: prod (factors 0) = 0,
+      from h2.resolve_left h3,
+    rw prod_eq_zero_iff_zero_mem' at h4,
+    have : irreducible (0 : polynomial β),
+      from (0 : polynomial β).factors_irred (0 : polynomial β) h4,
+    have : ¬ irreducible (0 : polynomial β),
+    {  simp},
+    contradiction,
+  }
+end
+
+open associated
+lemma factors_inter_factors_eq_zero_of_rel_prime (a b : polynomial β) (h : rel_prime a b) : a.factors ∩ b.factors = 0 :=
+begin
+  by_cases ha : a = 0,
+  {
+    
+  },
+  {
+
+  }
+  rw rel_prime_iff_mk_inf_mk_eq_one at h, --we go to the quotient structure with respect to units.
+  rw [a.factors_eq, b.factors_eq, mul_mk] at h,
+end
+
+
+
+lemma rad_mul_eq_rad_mul_rad_of_rel_prime (a b : polynomial β) (h : rel_prime a b) : rad (a * b) = (rad a) * (rad b) :=
+begin
+  simp only [rad],
+  rw prod_mul_prod_eq_add_prod,
+  apply congr_arg,
+ 
+
+end
+
 --We will need extra conditions here
-lemma degree_rad_add {a b c : polynomial β}: degree (rad a) + degree (rad b) + degree (rad c) ≤ degree (rad (a * b * c)) :=
+lemma degree_rad_add {a b: polynomial β}: degree (rad a) + degree (rad b) ≤ degree (rad (a * b)) :=
+begin
+  
+end
+
+
+
+--We will need extra conditions here
+lemma degree_rad_add' {a b c : polynomial β}: degree (rad a) + degree (rad b) + degree (rad c) ≤ degree (rad (a * b * c)) :=
 begin
   admit,
 end
