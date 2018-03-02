@@ -120,7 +120,7 @@ begin
   assumption
 end
 --lemma monic polynomials are associated iff they are equal.
-lemma associated_iff_eq [integral_domain α] {x y : polynomial α}(h1 : monic x)(h2 : monic y) : (x ~ᵤ y) ↔ x = y :=
+lemma associated_iff_eq_of_monic_of_monic [integral_domain α] {x y : polynomial α}(h1 : monic x)(h2 : monic y) : (x ~ᵤ y) ↔ x = y :=
 begin
   constructor,
   {
@@ -155,6 +155,97 @@ begin
     simp [h3]
   }
 end
+open associated
+
+def make_monic [field α] (f : polynomial α) := if (f = 0) then 0 else (C (f.leading_coeff)⁻¹ * f)
+
+#check make_monic
+
+
+
+lemma monic_make_monic_of_ne_zero [field α] (f : polynomial α) (h : f ≠ 0) : monic f.make_monic :=
+begin
+  simp [make_monic, if_neg, *],
+  exact leading_coeff_inv_mul_monic_of_ne_zero h,
+end
+
+lemma eq_C_leading_coeff_of_is_unit [integral_domain α] {a : polynomial α} (h : is_unit a) : a = C (leading_coeff a) :=
+begin
+  have : ∃c : α, a =  C c,
+    from eq_constant_of_is_unit h,
+  rcases this with ⟨c, hc⟩,
+  subst hc,
+  simp [leading_coeff_C],
+end
+
+--set_option pp.all true
+
+#check eq.rec
+
+--We can always choose a monic representant
+def monic_out [field α] (a : quot (polynomial α)) : polynomial α := 
+begin
+  fapply quot.rec_on a,
+  exact make_monic,
+  {
+    intros f p h,
+    have : make_monic f = make_monic p,
+    {
+
+
+      have h1: associated f p,
+        from h,
+      rcases h1 with ⟨u, hu⟩,
+      have hu2: is_unit ↑u,
+        from is_unit_unit u,
+      by_cases hf : f = 0,
+      {
+        subst hf,
+        have hu3 := hu.symm,
+        rw mul_eq_zero_iff_eq_zero_or_eq_zero at hu3,
+        cases hu3,
+        {
+          simp [hu3] at *,
+          contradiction,
+        },
+        {
+          subst hu3,
+        }
+      },
+      {
+        by_cases hp : p = 0,
+        {
+          subst hp,
+          simp * at *,
+        },
+        {
+          have hp2 : ↑u * p ≠  0,
+          {
+            rw [ne.def, mul_eq_zero_iff_eq_zero_or_eq_zero],
+            rw not_or_distrib,
+            exact ⟨ne_zero_of_is_unit zero_ne_one hu2, hp⟩,
+          },
+          simp [make_monic, if_neg, *],
+          rw [leading_coeff_mul_eq_mul_leading_coef, mul_inv_eq, C_mul_C, mul_assoc],
+          rw [eq_C_leading_coeff_of_is_unit hu2] {occs := occurrences.pos [2]},
+          rw [←mul_assoc (C (leading_coeff ↑u)⁻¹), ←C_mul_C, inv_mul_cancel],
+          simp,
+          admit,
+          admit,
+          admit,
+          
+        }
+      }
+
+
+    },
+    
+
+  },
+
+end
+
+
 
 lemma polynomial_fac [field α] (x : polynomial α) : ∃ c :  α, ∃ p : multiset (polynomial α), x = C c * p.prod ∧ (∀x∈p, irreducible x ∧ monic x)  :=
 begin
@@ -329,6 +420,8 @@ begin
 
   }
 end
+
+
 
 /-
 --The more general setting, avoids problem with the roots of the zero polynomial

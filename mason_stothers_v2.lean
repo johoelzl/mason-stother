@@ -272,7 +272,7 @@ begin
       from f.factors_monic x h1,
     have h4: monic y,
       from f.factors_monic y this,   
-    rw associated_iff_eq h3 h4, --naming not correct
+    rw associated_iff_eq_of_monic_of_monic h3 h4,
     exact h2,
   }
 end
@@ -495,6 +495,7 @@ begin
   }
 end
 
+--Not used
 private lemma mk_C_c_fac_eq_one_of_ne_zero {a : polynomial β} (h : a ≠ 0) : mk (C a.c_fac) = 1 :=
 begin
   rw [ne.def, ←c_fac_eq_zero_iff_eq_zero] at h,
@@ -519,21 +520,48 @@ begin
       subst hb,
       simp,
     },
-    {
+    { --I already have a similar lemma for rel_prime
       rw [rel_prime_iff_mk_inf_mk_eq_one, a.factors_eq, b.factors_eq, mul_mk, mul_mk] at h, --we go to the quotient structure with respect to units.
-      have ha1 : mk (C a.c_fac) = 1,
-        from mk_C_c_fac_eq_one_of_ne_zero ha,
-      have hb1 : mk (C b.c_fac) = 1,
-        from mk_C_c_fac_eq_one_of_ne_zero hb,
-      simp * at h,
-      rw [mk_prod],
+      rw inf_mul_eq_one_iff_inf_eq_one_and_inf_eq_one at h, --We probably can do without going to the quotient, because we have the lemmas for rel_prime
+      let h1 := h.2,    
+      rw mul_inf_eq_one_iff_inf_eq_one_and_inf_eq_one at h1,
+      let h2 := h1.2,
+      rw [mk_def, mk_def, ←prod_mk, ←prod_mk] at h2,
+      rw prod_inf_prod_eq_one_iff_forall_forall_inf_eq_one at h2,
+
+      rw [inter_eq_zero_iff_disjoint, disjoint_iff_ne],
+      {
+        intros x hx y hy,
+        have h3 : mk x ⊓ mk y = 1,
+        {
+          apply h2,
+          {
+            rw mem_map,
+            exact ⟨x, hx, rfl⟩,
+          },
+          {
+            rw mem_map,
+            exact ⟨y, hy, rfl⟩,            
+          },
+        },
+        rw [←rel_prime_iff_mk_inf_mk_eq_one, rel_prime_iff_not_associated_of_irreducible_of_irreducible] at h3,
+        rw [associated_iff_eq_of_monic_of_monic] at h3,
+        exact h3,
+        exact a.factors_monic x hx,
+        exact b.factors_monic y hx,
+        exact a.factors_irred x hx,
+        exact b.factors_irred y hx,
+      }
     }
   }
-
-
 end
 
 
+--I already have to_multiset_mul, how can I reuse that here?? How to make the connection between monic and associated??
+lemma factors_mul_eq_factors_add_factors (a b : polynomial β) : factors (a * b) = a.factors + b.factors :=
+begin
+
+end
 
 lemma rad_mul_eq_rad_mul_rad_of_rel_prime (a b : polynomial β) (h : rel_prime a b) : rad (a * b) = (rad a) * (rad b) :=
 begin

@@ -63,6 +63,22 @@ lemma embedding {a : α} : ↑a = C a := rfl
 lemma C_apply {c : α } {n : ℕ}: ((C c) : ℕ → α) n = (if 0 = n then c else 0) :=
 rfl
 
+lemma C_eq_zero_iff_eq_zero (c : α) : C c = 0 ↔ c = 0 :=
+begin
+  split,
+  {
+    intro h,
+    have : ((C c) : ℕ → α) 0 = (0 : polynomial α) 0,
+    { rw h},
+    rw [C_apply, if_pos] at this,
+    simp * at *,
+  },
+  {
+    intro h,
+    simp * at *,
+  }
+end 
+
 def is_constant (p : polynomial α) : Prop := ∃ c : α, p = C c
 
 --correct simp

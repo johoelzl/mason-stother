@@ -18,6 +18,9 @@ variable {α : Type u}
 
 def is_unit {t : Type u}[semiring t] (a : t) : Prop := ∃b : units t, a = b
 
+lemma is_unit_unit {t : Type u}[h : semiring t] (u : units t) : @is_unit t h u :=
+⟨u, rfl⟩
+
 /-
 We might want to define composite numbers:
 With a possible defintion: a product of at least two irred elem.
@@ -159,7 +162,7 @@ end
 @[simp] lemma is_unit_one [semiring α] : is_unit (1 : α ) := --existential in is unit is anoying.
 ⟨1, rfl⟩ 
 
-lemma not_is_unit_zero [semiring α] (h : (0 : α) ≠ 1) : ¬ is_unit (0 : α) := --Do we need semiring?
+@[simp] lemma not_is_unit_zero [semiring α] (h : (0 : α) ≠ 1) : ¬ is_unit (0 : α) := --Do we need semiring?
 begin
   by_contradiction h1,
   let u := to_unit h1,
@@ -1200,6 +1203,8 @@ begin
  simp * at *,
  exact h1,
 end
+
+
 
 lemma mk_eq_mk_iff_associated {a b : α} : mk a = mk b ↔ (a ~ᵤ b) :=
 ⟨ complete, quot.sound ⟩ 
@@ -2318,6 +2323,12 @@ begin
   }
 end
 
+lemma mul_inf_eq_one_iff_inf_eq_one_and_inf_eq_one {a b c : quot α} : a * b ⊓ c = 1 ↔ (a ⊓ c = 1 ∧ b ⊓ c = 1) :=
+begin
+  rw [@lattice.inf_comm _ _ (a * b) c, @lattice.inf_comm _ _ a c, @lattice.inf_comm _ _ b c],
+  exact inf_mul_eq_one_iff_inf_eq_one_and_inf_eq_one,
+end
+
 --le_antisymm
   --_
   --(inf_le_inf le_mul_left (le_refl b))
@@ -2836,34 +2847,70 @@ begin
 end
 
 
-lemma inf_eq_one_of_irred_of_irred_of_ne {a b : quot α} (ha : irred a) (hb : irred b) (h : a ≠ b) : a ⊓ b = 1 :=
+
+--Add to simp?
+lemma not_irreducible_one : ¬ irreducible (1 : α) :=
 begin
-  by_cases h1 : a = 0,
-    {
-      have h2 : a ≠ 0,
-      from ne_zero_of_irred ha,
-      contradiction,
-    },
-    by_cases h2 : b = 0,
-    {
-        have h3 : b ≠ 0,
-        from ne_zero_of_irred hb,
-        contradiction,    
-    },
-    {
-      simp [inf_def, *],
-      rw [to_multiset_eq_singleton_of_irred ha, to_multiset_eq_singleton_of_irred hb], --Need to proof the to_multiset of a single irreducible element.
-      have h3 : (a :: 0) ∩ (b :: 0) = 0,
+  by_contradiction h,
+  have : ¬is_unit (1 : α),
+  from (h.2).1,
+  have : is_unit (1 : α),
+  from is_unit_one,
+  contradiction,
+end
+
+@[simp] lemma not_irreducible_zero : ¬ irreducible (0 : α) :=
+begin
+  by_contradiction h1,
+  have : (0 : α) ≠ 0,
+  from h1.1,
+  contradiction,
+end
+
+@[simp] lemma not_irred_one : ¬ irred (1 : quot α) :=
+not_irreducible_one
+
+
+lemma inf_eq_one_iff_ne_eq_of_irred_of_irred  {a b : quot α} (ha : irred a) (hb : irred b) : a ⊓ b = 1 ↔ a ≠ b :=
+begin
+  split,
+  {
+    intro h,
+    by_contradiction,
+    simp * at *,
+  },
+  {
+    intro h,
+    by_cases h1 : a = 0,
       {
-        apply eq_zero_of_forall_not_mem,
-        intros x h3,
-        simp at h3,
-        rw [←h3.1, ←h3.2] at h,
+        have h2 : a ≠ 0,
+        from ne_zero_of_irred ha,
         contradiction,
       },
-      simp *,
-    }
+      by_cases h2 : b = 0,
+      {
+          have h3 : b ≠ 0,
+          from ne_zero_of_irred hb,
+          contradiction,    
+      },
+      {
+        simp [inf_def, *],
+        rw [to_multiset_eq_singleton_of_irred ha, to_multiset_eq_singleton_of_irred hb], --Need to proof the to_multiset of a single irreducible element.
+        have h3 : (a :: 0) ∩ (b :: 0) = 0,
+        {
+          apply eq_zero_of_forall_not_mem,
+          intros x h3,
+          simp at h3,
+          rw [←h3.1, ←h3.2] at h,
+          contradiction,
+        },
+        simp *,
+      }    
+  }
 end
+
+
+
 
 lemma rel_prime_iff_mk_inf_mk_eq_one {a b : α} : rel_prime a b ↔ (mk a) ⊓ (mk b) = 1 :=
 begin
@@ -3006,7 +3053,14 @@ lemma rel_prime_of_irreducible_of_irreducible_of_not_associated {x y : α} (hx :
 begin
   rw associated_iff_mk_eq_mk at h,
   rw [rel_prime_iff_mk_inf_mk_eq_one],
-  apply inf_eq_one_of_irred_of_irred_of_ne _ _ h ; assumption,
+  rw inf_eq_one_iff_ne_eq_of_irred_of_irred; assumption,
+end
+
+lemma rel_prime_iff_not_associated_of_irreducible_of_irreducible {x y : α} (hx : irreducible x) (hy : irreducible y) : rel_prime x y ↔ ¬ (x ~ᵤ y) :=
+begin
+  rw [rel_prime_iff_mk_inf_mk_eq_one, inf_eq_one_iff_ne_eq_of_irred_of_irred, associated_iff_mk_eq_mk],
+  exact hx,
+  exact hy,
 end
 
 lemma pow_mul_pow_dvd [unique_factorization_domain α] {x y z : α} {n m : ℕ}
@@ -3015,7 +3069,7 @@ lemma pow_mul_pow_dvd [unique_factorization_domain α] {x y z : α} {n m : ℕ}
 begin
   apply @mul_dvd_of_dvd_of_dvd_of_rel_prime _ (x ^ n) (y ^ m) z,
   apply rel_prime_pow_pow_of_rel_prime,
-  apply rel_prime_of_irreducible_of_irreducible_of_not_associated,
+  rw rel_prime_iff_not_associated_of_irreducible_of_irreducible,
   repeat {assumption},
 end
 
@@ -3055,6 +3109,43 @@ begin
     simp * at *,
   }
 end
+
+--Should be placed elsewhere
+lemma prod_eq_zero_iff_zero_mem' {β : Type u} [integral_domain β] {s : multiset β} : prod s = 0 ↔ (0 : β) ∈ s :=
+begin
+  split,
+  {
+    apply multiset.induction_on s,
+    {
+      simp * at *,     
+    },
+    {
+      intros a s h1 h2,
+      simp * at *,
+      by_cases ha : a = 0,
+      {
+        simp * at *,
+      },
+      {
+        have h3 : prod s = 0,
+        {
+          by_contradiction h4,
+          have : a * prod s ≠ 0,
+          from mul_ne_zero ha h4,
+          contradiction,
+        },
+        simp [h1 h3],
+      }
+    }
+  },
+  {
+    intro h,
+    rcases (exists_cons_of_mem h) with ⟨t, ht⟩,
+    subst ht,
+    simp * at *,
+  }
+end
+
 
 lemma to_multiset_prod_of_zero_not_mem {s : multiset (quot α)} (h0 : (0 : quot α) ∉ s) : to_multiset (s.prod) = (multiset.map to_multiset s).sum :=
 begin --We need some non_zero constraint here
@@ -3219,8 +3310,34 @@ begin
   }
 end
 
-
-
+lemma prod_inf_prod_eq_one_iff_forall_forall_inf_eq_one {t s : multiset (quot α)} : t.prod ⊓ s.prod = 1 ↔ (∀y ∈ t, (∀x ∈ s, y ⊓ x = (1 : quot α))) :=
+begin
+  split,
+  {
+    intros h y hy x hx,
+    rw inf_prod_eq_one_iff_forall_inf_eq_one at h,
+    have : prod t ⊓ x = 1,
+      from h x hx,
+    rw lattice.inf_comm at this,
+    rw inf_prod_eq_one_iff_forall_inf_eq_one at this,
+    have : x ⊓ y = 1,
+      from this y hy,
+    rw lattice.inf_comm at this,
+    exact this,
+  },
+  {
+    intros h,
+    rw inf_prod_eq_one_iff_forall_inf_eq_one,
+    intros x hx,
+    rw lattice.inf_comm,
+    rw inf_prod_eq_one_iff_forall_inf_eq_one,
+    intros y hy,
+    have : y ⊓ x = 1,
+      from h y hy x hx,
+    rw lattice.inf_comm at this,
+    exact this,
+  }
+end
 
 lemma forall_map_mk_irred_of_forall_irreducible {s : multiset α}(h : ∀x ∈ s, irreducible x) : ∀ x ∈ map mk s, irred x :=
 begin
@@ -3289,15 +3406,6 @@ begin
     }     
 end
 
-lemma not_irreducible_one : ¬ irreducible (1 : α) :=
-begin
-  by_contradiction h,
-  have : ¬is_unit (1 : α),
-  from (h.2).1,
-  have : is_unit (1 : α),
-  from is_unit_one,
-  contradiction,
-end
 
 lemma is_unit_of_mul_is_unit_left {a b : α} (h : is_unit (a * b)) : is_unit a :=
 begin
@@ -3416,7 +3524,7 @@ begin
           subst h9,
           exact h2 h6,
         },
-        exact rel_prime_of_irreducible_of_irreducible_of_not_associated (h4 a h5).1 (h4 b h7).1 h8,
+        rwa rel_prime_iff_not_associated_of_irreducible_of_irreducible (h4 a h5).1 (h4 b h7).1,
       },
 
 
@@ -3503,8 +3611,8 @@ begin
       {
         refine mem_of_le _ h,
         apply multiset.sub_le_self,
-      },      
-      apply rel_prime_of_irreducible_of_irreducible_of_not_associated,
+      },   
+      refine (rel_prime_iff_not_associated_of_irreducible_of_irreducible _ _).2 _,
       {
         refine (h2 a _).1,
         simp,
