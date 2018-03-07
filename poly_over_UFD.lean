@@ -65,8 +65,8 @@ begin
   exact inv_mul_cancel h
 end
 
-lemma leading_coeff_dvd [field α ] {x : polynomial α} : (C (leading_coeff x)) ∣ x := 
-begin 
+lemma leading_coeff_dvd [field α ] {x : polynomial α} : (C (leading_coeff x)) ∣ x :=
+begin
   by_cases h1 : (x = 0),
   {
     simp *
@@ -229,7 +229,7 @@ quot.lift_on a make_monic (assume f p h,
         exact hp,
         rw [ne.def, leading_coef_eq_zero_iff_eq_zero],
         rw [ne.def, mul_eq_zero_iff_eq_zero_or_eq_zero, not_or_distrib] at hp2, --Duplication
-        simp *,        
+        simp *,
       }
     }
   end)
@@ -250,22 +250,29 @@ end
 /-@[simp] theorem quot.out_eq {r : α → α → Prop} (q : quot r) : quot.mk r q.out = q :=
 classical.some_spec (quot.exists_rep q)-/
 
+lemma XXX {α : Type*} [unique_factorization_domain α] (p q : α) :
+  @setoid.r α (associated.setoid α) p q = associated p q :=
+rfl
+
 lemma monic_out_eq [field α] (q : quot (polynomial α)): mk (monic_out q) = q :=
 begin
-  --apply quot.induction_on q,
-  --intro a,
-  --apply quot.sound,
+  apply quot.induction_on q,
+  intro a,
+  apply quot.sound,
+  -- change associated (make_monic a) a,
+  dsimp [XXX, monic_out],
+  change (make_monic a ~ᵤ a),
+  admit
 end
 
-
---set_option pp.all true
-
-#check eq.rec
+lemma monic_out_eq' [field α] (p : polynomial α) (h : monic p) : (monic_out (mk p) ~ᵤ p) :=
+complete (monic_out_eq (mk p)
+/- proof    monic p -> monic q ->  p ~ᵤ q -> p = q -/
 
 
 /-
 --We can always choose a monic representant
-def monic_out [field α] (a : quot (polynomial α)) : polynomial α := 
+def monic_out [field α] (a : quot (polynomial α)) : polynomial α :=
 begin
   fapply quot.rec_on a,
   exact make_monic,
@@ -315,13 +322,13 @@ begin
           admit,
           admit,
           admit,
-          
+
         }
       }
 
 
     },
-    
+
 
   },
 
@@ -406,7 +413,7 @@ begin
             rw [ne.def, leading_coef_eq_zero_iff_eq_zero],
             assumption
           },
-          clear h4, 
+          clear h4,
           simp only [multiset.map_cons, multiset.prod_cons, C_prod_eq_prod_C],
           apply eq.symm,
           calc C (leading_coeff a * multiset.prod (multiset.map leading_coeff s)) *
@@ -423,18 +430,18 @@ begin
          multiset.prod (multiset.map (λ (y : polynomial α), C (leading_coeff y)⁻¹ * y) s) : by rw [mul_comm (C (leading_coeff a)⁻¹) _]
         ... = C (leading_coeff a) *  (C (leading_coeff a)⁻¹) *
               (C (multiset.prod (multiset.map leading_coeff s))  * a) *
-                multiset.prod (multiset.map (λ (y : polynomial α), C (leading_coeff y)⁻¹ * y) s) : by simp only [mul_assoc]        
+                multiset.prod (multiset.map (λ (y : polynomial α), C (leading_coeff y)⁻¹ * y) s) : by simp only [mul_assoc]
         ... = C (leading_coeff a) *  (C (leading_coeff a)⁻¹) *
               (a  * C (multiset.prod (multiset.map leading_coeff s))) *
-                multiset.prod (multiset.map (λ (y : polynomial α), C (leading_coeff y)⁻¹ * y) s) : by rw [mul_comm _ a]          
+                multiset.prod (multiset.map (λ (y : polynomial α), C (leading_coeff y)⁻¹ * y) s) : by rw [mul_comm _ a]
          ... = C (leading_coeff a) *  (C (leading_coeff a)⁻¹) *
               a  * (C (multiset.prod (multiset.map leading_coeff s)) *
-                multiset.prod (multiset.map (λ (y : polynomial α), C (leading_coeff y)⁻¹ * y) s)) : by simp only [mul_assoc]         
+                multiset.prod (multiset.map (λ (y : polynomial α), C (leading_coeff y)⁻¹ * y) s)) : by simp only [mul_assoc]
           ... = C (leading_coeff a) *  (C (leading_coeff a)⁻¹) *
-              a  * (multiset.prod s) : by rw ←h4a         
+              a  * (multiset.prod s) : by rw ←h4a
           ... = C ((leading_coeff a) * ((leading_coeff a)⁻¹)) *
               a  * (multiset.prod s) : by simp [C_mul_C, mul_assoc]
-          ... = C 1 * a * (multiset.prod s) : by rw [mul_inv_cancel h7]       
+          ... = C 1 * a * (multiset.prod s) : by rw [mul_inv_cancel h7]
          ... = _ : by simp,
         }
       },
@@ -483,7 +490,7 @@ begin
          },
          have h8 : (a ~ᵤ y),
          from associated.symm h7,
-         exact irreducible_of_associated h5 h8        
+         exact irreducible_of_associated h5 h8
       },
       {
         rw multiset.mem_map at h1,
@@ -520,7 +527,7 @@ begin
   have h1 : ∃ c :  α, ∃ p : multiset (polynomial α), x = C c * p.prod ∧ (∀x∈p, irreducible x ∧ monic x),
   from polynomial_fac _,
   rcases h1 with ⟨c, p, h2⟩,
-  exact ⟨c, p.to_finsupp, 
+  exact ⟨c, p.to_finsupp,
     begin
       rw ←multiset.to_finsupp_prod,
       constructor,

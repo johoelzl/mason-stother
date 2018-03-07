@@ -200,7 +200,7 @@ show false,
 
 more hardcore use of the equation compiler:
 
-| _ _ ⟨d, rfl⟩ hb rfl := by simp * at *
+| _ _ ⟨d, rfl⟩ hb rfl := hb (zero_mul d)
 
 -/
 begin
