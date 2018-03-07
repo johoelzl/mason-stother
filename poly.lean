@@ -225,10 +225,16 @@ def leading_coeff (p : polynomial α) : α := p (degree p)
 lemma leading_coeff_def {p : polynomial α } : leading_coeff p = p (degree p) := rfl
 
 
-
-
 --correct? --removed reducible here
 def monic (p : polynomial α):= leading_coeff p = 1
+
+
+lemma ne_zero_of_monic (p : polynomial α) (h : monic p) : p ≠ 0 :=
+begin
+  by_contradiction h1,
+  simp at h1, 
+  subst h1,
+end 
 
 lemma ext : ∀{f g : polynomial α}, (∀a, f a = g a) → f = g:=
 begin
@@ -360,7 +366,20 @@ begin
   }
 end
 
+--Are we using the interference here correctly? --Correct simp?
+lemma not_monic_zero (h : (0 : α) ≠ 1) : ¬monic (0 : polynomial α) :=
+begin
+  rw monic,
+  simp,
+  exact h,
+end
+
 lemma monic_X : monic (X : polynomial α) := by {rw [monic], exact leading_coeff_X}
+
+@[simp] lemma monic_one : monic (1 : polynomial α) :=
+begin
+  rw [monic, ←C_1, leading_coeff_C],
+end
 
 lemma leading_coeff_X_pow {n : ℕ} : leading_coeff ((X ^ n) : polynomial α) = (1 : α) :=
 begin
@@ -763,7 +782,7 @@ begin
 end
 
 
-
+--naming incorrect
 lemma C_mul_C {a b : α} : C (a * b) = C a * C b :=
 by simp [C, single_mul_single]
 
