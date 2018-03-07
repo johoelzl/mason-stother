@@ -47,11 +47,12 @@ begin
   exact nat.eq_zero_of_add_eq_zero_right (eq.symm h4),
 end
 
-lemma eq_constant_of_is_unit [integral_domain α]{p : polynomial α}(h : is_unit p) : ∃c : α, p =  C c :=
+lemma is_constant_of_is_unit [integral_domain α]{p : polynomial α}(h : is_unit p) : is_constant p :=
 begin
   have h1 : degree p = 0,
   from degree_eq_zero_of_is_unit h,
-  simp only [eq_const_of_degree_eq_zero, *]
+  rw is_constant,
+  exact is_constant_of_degree_eq_zero h1,
 end
 
 lemma leading_coeff_inv_mul_monic_of_ne_zero [field α ] {x : polynomial α} (h : x ≠ 0) : monic ((C (leading_coeff x)⁻¹) * x) :=
@@ -110,7 +111,7 @@ lemma eq_one_of_monic_unit [integral_domain α] {f : polynomial α}(h1 : monic f
 begin
   rw monic at *,
   have h3 : ∃c : α, f =  C c,
-  from eq_constant_of_is_unit h2,
+  from is_constant_of_is_unit h2,
   let c := some h3,
   have h4 : f = C c,
   from some_spec h3,
@@ -157,6 +158,9 @@ begin
 end
 open associated
 
+
+
+
 def make_monic [field α] (f : polynomial α) := if (f = 0) then 0 else (C (f.leading_coeff)⁻¹ * f)
 
 #check make_monic
@@ -172,16 +176,94 @@ end
 lemma eq_C_leading_coeff_of_is_unit [integral_domain α] {a : polynomial α} (h : is_unit a) : a = C (leading_coeff a) :=
 begin
   have : ∃c : α, a =  C c,
-    from eq_constant_of_is_unit h,
+    from is_constant_of_is_unit h,
   rcases this with ⟨c, hc⟩,
   subst hc,
   simp [leading_coeff_C],
 end
 
+def monic_out [field α] (a : quot (polynomial α)) : polynomial α :=
+quot.lift_on a make_monic (assume f p h,
+  begin
+    have h1: associated f p,
+      from h,
+    rcases h1 with ⟨u, hu⟩,
+    have hu2: is_unit ↑u,
+      from is_unit_unit u,
+    by_cases hf : f = 0,
+    {
+      subst hf,
+      have hu3 := hu.symm,
+      rw mul_eq_zero_iff_eq_zero_or_eq_zero at hu3,
+      cases hu3,
+      {
+        simp [hu3] at *,
+        contradiction,
+      },
+      {
+        subst hu3,
+      }
+    },
+    {
+      by_cases hp : p = 0,
+      {
+        subst hp,
+        simp * at *,
+      },
+      {
+        have hp2 : ↑u * p ≠  0,
+        {
+          rw [ne.def, mul_eq_zero_iff_eq_zero_or_eq_zero],
+          rw not_or_distrib,
+          exact ⟨ne_zero_of_is_unit zero_ne_one hu2, hp⟩,
+        },
+        simp [make_monic, if_neg, *],
+        rw [leading_coeff_mul_eq_mul_leading_coef, mul_inv_eq, C_mul_C, mul_assoc],
+        rw [eq_C_leading_coeff_of_is_unit hu2] {occs := occurrences.pos [2]},
+        rw [←mul_assoc (C (leading_coeff ↑u)⁻¹), ←C_mul_C, inv_mul_cancel],
+        simp,
+        rw [ne.def, leading_coef_eq_zero_iff_eq_zero],
+        rw [ne.def, mul_eq_zero_iff_eq_zero_or_eq_zero, not_or_distrib] at hp2,
+        exact hp2.1,
+        rw [ne.def, leading_coef_eq_zero_iff_eq_zero],
+        exact hp,
+        rw [ne.def, leading_coef_eq_zero_iff_eq_zero],
+        rw [ne.def, mul_eq_zero_iff_eq_zero_or_eq_zero, not_or_distrib] at hp2, --Duplication
+        simp *,        
+      }
+    }
+  end)
+
+
+#check monic_out
+
+lemma monic_monic_out_of_ne_zero [field α] (f : quot (polynomial α)) (h : f ≠ 0) : monic (monic_out f) :=
+begin
+  revert h,
+  apply quot.induction_on f,
+  intros a h,
+  apply monic_make_monic_of_ne_zero,
+  rw [ne.def, ←mk_eq_zero_iff_eq_zero],
+  exact h,
+end
+
+/-@[simp] theorem quot.out_eq {r : α → α → Prop} (q : quot r) : quot.mk r q.out = q :=
+classical.some_spec (quot.exists_rep q)-/
+
+lemma monic_out_eq [field α] (q : quot (polynomial α)): mk (monic_out q) = q :=
+begin
+  --apply quot.induction_on q,
+  --intro a,
+  --apply quot.sound,
+end
+
+
 --set_option pp.all true
 
 #check eq.rec
 
+
+/-
 --We can always choose a monic representant
 def monic_out [field α] (a : quot (polynomial α)) : polynomial α := 
 begin
@@ -244,7 +326,7 @@ begin
   },
 
 end
-
+-/
 
 
 lemma polynomial_fac [field α] (x : polynomial α) : ∃ c :  α, ∃ p : multiset (polynomial α), x = C c * p.prod ∧ (∀x∈p, irreducible x ∧ monic x)  :=
@@ -261,7 +343,7 @@ begin
     by_cases h2 : (is_unit x),
     {
       have h3: ∃c : α, x =  C c,
-      from eq_constant_of_is_unit h2,
+      from is_constant_of_is_unit h2,
       let c := some h3,
       fapply exists.intro,
       exact c,
@@ -458,6 +540,23 @@ begin
   from gcd_left,
   apply nat.le_trans (degree_dvd h1 h),
   exact nat.le_refl _,
+end
+
+lemma associated_neg [unique_factorization_domain α] (a : polynomial α) : (a ~ᵤ (-a)) :=
+begin
+  have h_u: is_unit (-1 : polynomial α),
+  {
+    have : ((-1 : polynomial α) * -1 = 1),
+    {
+      simp,
+    },
+    exact is_unit_of_mul_eq_one_left this,
+  },
+  fapply exists.intro (to_unit h_u),
+  rw [@to_unit_is_unit_eq _ _ (-1) h_u],
+  simp,
+
+
 end
 
 end polynomial

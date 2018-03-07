@@ -374,4 +374,28 @@ begin
   apply sub_le_self,
 end
 
+lemma dvd_prod_of_mem {α : Type u} [comm_semiring α] (s : multiset α) {x : α} (h : x ∈ s) : x ∣ s.prod :=
+begin
+  rcases (exists_cons_of_mem h) with ⟨t, ht⟩,
+  subst ht,
+  simp * at *,
+end
+
+lemma erase_dup_eq_zero_iff_eq_zero {α : Type u} (s : multiset α) : s.erase_dup = 0 ↔ s = 0 :=
+begin
+  split,
+  {
+    intro h,
+    have : s ⊆ erase_dup s,
+      from subset_erase_dup s,
+    simp * at *,
+    exact eq_zero_of_subset_zero this,
+  },
+  {
+    intro h,
+    subst h,
+    simp,
+  }
+end
+
 end multiset

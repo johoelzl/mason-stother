@@ -30,6 +30,7 @@ def to_unit {t : Type u}[semiring t] {x : t} (h : is_unit x) : units t :=
 some h
 
 --correct simp?
+--The parameters should have been explicit I think
 @[simp] lemma  to_unit_is_unit_eq {t : Type u}[semiring t] {x : t} {h : is_unit x} : ↑(@to_unit t _ x h) = x :=
 eq.symm (some_spec h)
 
@@ -203,7 +204,7 @@ begin
   simp
 end
 
-lemma not_unit_of_irreducible {a : α}[integral_domain α](h : irreducible a) : ¬ (is_unit a) :=
+lemma not_is_unit_of_irreducible {a : α}[integral_domain α](h : irreducible a) : ¬ (is_unit a) :=
 begin
   exact and.elim_left (and.elim_right h)
 end
@@ -3646,7 +3647,22 @@ begin
           refine (h2 x _).2.1,
           simp *,            
         },
-        admit,      --fill in
+        {
+          by_cases ha : x = a, --Could be done nicer
+          {
+            subst ha,
+            rw [count_cons_self, pow_succ] at this,
+            have ha2:  x ^ count x t ∣ x * x ^ count x t,
+              from dvd.intro_left x (rfl),
+            exact dvd_trans ha2 this,
+          },
+          {
+            rw [count_cons_of_ne ha] at this,
+            exact this,
+          }
+
+        },
+
       },
       {
         intros y hy,
@@ -3681,6 +3697,82 @@ begin
   have h3 : mk c ≤ mk b * mk c,
   from le_mul_left,
   cc,
+end
+
+def composite (a : α) : Prop := a ≠ 0 ∧ (∃ b c : α, (a = b * c ∧ ¬is_unit b ∧ ¬is_unit c))
+
+--naming? --Is this needed?
+lemma eq_zero_or_is_unit_or_irreducible_or_composite (b : α) : b = 0 ∨ is_unit b ∨ irreducible b ∨ composite b :=
+begin
+  rw [or_iff_not_imp_left, or_iff_not_imp_left, or_iff_not_imp_left],
+  intros h1 h2 h3,
+  rw composite,
+  rw [irreducible_iff_irreducible', irreducible'] at h3,
+  simp at h3,
+  simp *,
+  have h4 : (¬∀ (a b_1 : α), b = a * b_1 → is_unit a ∨ is_unit b_1),
+    from h3 h1 h2,
+  rw _root_.not_forall at h4,
+  rcases h4 with ⟨x, hx⟩,
+  rw _root_.not_forall at hx,  
+  fapply exists.intro,
+  exact x,
+  rcases hx with ⟨y, hy⟩,
+  fapply exists.intro,
+  exact y,
+  simp [not_or_distrib] at hy,
+  exact hy,
+end
+
+
+/-
+lemma classification (a : α) : a = 0 ∨ is_unit a ∨ irreducible a ∨ composite a :=
+begin
+  rw [or_iff_not_imp_left, or_iff_not_imp_left, or_iff_not_imp_left],
+  intros h1 h2 h3,
+  by_contradiction h4,
+  rw composite at h4,
+  simp at h4,
+  have h5: ∀ (x y : α), a = x * y → ¬is_unit a → is_unit x --strange problem with a here, check with Johannes
+-/
+
+--Naming?
+lemma not_is_unit_of_not_is_unit_dvd {a b : α} (h1 : ¬is_unit a) (h2 : a ∣ b) : ¬is_unit b :=
+begin
+  rcases h2 with ⟨c, hc⟩,
+  subst hc,
+  by_contradiction h2,
+  have : is_unit a,
+    from is_unit_left_of_is_unit_mul h2,
+  contradiction,
+end
+
+lemma not_is_unit_prod_of_ne_zero_of_forall_mem_irreducible {s : multiset α} (h1 : s ≠ 0) (h2 : ∀x : α, x ∈ s → irreducible x) : ¬is_unit s.prod :=
+begin
+  rcases (exists_mem_of_ne_zero h1) with ⟨x, hx⟩,
+  have h2b : x ∣ (s.prod),
+    from dvd_prod_of_mem _ hx,
+  have h3: irreducible x,
+    from h2 x hx,
+  have h4: ¬is_unit x,
+    from not_is_unit_of_irreducible h3,
+  exact not_is_unit_of_not_is_unit_dvd h4 h2b,
+end
+
+lemma rel_prime_of_rel_prime_of_associated_left {a a' b : α} (h1 : rel_prime a b)  (h2 : a' ~ᵤ a) : rel_prime a' b :=
+begin
+  rw rel_prime_iff_mk_inf_mk_eq_one at *,
+  have : mk a' = mk a,
+    from quot.sound h2,
+  simp * at *,
+end
+
+lemma rel_prime_of_rel_prime_of_associated_right {a b b': α} (h1 : rel_prime a b)  (h2 : b' ~ᵤ b) : rel_prime a b' :=
+begin
+  have h3 : rel_prime b a,
+    from rel_prime_comm h1,
+  apply rel_prime_comm,
+  exact rel_prime_of_rel_prime_of_associated_left h3 h2,
 end
 
 end ufd

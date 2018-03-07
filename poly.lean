@@ -79,16 +79,24 @@ begin
   }
 end 
 
+lemma C_add_C (a b : α) : C a + C b = C (a + b) :=
+begin
+  apply eq.symm,
+  exact single_add,
+end
+
 def is_constant (p : polynomial α) : Prop := ∃ c : α, p = C c
 
 --correct simp
-lemma is_constant_zero : is_constant (0 : polynomial α) :=
+@[simp] lemma is_constant_zero : is_constant (0 : polynomial α) :=
 begin
   rw [is_constant],
   fapply exists.intro,
   exact 0,
   simp
 end
+
+@[simp] lemma is_constant_C {c : α} : is_constant (C c) := ⟨c, rfl⟩
 
 --naming?
 lemma eq_zero_iff_embed_eq_zero {f : α} : f = 0 ↔ (↑f : polynomial α) = 0 :=
@@ -392,7 +400,7 @@ calc C c * X = single 0 c * single 1 1 : rfl
 
 
 
-lemma eq_const_of_degree_eq_zero {p : polynomial α} : degree p = 0 → ∃c, p = C c :=
+lemma is_constant_of_degree_eq_zero {p : polynomial α} : degree p = 0 → is_constant p :=
 begin
   intro h,
   have h1 : support p = {0} ∨ support p = ∅,
@@ -427,7 +435,7 @@ begin
     simp,
   },
   {
-    exact eq_const_of_degree_eq_zero
+    exact is_constant_of_degree_eq_zero
   }
 
 end
@@ -441,7 +449,7 @@ begin
   by_cases h2 : (degree p = 0),
   {
     have h3: ∃c, p = C c,
-    from eq_const_of_degree_eq_zero h2,
+    from is_constant_of_degree_eq_zero h2,
     have h4: p = C (some h3), 
     from some_spec h3,
     have h5: (some h3) = 0,
@@ -1060,6 +1068,39 @@ calc degree (f - g) = degree (f  + (- g)) : by simp
      ... ≤ max (degree f) (degree (-g)) : degree_add
      ...= max (degree f) (degree g) : by rw (@degree_neg _ _ g)
 
+lemma neg_C_eq_C_neg (c : α) : - C c = C (- c) :=
+begin
+  apply eq.symm,
+  rw eq_neg_iff_add_eq_zero,
+  rw C_add_C,
+  simp,
+end
+
+
+lemma is_constant_if_is_constant_neg (p : polynomial α) : is_constant p ↔ is_constant (-p) :=
+begin
+  split,
+  {
+    intro h,
+    rcases h with ⟨c, hc⟩,
+    subst hc,
+    exact ⟨-c, neg_C_eq_C_neg c⟩,
+  },
+  {
+    intro h,
+    rcases h with ⟨c, hc⟩,
+    have : p = - C c,
+    {
+      exact calc p = - - p : by simp
+      ... = _ : by rw hc,
+    },
+    subst this,
+    rw neg_C_eq_C_neg,
+    simp,
+  }
+end
+
+
 end ring
 
 section comm_ring
@@ -1429,7 +1470,6 @@ begin
     {
       intro h2,
       simp *,
-      exact is_constant_zero --should be a simp lemma
     },
     {
       rw ←not_imp_not,
