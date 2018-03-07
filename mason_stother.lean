@@ -1,3 +1,6 @@
+
+#exit
+
 -- the to be Mason-Stother formalization
 -- Authors Johannes & Jens
 
@@ -75,7 +78,7 @@ end
 
 lemma degree_rad_eq_sum_support_degree {f : polynomial β} :
   degree (rad f) = (finset.sum (finsupp.support (factors f)) degree ) :=
-begin 
+begin
   rw rad,
   have h1 : finset.prod (support (factors f)) id ≠ 0,
   {
@@ -121,7 +124,7 @@ begin
   have h2 : (support (to_finsupp_pow_min_one (factors f))) ∪ (support (factors f) \ (support (to_finsupp_pow_min_one (factors f)))) = support (factors f),
   from finset.union_sdiff_of_subset h1,
   have h3 : ∀x, x ∈ support (factors f) \ support (to_finsupp_pow_min_one (factors f)) ↔ (factors f) x = 1,
-  from  mem_sdiff_support_support_pow_min_one_iff_eq_one, 
+  from  mem_sdiff_support_support_pow_min_one_iff_eq_one,
   have h4 : finset.prod (support (to_finsupp_pow_min_one (factors f)))(λ (x : ~β), x ^ (to_finsupp_pow_min_one (factors f)) x * x) =
          finset.prod (support (to_finsupp_pow_min_one (factors f)))
          (λ (x : ~β), x ^ (factors f) x),
@@ -155,7 +158,7 @@ begin
     rw h3 x,
     intro h5,
     rw h5,
-    simp only [pow_one x],  
+    simp only [pow_one x],
   },
   have h6 : Π₀ (to_finsupp_pow_min_one (factors f)) (λ (x : ~β) (y : ℕ), x ^ y) * rad f ≠ 0,
   {
@@ -167,7 +170,7 @@ begin
     (support (factors f) \ support (to_finsupp_pow_min_one (factors f))) = ∅,
   {simp},
 
-  conv 
+  conv
   {
     to_rhs,
     rw [←degree_mul_eq_add_of_mul_ne_zero h6, rad, finsupp.prod, ←h2, finset.prod_union h7, ←mul_assoc, ←finset.prod_mul_distrib],
@@ -192,11 +195,11 @@ begin
 end
 
 
-lemma one_le_of_ne_zero {n : ℕ } (h : n ≠ 0) : 1 ≤ n := 
+lemma one_le_of_ne_zero {n : ℕ } (h : n ≠ 0) : 1 ≤ n :=
 begin
   let m := some (nat.exists_eq_succ_of_ne_zero h),
   have h1 : n = nat.succ m,
-  from some_spec (nat.exists_eq_succ_of_ne_zero h), 
+  from some_spec (nat.exists_eq_succ_of_ne_zero h),
   rw [h1, nat.succ_le_succ_iff], --simp * failes here
   exact nat.zero_le _,
 
@@ -232,7 +235,7 @@ begin
           from derivative_eq_zero_of_is_constant h2,
           have h6 : derivative b = 0,
           from derivative_eq_zero_of_is_constant h4,
-          simp *,          
+          simp *,
         },
         {
           have h2a : degree a = 0,
@@ -291,7 +294,7 @@ begin
             rw [nat.add_sub_assoc],
             apply add_le_add_left,
             exact degree_derivative_le,
-            exact _root_.one_le_of_ne_zero h4,            
+            exact _root_.one_le_of_ne_zero h4,
           },
           exact max_le h5 h6,
         }
@@ -313,13 +316,13 @@ begin
   },
   have h_tmp : ((finsupp.prod (factors f) (λ k n, k ^n) ) ) = (factors f).support.prod (λa, (λ k n, k ^n) a ((factors f) a)),
   simp [finsupp.prod],
-  have h_der : derivative ((factors f).support.prod (λa, (λ k n, k ^n) a ((factors f) a))) 
+  have h_der : derivative ((factors f).support.prod (λa, (λ k n, k ^n) a ((factors f) a)))
   = (factors f).support.sum (λb, derivative ((λa, (λ k n, k ^n) a ((factors f) a)) b) * (finset.erase (factors f).support b).prod (λa, (λ k n, k ^n) a ((factors f) a))),
   simp [derivative_prod],
 
   have h_der2 : ∀x ∈ (support (factors f)), (x^((factors f) x -1))∣(derivative ((factors f).support.prod (λa, (λ k n, k ^n) a ((factors f) a))) ),--
-  {   
-    intros, 
+  {
+    intros,
     rw h_der,
     refine dvd_sum _,
     intros y hy,
@@ -350,7 +353,7 @@ begin
     }
   },
 
-  have h_fac : f = C (c_fac f) * ((finsupp.prod (factors f) (λ k n, k ^n) ) ), 
+  have h_fac : f = C (c_fac f) * ((finsupp.prod (factors f) (λ k n, k ^n) ) ),
     from (h_factors f).1,
   have h_dvd_der : ∀x ∈ (support (factors f)), (x^((factors f) x -1))∣ (derivative f),
   {
@@ -380,7 +383,7 @@ begin
     apply hy
   }, --For the next lemma some notions of UFD need to be made.
   have h_prod_dvd_gcd_f_der :(to_finsupp_pow_min_one (factors f)).prod (λ x y, x ^ y) ∣ gcd f d[f],
-  {  
+  {
     apply facs_to_pow_prod_dvd,
     rw [to_finsupp_pow_min_one],
     dunfold to_finsupp_pow_min_one._proof_1,
@@ -433,7 +436,7 @@ begin
         rw [←h_fac],
         exact hf
       },
-      conv 
+      conv
       {
         to_lhs,
         rw [h_fac, degree_mul_eq_add_of_mul_ne_zero h2],
@@ -443,7 +446,7 @@ begin
     },
     rw h2,
     apply add_le_add_right,
-    exact h1 
+    exact h1
   },
 end
 
@@ -452,7 +455,7 @@ end
 --needs cleaning
 
 lemma Mason_Stothers_lemma'
-(f : polynomial β) : degree f - degree (gcd f (derivative f )) ≤  degree (rad f) := 
+(f : polynomial β) : degree f - degree (gcd f (derivative f )) ≤  degree (rad f) :=
 begin
   have h1 : degree f - degree (gcd f (derivative f )) ≤ degree (gcd f (derivative f )) + degree (rad f) - degree (gcd f (derivative f )),
   {
@@ -501,10 +504,10 @@ end
 
 --In MS detailed I call this zero wronskian
 lemma derivative_eq_zero_and_derivative_eq_zero_of_rel_prime_of_wron_eq_zero
-{a b : polynomial β} 
+{a b : polynomial β}
 (h1 : rel_prime a b)
 (h2 : d[a] * b - a * d[b] = 0)
-: d[a] = 0 ∧  d[b] = 0 := 
+: d[a] = 0 ∧  d[b] = 0 :=
 begin
   have h3 : d[a] * b = a * d[b],
   {
@@ -633,7 +636,7 @@ begin
   rw h5 at h4,
   have : degree a = 0,
   from nat.eq_zero_of_le_zero h4,
-  contradiction,     
+  contradiction,
 end
 
 lemma MS_aux_1 {a b c : polynomial β} (h_char : characteristic_zero β) (h_add : a + b = c)
@@ -717,13 +720,13 @@ begin
         have : degree a = 0,
         from nat.eq_zero_of_le_zero h4,
         contradiction,
-      }, 
+      },
       rw [is_constant_iff_degree_eq_zero] at h3,
       have h4 : 1 ≤ (degree c - degree (gcd c d[c])),
       from MS_aux_1a h3 h_char,
       apply nat.le_trans h4,
       simp,
-      exact nat.zero_le _,   
+      exact nat.zero_le _,
     }
   },
   {
@@ -739,7 +742,7 @@ begin
       from MS_aux_1a h3 h_char,
       apply nat.le_trans h4,
       simp,
-      exact nat.zero_le _,   
+      exact nat.zero_le _,
     },
     {
       admit --admit here
@@ -756,7 +759,7 @@ lemma rw_aux_1 [field β]
   (h_rel_prime_bc : rel_prime b c)
   (h_rel_prime_ca : rel_prime c a)
   (h_add : a + b = c)
-  (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)) 
+  (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c))
   (h_deg_add_le : degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c]) ≤ degree a + degree b - 1) :
   degree c ≤
     (degree a - degree (gcd a d[a])) +
@@ -774,7 +777,7 @@ have (degree c : ℤ) ≤
     ((degree c : ℤ) - (degree (gcd c d[c]) : ℤ)) - 1,
   from calc (degree c : ℤ) ≤
     ((degree c : ℤ) + ((degree a : ℤ) + (degree b : ℤ) - 1)) -
-      ((degree (gcd a d[a]) : ℤ) + (degree (gcd b d[b]) : ℤ) + (degree (gcd c d[c]) : ℤ)) : 
+      ((degree (gcd a d[a]) : ℤ) + (degree (gcd b d[b]) : ℤ) + (degree (gcd c d[c]) : ℤ)) :
       le_sub_iff_add_le.mpr $ add_le_add_left this _
     ... = _ : by simp,
 have 1 + (degree c : ℤ) ≤
@@ -791,7 +794,7 @@ lemma Mason_Stothers_lemma
 (f : polynomial β) : degree f ≤ degree (gcd f (derivative f )) + degree (rad f) -/
 /-
 lemma Mason_Stothers_lemma'
-(f : polynomial β) : degree f - degree (gcd f (derivative f )) ≤  degree (rad f) := 
+(f : polynomial β) : degree f - degree (gcd f (derivative f )) ≤  degree (rad f) :=
  -/
  /-
 --We will need extra conditions here
@@ -825,7 +828,7 @@ begin
     from sorry,
   refine nat.le_trans _ h_rad,
   apply nat.add_mono _ (Mason_Stothers_lemma' c),
-  apply nat.add_mono (Mason_Stothers_lemma' a) (Mason_Stothers_lemma' b), 
+  apply nat.add_mono (Mason_Stothers_lemma' a) (Mason_Stothers_lemma' b),
 end
 
 
@@ -901,7 +904,7 @@ begin
     },
     exact dvd_sub h1 h2,
   },
-  
+
   have h_dvd_wron_c : gcd c d[c] ∣ d[a] * b - a * d[b],
   {
     rw h_wron,
@@ -920,7 +923,7 @@ begin
     exact dvd_sub h2 h1,
   },
   have h_gcds_dvd : (gcd a d[a]) * (gcd b d[b]) * (gcd c d[c]) ∣ d[a] * b - a * d[b],
-  { 
+  {
     apply mul_dvd_of_dvd_of_dvd_of_rel_prime,
     apply rel_prime_mul_of_rel_prime_of_rel_prime_of_rel_prime,
     exact rel_prime_gcd_derivative_gcd_derivative_of_rel_prime (rel_prime_comm h_rel_prime_ca),
@@ -944,7 +947,7 @@ begin
     from derivative_eq_zero_and_derivative_eq_zero_of_rel_prime_of_wron_eq_zero (rel_prime_comm h_rel_prime_ca) h2,
     have h3 : (d[a] = 0 ∧ d[b] = 0 ∧ d[c] = 0),
     exact ⟨and.elim_left h_a_b, and.elim_right h_a_b, and.elim_right h_a_c⟩,
-    contradiction    
+    contradiction
   },
   have h_deg_add : degree (gcd a d[a] * gcd b d[b] * gcd c d[c]) = degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c]),
   {
@@ -974,15 +977,15 @@ begin
     from nat.sub_le_sub_right h1 _,
     have h3 : degree c + (degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c])) - (degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c])) = degree c,
     {--twice h3?
-      
-      have h3 : degree c + (degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c])) = 
+
+      have h3 : degree c + (degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c])) =
       degree c + (degree (gcd c d[c])) + (degree (gcd b d[b]) + degree (gcd a d[a]) ),
       {
         simp [add_assoc, add_comm],
       },
       rw [h3],
       --rw [add_comm (degree (gcd b d[b])) (degree (gcd c d[c]))],
-      --rw [←add_assoc, add_comm (degree (gcd a d[a])) _], 
+      --rw [←add_assoc, add_comm (degree (gcd a d[a])) _],
       rw [←nat.sub_sub, ←nat.sub_sub], --should use tactic comb here
       have h4 : degree c + degree (gcd c d[c]) + (degree (gcd b d[b]) + degree (gcd a d[a])) =
       degree c + degree (gcd c d[c]) + degree (gcd b d[b]) + degree (gcd a d[a]),
@@ -995,7 +998,7 @@ begin
       rw [nat.add_sub_assoc, nat.sub_self _, nat.add_zero],
       exact nat.le_refl _,
       exact nat.le_refl _,
-      exact nat.le_refl _,      
+      exact nat.le_refl _,
     },
     rw h3 at h2,
     have h4 : degree c + (degree a + degree b - 1) - (degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c]))
@@ -1026,14 +1029,14 @@ begin
             rw [add_eq_zero_iff_eq_zero_of_nonneg] at h4,
             exact h_constant (and.elim_right h4),
             exact nat.zero_le _,
-            exact nat.zero_le _,    
+            exact nat.zero_le _,
            },
            {
              by_contradiction h4,
              simp at h4,
              have h5 : degree c ≤ max (degree a) (degree b),
              {
-               rw ←h_add, 
+               rw ←h_add,
                exact degree_add,
              },
              rw [add_eq_zero_iff_eq_zero_of_nonneg] at h4,
@@ -1043,7 +1046,7 @@ begin
              from nat.eq_zero_of_le_zero h5,
              contradiction,
              exact nat.zero_le _,
-             exact nat.zero_le _,             
+             exact nat.zero_le _,
            }
          }
        },
@@ -1065,7 +1068,7 @@ begin
   have h_le_rad : degree a - degree (gcd a d[a]) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1 ≤
   degree (rad (a * b * c)) - 1,
   {
-    have h1 : degree a - degree (gcd a d[a]) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1 ≤ 
+    have h1 : degree a - degree (gcd a d[a]) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1 ≤
     degree (rad a ) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1,
     {
       have h1a : degree a - degree (gcd a d[a]) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1 =
@@ -1078,30 +1081,30 @@ begin
       degree (rad a) + ((degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1),
       {
         rw [add_assoc, nat.add_sub_assoc],
-        exact MS_aux_1 h_char h_add h_constant,     
+        exact MS_aux_1 h_char h_add h_constant,
       },
       rw [h1a, h1b],
-      apply @nat.add_le_add_right (degree a - degree (gcd a d[a])) (degree (rad a)), 
+      apply @nat.add_le_add_right (degree a - degree (gcd a d[a])) (degree (rad a)),
       exact Mason_Stothers_lemma' _,
     },
     apply nat.le_trans h1,
     rw add_comm (degree (rad a)) _,
-    have h2 : degree b - degree (gcd b d[b]) + degree (rad a) + (degree c - degree (gcd c d[c])) - 1 ≤ 
+    have h2 : degree b - degree (gcd b d[b]) + degree (rad a) + (degree c - degree (gcd c d[c])) - 1 ≤
     degree (rad b) + degree (rad a) + (degree c - degree (gcd c d[c])) - 1,
     {
       have h2a : degree b - degree (gcd b d[b]) + degree (rad a) + (degree c - degree (gcd c d[c])) - 1 = degree b - degree (gcd b d[b]) + (degree (rad a) + (degree c - degree (gcd c d[c])) - 1),
       {
         rw [add_assoc, nat.add_sub_assoc],
-        exact MS_aux_2 h_char h_add h_constant,      
+        exact MS_aux_2 h_char h_add h_constant,
       },
-      have h2b : degree (rad b) + degree (rad a) + (degree c - degree (gcd c d[c])) - 1 = 
+      have h2b : degree (rad b) + degree (rad a) + (degree c - degree (gcd c d[c])) - 1 =
       degree (rad b) + (degree (rad a) + (degree c - degree (gcd c d[c])) - 1),
       {
         rw [add_assoc, nat.add_sub_assoc],
-        exact MS_aux_2 h_char h_add h_constant,        
+        exact MS_aux_2 h_char h_add h_constant,
       },
       rw [h2a, h2b],
-      apply nat.add_le_add_right, 
+      apply nat.add_le_add_right,
       exact Mason_Stothers_lemma' _,
     },
     apply nat.le_trans h2,
@@ -1112,16 +1115,16 @@ begin
       have h3a : degree c - degree (gcd c d[c]) + degree (rad b) + degree (rad a) - 1 = degree c - degree (gcd c d[c]) + (degree (rad b) + degree (rad a) - 1),
       {
         rw [add_assoc, nat.add_sub_assoc],
-        admit, -- admit here           
+        admit, -- admit here
       },
-      have h3b : degree (rad c) + degree (rad b) + degree (rad a) - 1  = 
+      have h3b : degree (rad c) + degree (rad b) + degree (rad a) - 1  =
       degree (rad c) + (degree (rad b) + degree (rad a) - 1),
       {
         rw [add_assoc, nat.add_sub_assoc],
-        admit, -- admit here 
+        admit, -- admit here
       },
       rw [h3a, h3b],
-      apply nat.add_le_add_right, 
+      apply nat.add_le_add_right,
       exact Mason_Stothers_lemma' _,
     },
     apply nat.le_trans h3,

@@ -1,5 +1,5 @@
 
-
+#exit
 
 -- so every polynomial has a GCD? Shouldn't there be some restriction on α
 --axiom gcd_ax : ∀ a b : polynomial α,( ∃( d : polynomial α ), (is_gcd a b d))
