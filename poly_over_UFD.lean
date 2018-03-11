@@ -55,6 +55,7 @@ begin
   exact is_constant_of_degree_eq_zero h1,
 end
 
+--Naming is incorrect --Belongs in poly over field
 lemma leading_coeff_inv_mul_monic_of_ne_zero [field α ] {x : polynomial α} (h : x ≠ 0) : monic ((C (leading_coeff x)⁻¹) * x) :=
 begin
   unfold monic,

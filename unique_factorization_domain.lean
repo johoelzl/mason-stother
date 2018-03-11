@@ -784,6 +784,21 @@ begin
   exact ⟨h2, h3, h4 ⟩
 end
 
+
+
+lemma mul_associated_mul_of_associated_of_associated {α : Type u} [integral_domain α] {a b c d : α} (h1 : a ~ᵤ c) (h2: b ~ᵤ d) : (a * b) ~ᵤ (c * d) :=
+begin
+  rcases h1 with ⟨u1, hu1⟩,
+  rcases h2 with ⟨u2, hu2⟩,
+  fapply exists.intro,
+  exact u1 * u2,
+  rw [hu1, hu2, mul_assoc],
+  exact calc ↑u1 * (c * (↑u2 * d)) = ↑u1 * ((c * ↑u2) * d): by simp [mul_assoc]
+    ... = ↑u1 * ((↑u2 * c) * d): by simp [mul_comm]
+    ... = ↑u1 * ↑u2 * c * d: by simp [mul_assoc]
+    ... = _ : by rw [units.mul_coe, mul_assoc]
+end
+
 inductive rel_multiset {α β : Type u} (r : α → β → Prop) : multiset α → multiset β → Prop
 | nil : rel_multiset ∅ ∅
 | cons : ∀a b xs ys, r a b → rel_multiset xs ys → rel_multiset (a::xs) (b::ys)

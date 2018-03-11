@@ -229,12 +229,7 @@ lemma leading_coeff_def {p : polynomial α } : leading_coeff p = p (degree p) :=
 def monic (p : polynomial α):= leading_coeff p = 1
 
 
-lemma ne_zero_of_monic (p : polynomial α) (h : monic p) : p ≠ 0 :=
-begin
-  by_contradiction h1,
-  simp at h1, 
-  subst h1,
-end 
+
 
 lemma ext : ∀{f g : polynomial α}, (∀a, f a = g a) → f = g:=
 begin
@@ -374,12 +369,25 @@ begin
   exact h,
 end
 
+set_option pp.numerals false
+set_option pp.implicit true
+
+lemma ne_zero_of_monic (h0 : (0 : α) ≠ 1) (p : polynomial α) (h : monic p) : p ≠ 0 :=
+begin
+  by_contradiction h1,
+  simp at h1, 
+  subst h1,
+  exact not_monic_zero h0 h,
+end 
+
 lemma monic_X : monic (X : polynomial α) := by {rw [monic], exact leading_coeff_X}
 
 @[simp] lemma monic_one : monic (1 : polynomial α) :=
 begin
   rw [monic, ←C_1, leading_coeff_C],
 end
+
+
 
 lemma leading_coeff_X_pow {n : ℕ} : leading_coeff ((X ^ n) : polynomial α) = (1 : α) :=
 begin
@@ -1055,6 +1063,7 @@ begin
   exact rfl,
 end
 
+
 end comm_semiring
 
 section ring
@@ -1408,6 +1417,41 @@ begin
     simp [leading_coeff, this, mul_add_degree_eq_add_leading_coeff]
   }    
 end
+
+
+lemma monic_mul_of_monic_of_monic {a b : polynomial α} (ha : monic a) (hb : monic b) : monic (a * b) :=
+begin
+  simp only [monic] at *,
+  rw leading_coeff_mul_eq_mul_leading_coef,
+  simp *,
+end
+
+
+lemma monic_prod_of_forall_mem_monic [comm_semiring α] {s : multiset (polynomial α)} (hs: ∀x ∈ s, monic x) : monic s.prod :=
+begin
+  revert hs,
+  apply multiset.induction_on s,
+  {
+    simp * at *,
+  },
+  {
+    intros a s h1 h2,
+    simp * at *,
+    apply monic_mul_of_monic_of_monic,
+    {
+      apply h2 a,
+      simp,
+    },
+    {
+      apply h1,
+      intros x s,
+      apply h2,
+      simp *,
+    }
+  }
+end
+
+
 
 --Should be in lib, used it on two spots already.
 lemma one_le_of_ne_zero {n : ℕ} : n ≠ 0 → 1 ≤ n :=

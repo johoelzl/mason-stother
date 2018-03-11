@@ -19,6 +19,7 @@ local notation Σ := finset.sume
 local notation Π := finset.prod
 local notation `Π₀` := finsupp.prod
 local notation `~`a:=polynomial a
+local notation a `~ᵤ` b : 50 := associated a b
 
 open polynomial
 open classical
@@ -586,21 +587,127 @@ end
 
 open associated
 
+private lemma monic_prod_factors (a : polynomial β) : monic a.factors.prod :=
+  monic_prod_of_forall_mem_monic a.factors_monic
+
+
+lemma c_fac_eq_leading_coeff (a : polynomial β) : a.c_fac = leading_coeff a :=
+begin
+  by_cases ha : a = 0,
+  {
+    simp * at *,
+  },
+  {
+    have h1 : a = (C a.c_fac) * a.factors.prod,
+      from a.factors_eq,
+    rw [h1] {occs := occurrences.pos[2]},
+    rw leading_coeff_mul_eq_mul_leading_coef,
+    let h3 := monic_prod_factors a,
+      rw monic at h3,
+    simp [h3],
+  }
+end
+
+private lemma C_inv_c_fac_mul_eq_prod_factors {a : polynomial β} (ha : a ≠ 0): (C a.c_fac⁻¹) * a = a.factors.prod :=
+begin
+  have h1 : a = (C a.c_fac) * a.factors.prod,
+    from a.factors_eq,    
+  rw [ne.def, ←c_fac_eq_zero_iff_eq_zero] at ha,
+  exact calc (C a.c_fac⁻¹) * a = (C a.c_fac⁻¹) * (C (c_fac a) * prod (factors a)) : by rw [←h1]
+      ... = _ : by rw [←mul_assoc, ←C_mul_C, inv_mul_cancel ha, C_1, one_mul], 
+end
 
 lemma factors_eq_map_monic_out_to_multiset_mk (a : polynomial β) : a.factors = map monic_out (associated.to_multiset (associated.mk a)) :=
 begin
-  have : a.factors.prod = (map monic_out (to_multiset (mk a))).prod,
+  by_cases ha : a = 0,
   {
-    --We need to show that prod_and_map_monic_out_commute
+    simp * at *,
+  },
+  {
+    have h1 : a = C (a.c_fac) * a.factors.prod,
+      from a.factors_eq,
+    have h2 : C (a.c_fac⁻¹) * a = a.factors.prod,
+      from C_inv_c_fac_mul_eq_prod_factors ha,
+    have h3: a.factors.prod = (map monic_out (to_multiset (mk a))).prod,
+    {
+      rw prod_map_monic_out_eq_monic_out_prod,
+      rw ←h2,
+      rw ←associated_iff_eq_of_monic_of_monic,
+      rw to_multiset_prod_eq,
+      have h4 : (a ~ᵤ (monic_out (mk a))),
+        from (monic_out_mk_associated _).symm,
+      have h5 : (C (c_fac a)⁻¹ * a ~ᵤ a),
+      {
+        have h5a : (c_fac a)⁻¹ ≠ 0,
+        {
+          rw ←c_fac_eq_zero_iff_eq_zero at ha,
+          apply inv_ne_zero,
+          exact ha,
+        },
+        have h5b : (C (c_fac a)⁻¹) ≠ 0, --Is this used?
+        {
+          rw [ne.def, C_eq_zero_iff_eq_zero],
+          exact h5a,
+        },
+        have h5c: is_unit (C (c_fac a)⁻¹),
+          from is_unit_C_of_ne_zero h5a,
+        fapply exists.intro,
+        exact to_unit h5c,--
+        rw [to_unit_is_unit_eq],
+      },
+      exact associated.trans h5 h4,
+      rwa [ne.def, mk_eq_zero_iff_eq_zero],
+      {
+        rw c_fac_eq_leading_coeff,
+        exact leading_coeff_inv_mul_monic_of_ne_zero ha,          
+      },
+      {
+        apply monic_monic_out_of_ne_zero,
+        rw [to_multiset_prod_eq],--Wrong naminG!!
+        rw ←mk_eq_zero_iff_eq_zero at ha, --Duplicate
+        exact ha,
+        rw ←mk_eq_zero_iff_eq_zero at ha,         
+        exact ha,
+      }
+    },
+    have h4a: ∀ (x : ~β), x ∈ map monic_out (to_multiset (mk a)) → irreducible x,
+    {
+      intros x h,
+      rw mem_map at h,
+      rcases h with ⟨y, hy⟩,
+      rw hy.2.symm,
+      apply irreducible_monic_out_of_irred,
+      apply to_multiset_irred _ y hy.1,
+    },
+    have h4 : rel_multiset associated a.factors (map monic_out (to_multiset (mk a))),
+      from unique_factorization_domain.unique a.factors_irred _ h3,
+    apply eq_of_rel_multiset_associated_of_forall_mem_monic_of_forall_mem_monic,
+    exact h4,
+    exact a.factors_monic,
+    {
+      intros x h,
+      rw mem_map at h,
+      rcases h with ⟨y, hy⟩,
+      rw hy.2.symm,
+      apply monic_monic_out_of_ne_zero,
+      {
+        have : irred y,
+          from to_multiset_irred _ y hy.1,
+        exact ne_zero_of_irred this,
+      }
+    }
   }
-
 end
 
 --aux
 --I already have to_multiset_mul, how can I reuse that here?? How to make the connection between monic and associated??
-lemma factors_mul_eq_factors_add_factors (a b : polynomial β) : factors (a * b) = a.factors + b.factors :=
+lemma factors_mul_eq_factors_add_factors {a b : polynomial β} (ha : a ≠ 0) (hb : b ≠ 0) : factors (a * b) = a.factors + b.factors :=
 begin
-  rw 
+  rw [factors_eq_map_monic_out_to_multiset_mk, factors_eq_map_monic_out_to_multiset_mk, factors_eq_map_monic_out_to_multiset_mk],
+  rw [mul_mk, to_multiset_mul],
+  simp,
+  simp [mk_eq_zero_iff_eq_zero, *],
+  simp [mk_eq_zero_iff_eq_zero, *],
 end
 
 lemma rad_mul_eq_rad_mul_rad_of_rel_prime (a b : polynomial β) (h : rel_prime a b) : rad (a * b) = (rad a) * (rad b) :=
@@ -608,7 +715,10 @@ begin
   simp only [rad],
   rw prod_mul_prod_eq_add_prod,
   apply congr_arg,
-  admit,
+  --rw factors_mul_eq_factors_add_factors,
+  --rw ext,
+  
+  
  
 
 end
