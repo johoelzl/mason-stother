@@ -1105,15 +1105,9 @@ begin
 end
 
 
-lemma is_constant_if_is_constant_neg (p : polynomial α) : is_constant p ↔ is_constant (-p) :=
+lemma is_constant_neg_iff_is_constant (p : polynomial α) : is_constant (-p) ↔ is_constant p :=
 begin
   split,
-  {
-    intro h,
-    rcases h with ⟨c, hc⟩,
-    subst hc,
-    exact ⟨-c, neg_C_eq_C_neg c⟩,
-  },
   {
     intro h,
     rcases h with ⟨c, hc⟩,
@@ -1124,7 +1118,13 @@ begin
     },
     subst this,
     rw neg_C_eq_C_neg,
-    simp,
+    simp,    
+  },
+  {
+    intro h,
+    rcases h with ⟨c, hc⟩,
+    subst hc,
+    exact ⟨-c, neg_C_eq_C_neg c⟩,
   }
 end
 

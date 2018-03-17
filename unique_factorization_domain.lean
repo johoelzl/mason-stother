@@ -2963,9 +2963,10 @@ begin
   exact mul_le_of_le_of_le_of_rel_prime h1 h2 h3,
 end
 
-lemma rel_prime_comm {γ : Type u} [unique_factorization_domain γ] {a b : γ} : rel_prime a b → rel_prime b a :=
+
+
+@[symm] protected lemma rel_prime.symm {γ : Type u} [unique_factorization_domain γ] {a b : γ} (h1: rel_prime a b ): rel_prime b a :=
 begin
-  intro h1,
   rw rel_prime at *,
   apply is_unit_of_associated h1 gcd_comm
 end
@@ -3053,9 +3054,9 @@ begin
       {simp [h2]},
       {
         rw [rel_prime_pow h2],
-        apply rel_prime_comm,
+        apply rel_prime.symm,
         rw [rel_prime_pow h1],
-        exact rel_prime_comm h,
+        exact h.symm,
       }
 end
 
@@ -3605,7 +3606,7 @@ begin
     rw [←h3, ←prod_mul_prod_eq_add_prod, mul_comm a, mul_assoc],
     apply mul_dvd_of_dvd_of_dvd_of_rel_prime,
     {
-      apply rel_prime_comm,
+      apply rel_prime.symm,
       rw [rel_prime_prod_iff_forall_rel_prime],
       intros x h,
       have : x ≠ a,
@@ -3786,8 +3787,8 @@ end
 lemma rel_prime_of_rel_prime_of_associated_right {a b b': α} (h1 : rel_prime a b)  (h2 : b' ~ᵤ b) : rel_prime a b' :=
 begin
   have h3 : rel_prime b a,
-    from rel_prime_comm h1,
-  apply rel_prime_comm,
+    from h1.symm,
+  apply rel_prime.symm,
   exact rel_prime_of_rel_prime_of_associated_left h3 h2,
 end
 

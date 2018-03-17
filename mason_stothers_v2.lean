@@ -415,7 +415,7 @@ begin
   have h7 : b ∣ a * d[b],
   from dvd.intro _ h3,
   have h8 : b ∣ d[b],
-  exact dvd_of_dvd_mul_of_rel_prime h7 (rel_prime_comm h1),
+  exact dvd_of_dvd_mul_of_rel_prime h7 (h1.symm),
   have h9 : d[b] = 0,
   from derivative_eq_zero_of_dvd_derivative_self h8,
   exact ⟨h6, h9⟩,
@@ -536,6 +536,7 @@ begin
   exact h2,
 end
 
+--a and b can be implicit
 lemma factors_inter_factors_eq_zero_of_rel_prime (a b : polynomial β) (h : rel_prime a b) : a.factors ∩ b.factors = 0 :=
 begin
   by_cases ha: a = 0,
@@ -680,7 +681,7 @@ begin
       apply to_multiset_irred _ y hy.1,
     },
     have h4 : rel_multiset associated a.factors (map monic_out (to_multiset (mk a))),
-      from unique_factorization_domain.unique a.factors_irred _ h3,
+      from unique_factorization_domain.unique a.factors_irred h4a h3,
     apply eq_of_rel_multiset_associated_of_forall_mem_monic_of_forall_mem_monic,
     exact h4,
     exact a.factors_monic,
@@ -710,33 +711,128 @@ begin
   simp [mk_eq_zero_iff_eq_zero, *],
 end
 
-lemma rad_mul_eq_rad_mul_rad_of_rel_prime (a b : polynomial β) (h : rel_prime a b) : rad (a * b) = (rad a) * (rad b) :=
+@[simp] lemma rad_zero : rad (0 : polynomial β ) = 1 :=
+begin
+  simp [rad],
+end
+
+lemma rad_mul_eq_rad_mul_rad_of_rel_prime {a b : polynomial β} (ha : a ≠ 0) (hb : b ≠ 0) (h : rel_prime a b) : rad (a * b) = (rad a) * (rad b) :=
 begin
   simp only [rad],
   rw prod_mul_prod_eq_add_prod,
   apply congr_arg,
-  --rw factors_mul_eq_factors_add_factors,
-  --rw ext,
   
-  
- 
-
+  rw factors_mul_eq_factors_add_factors ha hb, --Might be good to go to nodup
+  rw multiset.ext,
+  intros x,
+  by_cases h1 : x ∈ (a.factors + b.factors),
+  {
+    have h2 : count x (erase_dup (factors a + factors b)) = 1,
+    {
+      apply count_eq_one_of_mem,
+      exact nodup_erase_dup _,
+      rwa mem_erase_dup,
+    },
+    rw mem_add at h1,
+    have h3 : x ∈ a.factors ∩ b.factors ↔ x ∈ a.factors ∧ x ∈ b.factors,
+      from mem_inter,
+    have h4: a.factors ∩ b.factors = 0,
+      from factors_inter_factors_eq_zero_of_rel_prime _ _ h,
+    cases h1,
+    {
+      have : x ∉ b.factors,
+      {
+          simp * at *,
+      },
+      rw ←mem_erase_dup at h1,
+      have h1a : count x (erase_dup (factors a)) = 1,
+        from count_eq_one_of_mem (nodup_erase_dup _) h1,
+      rw ←mem_erase_dup at this,
+      have h1b : count x (erase_dup (factors b)) = 0,
+      {
+        rwa count_eq_zero,
+      },
+      rw count_add,
+      simp * at *,
+    },
+    { --Strong duplication
+      have : x ∉ a.factors,
+      {
+          simp * at *,
+      },
+      rw ←mem_erase_dup at h1,
+      have h1a : count x (erase_dup (factors b)) = 1,
+        from count_eq_one_of_mem (nodup_erase_dup _) h1,
+      rw ←mem_erase_dup at this,
+      have h1b : count x (erase_dup (factors a)) = 0,
+      {
+        rwa count_eq_zero,
+      },
+      rw count_add,
+      simp * at *,      
+    }
+  },
+  {
+    have h2 : count x (erase_dup (factors a + factors b)) = 0,
+    {
+      rwa [count_eq_zero, mem_erase_dup],
+    },
+    rw [mem_add, not_or_distrib] at h1,
+    have h3 : count x (erase_dup (factors a)) = 0,
+    {
+      rw [count_eq_zero, mem_erase_dup],
+      exact h1.1,  
+    },
+    have h4 : count x (erase_dup (factors b)) = 0,
+    {
+      rw [count_eq_zero, mem_erase_dup],
+      exact h1.2,        
+    },
+    simp * at *,
+  },
 end
+
+
 
 --We will need extra conditions here
 --We only need this one
-lemma degree_rad_add {a b: polynomial β}: degree (rad a) + degree (rad b) ≤ degree (rad (a * b)) :=
+lemma degree_rad_add {a b: polynomial β} (ha : a ≠ 0) (hb : b ≠ 0) (hab : rel_prime a b): degree (rad a) + degree (rad b) ≤ degree (rad (a * b)) :=
 begin
-  admit,
+  rw rad_mul_eq_rad_mul_rad_of_rel_prime ha hb hab,
+  rw degree_mul_eq_add_of_mul_ne_zero,
+  apply _root_.mul_ne_zero,
+  {
+    apply multiset.prod_ne_zero_of_forall_mem_ne_zero,
+    intros x h,
+    rw mem_erase_dup at h,
+    exact (a.factors_irred _ h).1 --Anoying setup for factors_irred
+  },
+  {
+    apply multiset.prod_ne_zero_of_forall_mem_ne_zero,
+    intros x h,
+    rw mem_erase_dup at h,
+    exact (b.factors_irred _ h).1 --Anoying setup for factors_irred    
+  },
 end
 
-
-
---We will need extra conditions here
-lemma degree_rad_add' {a b c : polynomial β}: degree (rad a) + degree (rad b) + degree (rad c) ≤ degree (rad (a * b * c)) :=
+private lemma h_rad_add {a b c: polynomial β} (ha : a ≠ 0) (hb : b ≠ 0) (hc : c ≠ 0) (hab : rel_prime a b) (h_rel_prime_bc : rel_prime b c)
+  (h_rel_prime_ca : rel_prime c a)
+:  degree(rad(a))+degree(rad(b))+degree(rad(c)) ≤ degree(rad(a*b*c)) :=
 begin
-  admit,
+  have habc : rel_prime (a*b) c,
+    {
+      have h1: ((gcd (a * b) c) ~ᵤ (gcd b c)),
+        from gcd_mul_cancel h_rel_prime_ca.symm,
+      exact is_unit_of_associated h_rel_prime_bc h1.symm,
+    },
+  have h1 : a * b ≠ 0,
+    from mul_ne_zero ha hb,
+  have h3 : degree (rad a) + degree (rad b) ≤ degree (rad (a * b)),
+    from degree_rad_add ha hb hab,
+  exact calc degree(rad(a))+degree(rad(b))+degree(rad(c)) ≤ degree (rad (a * b)) + degree (rad c) : add_le_add_right h3 _
+  ... ≤ _ : degree_rad_add h1 hc habc
 end
+
 
 lemma gt_zero_of_ne_zero {n : ℕ} (h : n ≠ 0) : n > 0 :=
 begin
@@ -897,11 +993,7 @@ end
 
 --lemma factors_eq_zero_iff_rad_eq_zero (a : polynomial β)
 
-@[simp] lemma rad_zero : rad (0 : polynomial β) = 1 :=
-begin
-  rw rad,
-  simp,
-end
+
 
 lemma rad_dvd_prod_factors (a : polynomial β) : (rad a) ∣ a.factors.prod :=
 begin
@@ -1205,13 +1297,19 @@ end
 
 --h_le_rad
 lemma rw_aux_2 [field β] --We want to use the Mason Stothers lemmas here
-  (a b c : polynomial β)
+  {a b c : polynomial β}
+  (ha : a ≠ 0)
+  (hb : b ≠ 0)
+  (hc : c ≠ 0)
+  (h_rel_prime_ab : rel_prime a b)
+  (h_rel_prime_bc : rel_prime b c)
+  (h_rel_prime_ca : rel_prime c a)
    : degree a - degree (gcd a d[a]) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1 ≤
   degree (rad (a * b * c)) - 1:=
 begin
   apply nat.sub_le_sub_right,
   have h_rad:  degree(rad(a))+degree(rad(b))+degree(rad(c)) ≤ degree(rad(a*b*c)),
-    from sorry,
+    from h_rad_add ha hb hc h_rel_prime_ab h_rel_prime_bc h_rel_prime_ca,
   refine nat.le_trans _ h_rad,
   apply nat.add_mono _ (Mason_Stothers_lemma' c),
   apply nat.add_mono (Mason_Stothers_lemma' a) (Mason_Stothers_lemma' b), 
@@ -1396,7 +1494,7 @@ begin
   have h2 : d[a] * c - a * d[c] = 0,
   {rw [←h_wron, h1]},
   have h_a_c : d[a] = 0 ∧ d[c] = 0,
-  from derivative_eq_zero_and_derivative_eq_zero_of_rel_prime_of_wron_eq_zero (rel_prime_comm h_rel_prime_ca) h2,
+  from derivative_eq_zero_and_derivative_eq_zero_of_rel_prime_of_wron_eq_zero (h_rel_prime_ca.symm) h2,
   have h3 : (d[a] = 0 ∧ d[b] = 0 ∧ d[c] = 0),
   exact ⟨and.elim_left h_a_b, and.elim_right h_a_b, and.elim_right h_a_c⟩,
   contradiction    
@@ -1440,7 +1538,6 @@ begin
   exact h3
 end
 
-#check rel_prime_gcd_derivative_gcd_derivative_of_rel_prime
 
 private lemma h_gcds_dvd 
 (a b c : polynomial β)
@@ -1454,7 +1551,7 @@ private lemma h_gcds_dvd
 begin 
   apply mul_dvd_of_dvd_of_dvd_of_rel_prime,
   apply rel_prime_mul_of_rel_prime_of_rel_prime_of_rel_prime,
-  exact rel_prime_gcd_derivative_gcd_derivative_of_rel_prime (rel_prime_comm h_rel_prime_ca) _ _,
+  exact rel_prime_gcd_derivative_gcd_derivative_of_rel_prime (h_rel_prime_ca.symm) _ _,
   exact rel_prime_gcd_derivative_gcd_derivative_of_rel_prime h_rel_prime_bc _ _,
   apply mul_dvd_of_dvd_of_dvd_of_rel_prime,
   exact rel_prime_gcd_derivative_gcd_derivative_of_rel_prime h_rel_prime_ab _ _,
@@ -1466,6 +1563,9 @@ end
 theorem Mason_Stothers [field β]
   (h_char : characteristic_zero β)
   (a b c : polynomial β)
+  (ha : a ≠ 0)
+  (hb : b ≠ 0)
+  (hc : c ≠ 0)
   (h_rel_prime_ab : rel_prime a b)
   (h_rel_prime_bc : rel_prime b c)
   (h_rel_prime_ca : rel_prime c a)
@@ -1508,55 +1608,141 @@ begin
     from rw_aux_1 a b c h_add h_constant h_deg_add_le,
   have h_le_rad : degree a - degree (gcd a d[a]) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1 ≤
   degree (rad (a * b * c)) - 1,
-    from rw_aux_2 a b c,
+    from rw_aux_2 ha hb hc h_rel_prime_ab h_rel_prime_bc h_rel_prime_ca,
   exact nat.le_trans h_deg_c_le_1 h_le_rad,
 end
 
---Can we stop here or do we need the more general lemma?
-#exit
-
-lemma rad_neg_eq_rad [field β] (p : polynomial β) : rad (-p) = rad p :=
+--place in to_multiset
+private lemma cons_ne_zero {γ : Type u}(a : γ)(s : multiset γ): a :: s ≠ 0 :=
 begin
-  admit,
+  intro h,
+  have : a ∈ a :: s,
+  {
+    simp,
+  },
+  simp * at *,
+end 
 
+--place in to_multiset
+--private?
+private lemma map_eq_zero_iff_eq_zero {γ ζ : Type u} (s : multiset γ)(f: γ → ζ): map f s = 0 ↔ s = 0 :=
+begin
+  apply multiset.induction_on s,
+  {
+    simp * at *,
+  },
+  {
+    intros a s h,
+    split,
+    {
+      intro h1,
+      simp * at *,
+      have h2 : false,
+        from cons_ne_zero _ _ h1,
+      contradiction,
+    },
+    {
+      intro h1,
+      simp * at *,  
+    },
+  }
 end
+
+--structure?
+lemma factors_eq_factors_of_associated {a b : polynomial β} (h : (a ~ᵤ b)): a.factors = b.factors :=
+begin
+  rw [factors_eq_map_monic_out_to_multiset_mk, factors_eq_map_monic_out_to_multiset_mk],
+  rw [associated_iff_mk_eq_mk] at *,
+  simp * at *,
+end
+
+@[simp] lemma rad_neg_eq_rad [field β] (p : polynomial β) : rad (-p) = rad p :=
+begin
+  have hp : (p ~ᵤ (-p)),
+    from associated_neg _,
+  have h1 : p.factors = (-p).factors,
+    from factors_eq_factors_of_associated hp,
+  rw [rad, rad, h1],
+end
+
+@[simp] lemma rel_prime_neg_iff_rel_prime_left {a b : polynomial β} : rel_prime (-a) b ↔ rel_prime a b :=
+begin
+  split,
+  {
+    intro h,
+    apply rel_prime_of_rel_prime_of_associated_left h (associated_neg _),
+  },
+  {
+    intro h,
+    apply rel_prime_of_rel_prime_of_associated_left h (associated_neg _).symm,
+  }
+end
+
+@[simp] lemma rel_prime_neg_iff_rel_prime_right {a b : polynomial β} : rel_prime a (-b) ↔ rel_prime a b :=
+begin
+  split,
+  {
+    intro h,
+    apply rel_prime_of_rel_prime_of_associated_right h (associated_neg _),
+  },
+  {
+    intro h,
+    apply rel_prime_of_rel_prime_of_associated_right h (associated_neg _).symm,
+  }
+end
+
+private lemma neg_eq_zero_iff_eq_zero {a : polynomial β} : -a = 0 ↔ a = 0 :=
+begin
+  split,
+  {
+    intro h,
+    exact calc a = -(-a) : by simp
+      ... = - (0) : by rw h
+      ... = _ : by simp
+  },
+  {
+    intro h,
+    simp *,
+  }
+end
+
+private lemma neg_ne_zero_iff_ne_zero {a : polynomial β} : -a ≠ 0 ↔ a ≠ 0 :=
+  not_iff_not_of_iff neg_eq_zero_iff_eq_zero
+  
+local attribute [simp] is_constant_neg_iff_is_constant
 
 theorem Mason_Stothers_case_c [field β]
   (h_char : characteristic_zero β)
   (a b c : polynomial β)
+  (ha : a ≠ 0)
+  (hb : b ≠ 0)
+  (hc : c ≠ 0)
   (h_rel_prime_ab : rel_prime a b)
   (h_rel_prime_bc : rel_prime b c)
   (h_rel_prime_ca : rel_prime c a)
   (h_add : a + b + c = 0)
-  (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)):
+  (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)): --You can do this one by cc? simpa [and.comm, and.left_comm, and.assoc] using h_constant
   degree c ≤ degree ( rad (a*b*c)) - 1 :=
   begin
     have h_c : degree (-c) ≤ degree ( rad (a*b*(-c))) - 1,
     {
       have h_add : a + b = - c,
       {
-        admit,
-        /-
         exact calc a + b = a + b + (c - c) : by simp 
           ... = a + b + c - c : by simp
           ... = 0 - c : by rw [h_add]
-          ... = _ : by simp,-/
+          ... = _ : by simp,
       },
-      rw is_constant_if_is_constant_neg c at h_constant,
-      apply Mason_Stothers h_char _ _ _ h_rel_prime_ab _ _ h_add h_constant,
-      have : rel_prime b (-c),
+      rw ←(is_constant_neg_iff_is_constant c) at h_constant, --The argument should not have been implicit
+      apply Mason_Stothers h_char _ _ _ ha hb _ h_rel_prime_ab _ _ h_add h_constant,--We need relPrime.symm in general 
       {
-        apply rel_prime_of_rel_prime_of_associated_right h_rel_prime_bc,
-        apply associated.symm,
-        apply associated_neg,
+        simp [neg_ne_zero_iff_ne_zero, *],
       },
+      have : rel_prime b (-c),--Rather as rw, rather as simp rule, rel_prime a -c = rel_prime a c
+        from rel_prime_neg_iff_rel_prime_right.2 h_rel_prime_bc,
       exact this,
       have : rel_prime (-c) a,
-      {
-        apply rel_prime_of_rel_prime_of_associated_left h_rel_prime_ca,
-        apply associated.symm,
-        apply associated_neg,        
-      },
+        from rel_prime_neg_iff_rel_prime_left.2 h_rel_prime_ca,
       exact this,
     },
     have h_neg_abc: a * b * -c = - (a * b * c),
@@ -1567,9 +1753,13 @@ theorem Mason_Stothers_case_c [field β]
     exact h_c,
   end
 
+
 theorem Mason_Stothers_case_a [field β]
   (h_char : characteristic_zero β)
   (a b c : polynomial β)
+  (ha : a ≠ 0)
+  (hb : b ≠ 0)
+  (hc : c ≠ 0)
   (h_rel_prime_ab : rel_prime a b)
   (h_rel_prime_bc : rel_prime b c)
   (h_rel_prime_ca : rel_prime c a)
@@ -1577,33 +1767,112 @@ theorem Mason_Stothers_case_a [field β]
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)):
   degree a ≤ degree ( rad (a*b*c)) - 1 :=
   begin
-    have h_a : degree (-a) ≤ degree ( rad ((-a)*b*c)) - 1,
+    have h_a : degree (-a) ≤ degree ( rad (b*c*(-a))) - 1,
     {
-      have h_add : b + c = - a,
+      have h_add_1 : b + c + a = 0,
       {
-        admit,
-        /-
-        exact calc a + b = a + b + (c - c) : by simp 
-          ... = a + b + c - c : by simp
-          ... = 0 - c : by rw [h_add]
-          ... = _ : by simp,-/
+        simpa [add_comm, add_assoc] using h_add,
       },
-      have h_constant : ¬(is_constant b ∧ is_constant c ∧ is_constant (-a)),
+      have h_add_2 : b + c = - a,
       {
-        have : (is_constant (-a) ∧ is_constant b ∧ is_constant c) = (is_constant b ∧ is_constant c ∧ is_constant (-a)),
-
+        exact calc b + c = b + c + (a - a) : by simp 
+          ... = b + c + a - a : by simp
+          ... = 0 - a : by rw [h_add_1]
+          ... = _ : by simp,
       },
-      rw is_constant_if_is_constant_neg a at h_constant,
-      apply Mason_Stothers h_char _ _ _ _ _ _ h_add h_constant,
-
+      have h_constant_2 : ¬(is_constant b ∧ is_constant c ∧ is_constant (-a)),
+      {
+        simpa [(is_constant_neg_iff_is_constant a), and_comm, and_assoc] using h_constant,
+        intros h1 h2,
+        simp *,
+      },
+      apply Mason_Stothers h_char b c (-a) hb hc (neg_ne_zero_iff_ne_zero.2 ha) h_rel_prime_bc _ _ h_add_2 h_constant_2,
+      {
+        simp *,
+      },
+      {
+        simp *,
+      },
     },
-    have h_neg_abc: (-a) * b * c = - (a * b * c),
+    have h_neg_abc: b * c * -a = - (a * b * c),
     {
       simp,
+      exact calc b * c * a = b * (a * c) : by rw [mul_assoc, mul_comm c a]
+        ... = _ : by rw [←mul_assoc, mul_comm b a],      
     },
-    rw [degree_neg, h_neg_abc, rad_neg_eq_rad] at h_c,
+    rw [degree_neg, h_neg_abc, rad_neg_eq_rad] at h_a,
     exact h_a,
   end
 
+theorem Mason_Stothers_case_b [field β]
+  (h_char : characteristic_zero β)
+  (a b c : polynomial β)
+  (ha : a ≠ 0)
+  (hb : b ≠ 0)
+  (hc : c ≠ 0)
+  (h_rel_prime_ab : rel_prime a b)
+  (h_rel_prime_bc : rel_prime b c)
+  (h_rel_prime_ca : rel_prime c a)
+  (h_add : a + b + c = 0)
+  (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)):
+  degree b ≤ degree ( rad (a*b*c)) - 1 :=
+  begin
+    have h_b : degree (-b) ≤ degree ( rad (a*c*(-b))) - 1,
+    {
+      have h_add_1 : a + c + b = 0,
+      {
+        simpa [add_comm, add_assoc] using h_add,
+      },
+      have h_add_2 : a + c = - b,
+      {
+        exact calc a + c = a + c + (b - b) : by simp 
+          ... = a + c + b - b : by simp
+          ... = 0 - b : by rw [h_add_1]
+          ... = _ : by simp,
+      },
+      have h_constant_2 : ¬(is_constant a ∧ is_constant c ∧ is_constant (-b)),
+      {
+        simpa [(is_constant_neg_iff_is_constant b), and_comm, and_assoc] using h_constant,
+      },
+      apply Mason_Stothers h_char a c (-b) ha hc (neg_ne_zero_iff_ne_zero.2 hb) h_rel_prime_ca.symm _ _ h_add_2 h_constant_2,
+      {
+        simp [h_rel_prime_bc.symm, *],
+      },
+      {
+        simp [h_rel_prime_ab.symm, *],
+      }
+    },    
+    have h_neg_abc: a * c * -b = - (a * b * c),
+    {
+      simp,
+      exact calc a * c * b = a * (b * c) : by rw [mul_assoc, mul_comm c b]
+        ... = _ : by rw [←mul_assoc],      
+    },
+    rw [degree_neg, h_neg_abc, rad_neg_eq_rad] at h_b,
+    exact h_b,
+  end
+
+theorem Mason_Stothers_general [field β]
+  (h_char : characteristic_zero β)
+  (a b c : polynomial β)
+  (ha : a ≠ 0)
+  (hb : b ≠ 0)
+  (hc : c ≠ 0)
+  (h_rel_prime_ab : rel_prime a b)
+  (h_rel_prime_bc : rel_prime b c)
+  (h_rel_prime_ca : rel_prime c a)
+  (h_add : a + b + c = 0)
+  (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)):
+  max (degree a) (max (degree b) (degree c)) ≤ degree ( rad (a*b*c)) - 1 :=
+begin
+  have h_a: degree a ≤ degree ( rad (a*b*c)) - 1, 
+    from Mason_Stothers_case_a h_char a b c ha hb hc h_rel_prime_ab h_rel_prime_bc h_rel_prime_ca h_add h_constant,
+  have h_b: degree b ≤ degree ( rad (a*b*c)) - 1,
+    from Mason_Stothers_case_b h_char a b c ha hb hc h_rel_prime_ab h_rel_prime_bc h_rel_prime_ca h_add h_constant,
+  have h_c: degree c ≤ degree ( rad (a*b*c)) - 1,
+    from Mason_Stothers_case_c h_char a b c ha hb hc h_rel_prime_ab h_rel_prime_bc h_rel_prime_ca h_add h_constant,
+  apply max_le h_a,
+  apply max_le h_b h_c,
+end
 
 end mason_stothers

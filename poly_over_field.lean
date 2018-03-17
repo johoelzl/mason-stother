@@ -221,63 +221,54 @@ begin
   exact irreducible_of_associated h2 h1.symm,
 end
 
---See comment block below
-lemma eq_of_rel_multiset_associated_of_forall_mem_monic_of_forall_mem_monic
-{s t : multiset (polynomial α)} 
-(h : rel_multiset associated s t ) 
-(hs : ∀ x ∈ s, monic x) 
-(ht : ∀ x ∈ t, monic x) : 
-  s = t :=
+
+lemma eq_of_rel_multiset_associated_of_forall_mem_monic_of_forall_mem_monic 
+  (s t : multiset (polynomial α)) (h : rel_multiset associated s t) 
+  (hs : ∀ x ∈ s, monic x) (ht : ∀ x ∈ t, monic x) : s = t :=
 begin
-  admit --Must do with Johannes
+  induction h,
+  case rel_multiset.nil { refl },
+  case rel_multiset.cons : a b xs ys hr hst ih h2 h3 {
+    have h1 : a = b,
+    {
+      rw ←associated_iff_eq_of_monic_of_monic,
+      exact hr,
+      {
+        apply h2,
+        rw mem_cons,
+        simp *,
+      },
+      {
+        apply h3,
+        rw mem_cons,
+        simp *,
+      }
+    },
+    subst h1,
+    have h2 : xs = ys,
+    {
+      apply ih,
+      {
+        intros x h,
+        apply h2,
+        rw mem_cons,
+        simp *,
+      },
+      {
+        intros y h,
+        apply h3,
+        rw mem_cons,
+        simp *,
+      }
+    },
+    subst h2,
+  }
 end
+
  
 end field
 
 end polynomial
 
 
-/-
-lemma eq_of_rel_multiset_associated_of_forall_mem_monic_of_forall_mem_monic' :
-∀ s t : multiset (polynomial α), rel_multiset associated s t → 
-(∀ x ∈ s, monic x) → 
-( ∀ x ∈ t, monic x) -> 
-  s = t
-|s t (rel_multiset.nil _) h2 h3 := rfl
-|s t (rel_multiset.cons a b xs ys hr hst) h2 h3 := 
-begin
-  have h1 : a = b,
-  {
-    rw ←associated_iff_eq_of_monic_of_monic,
-    exact hr,
-    {
-      apply h2,
-      rw mem_cons,
-      simp *,
-    },
-    {
-      apply h3,
-      rw mem_cons,
-      simp *,
-    }
-  },
-  subst h1,
-  have h2 : xs = ys,
-  {
-    apply eq_of_rel_multiset_associated_of_forall_mem_monic_of_forall_mem_monic,
-    exact hst,
-    {
-      intros x h,
-      apply h2,
-      rw mem_cons,
-      simp *,
-    },
-    {
-      intros y h,
-      apply h3,
-      rw mem_cons,
-      simp *,
-    }
-  },
-  subst h2,
-end-/
+
