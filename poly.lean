@@ -12,19 +12,16 @@ local infix ^ := monoid.pow
 
 -- TODO: for some reasons these rules don't work
 @[simp] lemma nat_rec_zero {C : ℕ → Sort u} (h₁ : C 0) (h₂ : Π (n : ℕ), C n → C (nat.succ n)) :
-  @nat.rec C h₁ h₂ 0 = h₁ :=
-rfl
+  @nat.rec C h₁ h₂ 0 = h₁ := rfl
 
 @[simp] lemma nat_rec_add_one {C : ℕ → Sort u} (h₁ : C 0) (h₂ : Π (n : ℕ), C n → C (nat.succ n)) {n : ℕ} :
-  @nat.rec C h₁ h₂ (n + 1) = h₂ n (nat.rec h₁ h₂ n) :=
-rfl
+  @nat.rec C h₁ h₂ (n + 1) = h₂ n (nat.rec h₁ h₂ n) := rfl
 
 -- TODO: relax semiring to semi-algebra?
 def polynomial (α : Type u) [semiring α] := ℕ →₀ α
 
---correct? shouldf have an explicit argument
+--correct? should have an explicit argument
 def characteristic_zero (α : Type u) [semiring α] : Prop :=  ∀ n : ℕ, n ≠ 0 → (↑n : α) ≠ 0
-
 
 namespace polynomial
 local attribute [instance] prop_decidable
@@ -40,28 +37,22 @@ instance : has_add (polynomial α) := finsupp.has_add
 instance : has_mul (polynomial α) := finsupp.has_mul
 instance : semiring (polynomial α) := finsupp.to_semiring
 
+@[simp] lemma one_apply_zero : (1 : polynomial α) 0 = 1 := single_eq_same
 
-
-
-@[simp] lemma one_apply_zero : (1 : polynomial α) 0 = 1 :=
-single_eq_same
-
-@[simp] lemma zero_apply {n : ℕ} : (0 : polynomial α) n = 0 :=
-zero_apply
+@[simp] lemma zero_apply {n : ℕ} : (0 : polynomial α) n = 0 := zero_apply
 
 def C (a : α) : polynomial α := finsupp.single 0 a
 
 --embed R in R[x] --use has_lift, because has_coe is heavy on performance
 instance : has_lift (α) (polynomial α) := ⟨C⟩ -- Is this embedding correct?
 
-lemma embedding {a : α} : ↑a = C a := rfl
+lemma embedding {a : α} : ↑a = C a := rfl --Where do we use this?
 
 @[simp] lemma C_0 : C 0 = (0:polynomial α) := single_zero
 
 @[simp] lemma C_1 : C 1 = (1:polynomial α) := rfl
 
-lemma C_apply {c : α } {n : ℕ}: ((C c) : ℕ → α) n = (if 0 = n then c else 0) :=
-rfl
+lemma C_apply {c : α } {n : ℕ}: ((C c) : ℕ → α) n = (if 0 = n then c else 0) := rfl
 
 lemma C_eq_zero_iff_eq_zero (c : α) : C c = 0 ↔ c = 0 :=
 begin
@@ -69,13 +60,13 @@ begin
   {
     intro h,
     have : ((C c) : ℕ → α) 0 = (0 : polynomial α) 0,
-    { rw h},
+      { rw h},
     rw [C_apply, if_pos] at this,
-    simp * at *,
+    simp *,
   },
   {
     intro h,
-    simp * at *,
+    simp *,
   }
 end 
 
@@ -87,14 +78,7 @@ end
 
 def is_constant (p : polynomial α) : Prop := ∃ c : α, p = C c
 
---correct simp
-@[simp] lemma is_constant_zero : is_constant (0 : polynomial α) :=
-begin
-  rw [is_constant],
-  fapply exists.intro,
-  exact 0,
-  simp
-end
+@[simp] lemma is_constant_zero : is_constant (0 : polynomial α) :=  ⟨0, C_0.symm⟩
 
 @[simp] lemma is_constant_C {c : α} : is_constant (C c) := ⟨c, rfl⟩
 
@@ -102,27 +86,23 @@ end
 lemma eq_zero_iff_embed_eq_zero {f : α} : f = 0 ↔ (↑f : polynomial α) = 0 :=
 begin 
   rw embedding,
-  constructor,
+  constructor, --Do we prefer constructor or split?
   {
     intro h,
-    rw h,
-    simp, -- added to simp, why does simp not work? maybe because it doesn't backtrack?
+    simp *,
   },
   {
     intro h,
     have : ((C f) : ℕ → α) 0 = f,
-    simp [C_apply],
+      {simp [C_apply]},
     rw h at this,
-    rw ←this,
-    simp
+    simp * at *,
   }
-
 end
 
 def X : polynomial α := finsupp.single 1 1
 
-lemma X_apply {n : ℕ}: ((X : polynomial α): ℕ → α) n = (if 1 = n then 1 else 0) :=
-rfl
+lemma X_apply {n : ℕ}: ((X : polynomial α): ℕ → α) n = (if 1 = n then 1 else 0) :=  rfl
 
 lemma single_eq_X_pow : ∀{n:ℕ}, single n a = C a * X ^ n
 | 0       := by simp [C]
@@ -140,15 +120,17 @@ lemma X_pow_apply {n m : ℕ} : ((X  ^ n : polynomial α): ℕ → α) m = (if n
 by rw [X_pow_eq_single, single_apply]
 
 --naming?
-lemma sum_const_mul_pow_X  {f : polynomial α} : @finsupp.sum ℕ  α  (polynomial α) _ _ (f : ℕ →₀ α) (λ n a, C a * X ^ n) = f :=
+lemma sum_const_mul_pow_X  {f : polynomial α} : finsupp.sum f (λ n a, C a * X ^ n) = f :=
 begin
-  have h1: f.sum single = f, from sum_single,
+  have h1: f.sum single = f, 
+    from sum_single,
   simp [finsupp.sum] at h1,
   have h2 : finset.sum (support f) (λ (a : ℕ), single a (f a)) =  sum f (λ (n : ℕ) (a : α), C a * X ^ n),
-  apply finset.sum_congr,
-  simp,
-  intros x h2,
-  apply single_eq_X_pow,
+    {
+    apply finset.sum_congr (eq.refl f.support),
+    intros x h2,
+    apply single_eq_X_pow
+    },
   rw ←h2,
   exact h1
 end
@@ -175,7 +157,6 @@ begin
   exact (assume a ha, M_single _ _)
 end
 
-
 lemma induction_on_X {M : polynomial α → Prop} (p : polynomial α)
   (M_C : ∀(a : α), M (C a))
   (M_add : ∀{p q}, M p → M q → M (p + q))
@@ -201,52 +182,19 @@ def eval (p : polynomial α) (a : α) : α := p.sum $ λn c, c * a ^ n
 
 def degree (p : polynomial α) : ℕ := p.support.Sup_fin id
 
---test: --not an induction, use induction tactic induction n : degree f, for strong induction write using nat.strong_induction_on
-lemma induction_on_degree {p : polynomial α → Prop}(f : polynomial α) (h : ∀n : ℕ, ∀g : polynomial α, degree g = n → p g): 
- p f :=
-begin 
-  apply (h (degree f) f),
-  refl,
-end
-
---test
-lemma induction_on_degree_2 {p : polynomial α → Prop}(f : polynomial α)(h : ∀n : ℕ, degree f = n → p f): 
- p f :=
-begin 
-  apply (h (degree f)),
-  refl
-end
-
---lemma induction_on_degree_3 {p : polynomial α → Prop}{f : polynomial α }{n : ℕ}(h1 : degree f = n)
-
-
 def leading_coeff (p : polynomial α) : α := p (degree p)
 
 lemma leading_coeff_def {p : polynomial α } : leading_coeff p = p (degree p) := rfl
 
-
---correct? --removed reducible here
 def monic (p : polynomial α):= leading_coeff p = 1
 
-
-
-
-lemma ext : ∀{f g : polynomial α}, (∀a, f a = g a) → f = g:=
-begin
-  apply @finsupp.ext
-end
+lemma ext : ∀{f g : polynomial α}, (∀a, f a = g a) → f = g:= @finsupp.ext _ _ _
 
 lemma exists_coeff_ne_zero_of_ne_zero {f : polynomial α}: f ≠ 0 → ∃m, f m ≠ 0:=
-begin
-  intro h,
-  have : ¬(∀k, f k = (0 : polynomial α) k),
-  apply (iff.elim_right not_imp_not ext),
-  exact h,
-  exact (classical.prop_decidable _),
-  apply (iff.elim_left classical.not_forall this)
-end
-
-
+assume h, 
+  have ¬(∀k, f k = (0 : polynomial α) k),
+    from (iff.elim_right not_imp_not ext) h,
+  classical.not_forall.1 this
 
 lemma le_degree {p : polynomial α} {n : ℕ} (h : p n ≠ 0) : n ≤ degree p :=
 show id n ≤ degree p, from finset.le_Sup_fin (by simp [h])
@@ -255,10 +203,8 @@ lemma le_degree_of_mem_support {p : polynomial α} {n : ℕ} : n ∈ support p �
 begin
   intro h1,  
   apply le_degree,
-  rw [mem_support_iff] at h1,
-  exact h1
+  rwa [mem_support_iff] at h1,
 end
-
 
 @[simp] lemma degree_zero : degree (0 : polynomial α) = 0 :=
 have (0 : polynomial α).support = ∅, from support_zero,
@@ -269,14 +215,44 @@ calc degree (single n a) = (single n a).support.Sup_fin id : by simp [degree]
   ... ≤ (finset.singleton n).Sup_fin id : finset.Sup_fin_mono finsupp.support_single_subset
   ... ≤ _ : by simp [finset.Sup_fin_singleton]
 
---Should this be added to simp? Because the 0 ≠ 1, can cause problems I think: see the proof of division algorithm.
 @[simp] lemma degree_X (h : 0 ≠ (1:α)) : degree (X : polynomial α) = 1 :=
 le_antisymm
   degree_single
   (le_degree $ show (single (1:ℕ) (1:α) : ℕ →₀ α) 1 ≠ 0, begin simp [h.symm] end)
 
+--Not used remove
+private lemma eq_zero_or_eq_one_of_le_one {n : ℕ} (h : n ≤ 1) : n = 0 ∨ n = 1 :=
+begin
+  have : n = 1 ∨ n < 1,
+    from eq_or_lt_of_le h,
+  cases this with h1,
+  {
+    simp *,
+  },
+  {
+    have : n +1 ≤ 1,
+      from this,
+    have : n ≤  0,
+      from nat.le_of_succ_le_succ this,
+    have : n = 0,
+      from nat.le_zero_iff.1 this,
+    simp *,  
+  }
+end
+
+lemma degree_X_eq_zero_of_zero_eq_one (h : 0 = (1:α)) : degree (X : polynomial α) = 0 :=
+begin
+  have : (single 1 (1:α)).support = ∅,
+  {
+    rw ←h,
+    simp,
+  },
+  exact calc degree (X : polynomial α) = (single 1 (1:α)).support.Sup_fin id : by simp [X, degree]
+  ... = finset.Sup_fin (∅) id : by rw this
+end
+
 --correct simp?
-lemma degree_X_pow (h : 0 ≠ (1:α)) {n : ℕ} : degree ((X : polynomial α) ^ n) = n :=
+@[simp] lemma degree_X_pow (h : 0 ≠ (1:α)) {n : ℕ} : degree ((X : polynomial α) ^ n) = n :=
 begin
   rw X_pow_eq_single,
   apply le_antisymm,
@@ -289,8 +265,7 @@ end
 @[simp] lemma degree_C {a : α} : degree (C a) = 0 :=
 nat.eq_zero_of_le_zero degree_single
 
-@[simp] lemma degree_one : degree (1: polynomial α)  = 0:=
-degree_C
+@[simp] lemma degree_one : degree (1: polynomial α)  = 0 := degree_C
 
 lemma degree_add {f g : polynomial α} : degree (f + g) ≤ max (degree f) (degree g) :=
 calc degree (f + g) ≤ (f.support ∪ g.support).Sup_fin id : finset.Sup_fin_mono finsupp.support_add
@@ -312,54 +287,40 @@ calc degree (f * g) ≤ _ : degree_sum
     calc _ ≤ b₁ + b₂ : degree_single
       ... ≤ degree f + degree g : add_le_add (finset.le_Sup_fin hb₁) (finset.le_Sup_fin hb₂)
 
-
-lemma ne_zero_of_degree_ne_zero {f : polynomial α} : degree f ≠ 0 → f ≠ 0 :=--I want to apply normal by_cpntradiction here, but I don't know how to apply that, due to ambiguous overload.
-begin intro, apply (@classical.by_contradiction (f ≠ 0) _), intro,
-have h3: (f = 0), from iff.elim_left not_not a_1,
-have h4: degree f = 0, calc degree f = degree 0 : by rw [h3] ... = 0 : degree_zero,
-apply a h4
- end -- Contradiction not needed
+lemma ne_zero_of_degree_ne_zero {f : polynomial α} : degree f ≠ 0 → f ≠ 0 :=
+begin
+  intros h1 h2,
+  simp * at *,
+end
 
 --application lemmas --correct?
 @[simp] lemma add_apply {g₁ g₂ : polynomial α} {a : ℕ} :
   (g₁ + g₂) a = g₁ a + g₂ a := finsupp.add_apply
 
-/-leading coef lemmas here-/
+/-leading coef lemmas-/
+
 @[simp] lemma leading_coeff_C {a : α} : leading_coeff (C a) = a :=
 by simp [leading_coeff_def, degree_C, C_apply]
 
-@[simp] lemma leading_coeff_zero : leading_coeff (0 : polynomial α) = 0 :=
-begin
-  rw [←C_0],
-  exact leading_coeff_C
-end
+@[simp] lemma leading_coeff_zero : leading_coeff (0 : polynomial α) = 0 := rfl
 
-@[simp] lemma leading_coeff_one : leading_coeff (1 : polynomial α) = 1 :=
-begin
-  rw [←C_1],
-  exact leading_coeff_C
-end
-
+@[simp] lemma leading_coeff_one : leading_coeff (1 : polynomial α) = 1 := leading_coeff_C
 
 @[simp] lemma leading_coeff_X : leading_coeff (X : polynomial α) = 1 :=
 begin
+  rw leading_coeff,
   by_cases h1 : ((0 : α) = 1),
   {
-    rw [leading_coeff, X_apply],
-    by_cases h2 : (1 = degree (X : polynomial α)),
-    {
-      simp [if_pos h2]
-    },
-    {
-      simp [*, if_neg h2]
-    }
+    have : degree (X : polynomial α) = 0,
+      from degree_X_eq_zero_of_zero_eq_one h1,
+    simp [*, X_apply] at *,
   },
   {
-    rw [leading_coeff, X_apply],
-    rw [degree_X h1],
-    simp [if_pos]
+    simp [X_apply, *],
   }
 end
+
+--Clean up done till here 8 april 2018
 
 --Are we using the interference here correctly? --Correct simp?
 lemma not_monic_zero (h : (0 : α) ≠ 1) : ¬monic (0 : polynomial α) :=
