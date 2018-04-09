@@ -186,7 +186,11 @@ def leading_coeff (p : polynomial α) : α := p (degree p)
 
 lemma leading_coeff_def {p : polynomial α } : leading_coeff p = p (degree p) := rfl
 
+--Can you add the simp attribute to a definition?
 def monic (p : polynomial α):= leading_coeff p = 1
+
+--Does this work? No leads to deep recursion??
+--@[simp] lemma monic_def {f : polynomial α} {h : monic f} : leading_coeff f = 1 := h --Should we make monic reducible instead?
 
 lemma ext : ∀{f g : polynomial α}, (∀a, f a = g a) → f = g:= @finsupp.ext _ _ _
 
@@ -491,8 +495,6 @@ finsupp.sum_ite
 private lemma h_sum_f (f g : polynomial α): sum f (λ (m : ℕ) (c : α), ite (m = degree f) c 0) = if (degree f ∈ f.support) then f (degree f) else 0 :=
 finsupp.sum_ite
 
---private lemma degree_mem_support_of_ne_zero
-
 lemma degree_mem_support_of_ne_zero {p : polynomial α} (h1 : p ≠ 0) : degree p ∈ support p :=
 begin
   apply Sup_fin_mem_of_id_nat,
@@ -501,10 +503,9 @@ begin
   exact h1
 end
 
---Naming?
-lemma mul_add_degree_eq_add_leading_coeff {f g : polynomial α} : (f * g) (degree f + degree g) = (leading_coeff f) * (leading_coeff g):=
+lemma mul_degree_add_degree_eq_leading_coeff_mul_leading_coeff {f g : polynomial α} : (f * g) (degree f + degree g) = (leading_coeff f) * (leading_coeff g):=
 begin
-  rw mul_def, --I think we need a congrunce rule for sum,congr for the finsupp sum
+  rw mul_def,
   simp [single_apply], 
   rw [h_sum, h_sum_2, h_sum_3,h_sum_g f g, h_sum_f f g],
   by_cases h1 : (f = 0),
@@ -526,30 +527,32 @@ begin
   }
 end
 
---Clean up done till here 8 april 2018
-
-
---problem with unfolding monic
-lemma degree_monic_mul {f g : polynomial α }(h1 : monic f) (h2 : (0 : α) ≠ 1)(h3 : g ≠ 0): degree (f * g) = (degree f) + (degree g) :=
+lemma degree_mul_eq_degree_add_degree_of_leading_coeff_mul_leading_coeff_ne_zero 
+{f g : polynomial α} (h : leading_coeff f * leading_coeff g ≠ 0) : degree (f * g) = degree f + degree g :=
 begin
-  rw monic at h1, --anoying
   have h4: (f * g) (degree f + degree g) ≠  0,
-  calc (f * g) (degree f + degree g) = leading_coeff f * leading_coeff g : mul_add_degree_eq_add_leading_coeff
-  ... = 1 * leading_coeff g : by rw h1
-  ... = leading_coeff g : one_mul _
-  ... ≠ 0 : iff.elim_right not_imp_not (iff.elim_left leading_coef_eq_zero_iff_eq_zero) h3,
+  {
+    calc (f * g) (degree f + degree g) = leading_coeff f * leading_coeff g : mul_degree_add_degree_eq_leading_coeff_mul_leading_coeff
+    ... ≠ 0 : h,
+  },
   have h5 : degree f + degree g ≤ degree (f * g),
-  from le_degree h4,
+    from le_degree h4,
   have h6: degree (f * g) ≤ degree f + degree g,
-  from degree_mul,
+    from degree_mul,
   exact le_antisymm h6 h5
 end
 
---correct simp?
-lemma monic_def {f : polynomial α} {h : monic f} : leading_coeff f = 1 := h
+lemma degree_monic_mul {f g : polynomial α}(h1 : monic f) (h2 : (0 : α) ≠ 1)(h3 : g ≠ 0): degree (f * g) = degree f + degree g :=
+begin
+  have h3 : leading_coeff f * leading_coeff g ≠ 0,
+  {
+    rw [ne.def, ←leading_coef_eq_zero_iff_eq_zero] at h3,
+    simp [monic, *] at *,
+  },
+  exact degree_mul_eq_degree_add_degree_of_leading_coeff_mul_leading_coeff_ne_zero h3,
+end
 
 --naming?
---Could be made more general --to work for an arbitrary monic--what about zero_ne_one? --why is the type asscription done in the second argument in degree_X?
 lemma leading_coeff_monic_mul{f g: polynomial α} {h1 : monic f} (h2 : (0 : α) ≠ 1): leading_coeff (f * g) = leading_coeff g :=
 begin 
   by_cases h3 : (g = 0),
@@ -557,23 +560,20 @@ begin
    simp *,
   },
   {
-        --let n : ℕ := degree (f * g),
-    have h4 : degree (f * g) = degree f + degree g,
-    
-    from degree_monic_mul h1 h2 h3,
-    rw [leading_coeff],
-    rw h4,
-    rw mul_add_degree_eq_add_leading_coeff,
-    simp [*, monic_def], 
+    have h4 : degree (f * g) = degree f + degree g,    
+      from degree_monic_mul h1 h2 h3,
+    rw [leading_coeff, h4, mul_degree_add_degree_eq_leading_coeff_mul_leading_coeff],
+    simp [monic, *] at *, 
   }
-    --conv (degree (f * g)) {rw [(rfl : (degree (f * g) = n))]},
 end
+
+
+--Formal derivatives
 
 def derivative (p : polynomial α) : polynomial α :=
 p.sum (λn a, nat.cases_on n 0 (λn, single n (a * (n + 1))))
 -- TODO: the following form breaks derivative_single
 -- p.sum (λn a, match n with 0 := 0 | n + 1 := single n (a * (n + 1)) end)
-
 
 @[simp] lemma derivative_zero : derivative (0 : polynomial α) = 0 :=
 finsupp.sum_zero_index
@@ -614,16 +614,11 @@ begin
   exact assume x y, derivative_add
 end
 
-
---naming incorrect
+--naming incorrect?
 lemma C_mul_C {a b : α} : C (a * b) = C a * C b :=
 by simp [C, single_mul_single]
 
-
-
 end semiring
-
-
 
 
 section comm_semiring
@@ -631,13 +626,9 @@ variable [comm_semiring α]
 
 instance : comm_semiring (polynomial α) := finsupp.to_comm_semiring
 
-
---set_option pp.numerals false
---set_option pp.implicit true
-
-lemma C_prod_eq_prod_C {f : multiset α} : C (f.prod) = (f.map C).prod :=
+lemma C_prod_eq_map_C_prod {f : multiset α} : C (f.prod) = (f.map C).prod :=
 begin
-  fapply multiset.induction_on f, -- Don't understand the induction tactic yet.
+  fapply multiset.induction_on f,
   {
     simp
   },
@@ -645,7 +636,6 @@ begin
     intros a s h1,
     simp [C_mul_C, *]
   }
-
 end
 
 lemma mul_C_eq_sum {f : polynomial α} {a : α} : f * C a = f.sum (λi c, single i (a * c)) :=
@@ -674,24 +664,21 @@ calc derivative (f * C a) = derivative (f.sum (λi c, single i (a * c))) :
 @[simp] lemma derivative_C_mul {f : polynomial α} : derivative (C a * f) = C a * (derivative f) :=
 by rw [mul_comm, derivative_mul_C, mul_comm]
 
+private lemma derivative_mul_X_aux {f : polynomial α} : sum (derivative f) (λ (i : ℕ) (c : α), single (i + 1) c) = sum f (λ (i : ℕ) (c : α), single i (c * ↑i)) :=
+begin
+simp [derivative, sum_sum_index],
+{ 
+  apply finsupp.sum_congr rfl, 
+  { 
+    intros n hnf,
+    cases n,
+    { simp, apply sum_zero_index },
+    { simp [sum_single_index]}
+  } 
+},
+end
+
 lemma derivative_mul_X {f : polynomial α} : derivative (f * X) = derivative f * X + f :=
-have derivative f * X = f.sum (λi c, single i (c * i)), from
-  calc derivative f * X = (derivative f).sum (λi c, single (i + 1) c) : by rw [mul_X_eq_sum]
-    ... = _ :
-  begin
-    rw [derivative],
-    rw [sum_sum_index],
-    { apply finsupp.sum_congr rfl, 
-      { intros n hnf,
-        cases n,
-        { simp, apply sum_zero_index },
-        { simp [sum_single_index],
-          rw [sum_single_index],
-          simp,
-          refl } } },
-    { simp, refl },
-    { simp }
-  end,
 calc derivative (f * X) = derivative (f.sum (λi c, single (i + 1) c)) :
     by rw [mul_X_eq_sum]
   ... = f.sum (λi c, derivative (single (i + 1) c)) :
@@ -700,7 +687,7 @@ calc derivative (f * X) = derivative (f.sum (λi c, single (i + 1) c)) :
     by simp [derivative_single, (nat.succ_eq_add_one _).symm]
   ... = f.sum (λi c, single i (c * i) + single i c) : by simp [single_add, mul_add]
   ... = f.sum (λi c, single i (c * i)) + f: by simp [sum_add, sum_single]
-  ... = derivative f * X + f : by rw [this]
+  ... = derivative f * X + f : by rw [mul_X_eq_sum, derivative_mul_X_aux]
 
 lemma derivative_mul {f : polynomial α} :
   ∀{g}, derivative (f * g) = derivative f * g + f * derivative g :=
@@ -721,22 +708,33 @@ lemma derivative_prod {β : Type w} {s : finset β} {f : β → polynomial α} :
 begin
   apply finset.induction_on s,
   { simp },
-  { intros a s has ih,
+  { 
+    intros a s has ih,
     have : ∀b∈s, ((insert a s).erase b).prod f = f a * (s.erase b).prod f,
-    begin
+    {
       assume b hb,
-      have : a ≠ b, { assume h, simp * at * },
+      have : a ≠ b, 
+      { 
+        assume h, simp * at * 
+      },
       rw [erase_insert_eq_insert_erase, finset.prod_insert]; simp *
-    end,
+    },
     have : s.sum (λb, derivative (f b) * (erase (insert a s) b).prod f) =
       f a * s.sum (λb, derivative (f b) * (erase s b).prod f),
-    from calc s.sum (λb, derivative (f b) * (erase (insert a s) b).prod f) =
-      s.sum (λb, f a * (derivative (f b) * (s.erase b).prod f)) :
+    {
+      exact calc s.sum (λb, derivative (f b) * (erase (insert a s) b).prod f) =
+        s.sum (λb, f a * (derivative (f b) * (s.erase b).prod f)) :
         sum_congr rfl $ by simp [this, mul_assoc, mul_comm, mul_left_comm] {contextual := tt}
-      ... = f a * s.sum (λb, derivative (f b) * (erase s b).prod f) :
-        by rw [mul_sum],
-    simp [ih, has, finset.prod_insert, derivative_mul, sum_insert, erase_insert, this] }
+        ... = f a * s.sum (λb, derivative (f b) * (erase s b).prod f) : by rw [mul_sum],
+    },
+    simp [ih, has, finset.prod_insert, derivative_mul, sum_insert, erase_insert, this] 
+  }
 end
+
+
+--Clean up done till here 9 april 2018
+
+
 
 lemma derivative_prod_multiset {s : multiset (polynomial α)} :
   derivative (s.prod) = (s.map (λb, derivative (b) * (s.erase b).prod)).sum :=
@@ -871,7 +869,6 @@ begin
   simp
 end
 
-
 lemma dvd_pow_sub_one_pow --naming correct?/
 {p : polynomial α} {n : ℕ} : monoid.pow p (n - 1) ∣ (monoid.pow p n) :=
 begin
@@ -882,8 +879,8 @@ begin
   exact rfl,
 end
 
-
 end comm_semiring
+
 
 section ring
 variable [ring α]
@@ -895,17 +892,11 @@ instance : add_comm_group (polynomial α) := by apply_instance
 local attribute [priority 1100]  polynomial.ring
 local attribute [priority 1100]  polynomial.add_comm_group
 
-
 --application lemmas
 
 @[simp] lemma neg_apply  {g : polynomial α } {a : ℕ } : (- g) a = - g a := finsupp.neg_apply
 
 @[simp] lemma sub_apply {g₁ g₂ : polynomial α } {a : ℕ} : (g₁ - g₂) a = g₁ a - g₂ a := finsupp.sub_apply
-
---lemma neg_apply_poly (a : polynomial α) (n : ℕ):  (- a) n = - (a n) :=
-----begin intros, simp [coe_fn], simp [has_coe_to_fun.coe], simp [has_neg.neg, add_group.neg, add_comm_group.neg, ring.neg] , apply rfl
---end
-
 
 lemma degree_neg {f : polynomial α} : degree (-f) = degree f:=
 by simp [degree]
@@ -922,7 +913,6 @@ begin
   rw C_add_C,
   simp,
 end
-
 
 lemma is_constant_neg_iff_is_constant (p : polynomial α) : is_constant (-p) ↔ is_constant p :=
 begin
@@ -947,27 +937,19 @@ begin
   }
 end
 
-
 end ring
+
 
 section comm_ring
 variable [comm_ring α]
 
 instance : comm_ring (polynomial α) := finsupp.to_comm_ring
+
 end comm_ring
+
 
 section integral_domain
 variable [integral_domain α]
-
---set_option trace.class_instances true
---set_option pp.notation false
---set_option pp.coercions true
---set_option pp.numerals false
---set_option pp.implicit true
---The embedding of nat in [has_zero α] [has_one α] [has_add α] is called nat.cast
-
---set_option trace.class_instances true
-
 
 lemma X_pow_ne_zero {n : ℕ}: (X ^ n : polynomial α) ≠ 0 :=
 begin
@@ -991,14 +973,14 @@ end
 instance {α : Type u} [integral_domain α] : zero_ne_one_class (polynomial α):=
 { zero_ne_one := zero_ne_one, .. polynomial.comm_ring }
 
-/-
-lemma eq_zero_or_eq_zero_of_mul_eq_zero_tmp {a b : α} (h : a * b = 0) : a = 0 ∨ b = 0 :=
+/- Can we use this to reduce the lemma below?
+lemma leading_coeff_mul_leading_coeff_eq_zero_of_mul_eq_zero (f g : polynomial α) (h : f * g = 0) : (leading_coeff f) * (leading_coeff g) = 0 :=
 begin
-  by_contradiction h,
-  rw decidable.not_or_iff_and_not at h,
-  have ha : a ≠ 0, 
-  simp [h],
-
+  have h1 : leading_coeff f = 0 ∨  leading_coeff g = 0,
+  {
+    by_contradiction h2,
+    rw [not_or_distrib, leading_coef_eq_zero_iff_eq_zero, leading_coef_eq_zero_iff_eq_zero] at h2,
+  }
 end
 -/
 
@@ -1006,36 +988,25 @@ lemma eq_zero_or_eq_zero_of_mul_eq_zero : ∀ f g : polynomial α, f * g = 0 →
 begin
   intros f g h1,
   by_contradiction h2,
-  rw not_or_distrib at h2,
-  have h3 : f ≠ 0,
-  simp [h2],
-  have h4 : g ≠ 0,
-  simp [h2],
-  have h5 : leading_coeff f ≠ 0,
-  simp [*, leading_coef_eq_zero_iff_eq_zero],
-  have h6 : leading_coeff g ≠ 0,
-  simp [*, leading_coef_eq_zero_iff_eq_zero],
+  rw [not_or_distrib, ←leading_coef_eq_zero_iff_eq_zero, ←leading_coef_eq_zero_iff_eq_zero] at h2,
   have h7 : (leading_coeff f) * (leading_coeff g) ≠ 0,
-    by_contradiction h8,
-    rw not_not at h8,
+  {
+    intro h8,
     have h9 : leading_coeff f = 0 ∨  leading_coeff g = 0,
-    from eq_zero_or_eq_zero_of_mul_eq_zero h8,
-    cases h9,
-    contradiction,
-    contradiction,
+      from eq_zero_or_eq_zero_of_mul_eq_zero h8,
+    cases h9 ; simp * at *,
+  },
   have h8 : (f * g) (degree f + degree g) ≠ 0,
-  calc  (f * g) (degree f + degree g) = (leading_coeff f) * (leading_coeff g) : mul_add_degree_eq_add_leading_coeff
-      ... ≠ 0 : h7,
-  rw h1 at h8,
-  simp [zero_apply] at h8,
+  {
+    simpa [mul_degree_add_degree_eq_leading_coeff_mul_leading_coeff],   
+  },
+  rw [h1, zero_apply] at h8,
   contradiction
 end
 
 instance {α : Type u} [integral_domain α] : no_zero_divisors (polynomial α):=
 {eq_zero_or_eq_zero_of_mul_eq_zero := eq_zero_or_eq_zero_of_mul_eq_zero
-
 .. polynomial.comm_ring}
-
 
 instance {α : Type u} [integral_domain α]: integral_domain (polynomial α) :=
 { eq_zero_or_eq_zero_of_mul_eq_zero := eq_zero_or_eq_zero_of_mul_eq_zero,
@@ -1047,7 +1018,7 @@ begin
   constructor,
   { 
     intro h1,
-    rw ←mul_add_degree_eq_add_leading_coeff,
+    rw ←mul_degree_add_degree_eq_leading_coeff_mul_leading_coeff,
     rw h1,
     simp,
   },
@@ -1073,7 +1044,7 @@ begin
   have h3 : g ≠ 0,
   from ne_zero_of_mul_ne_zero_left h1,
   have h4 : (f * g) (degree f + degree g) ≠ 0,
-  calc (f * g) (degree f + degree g) = (leading_coeff f) * (leading_coeff g) : mul_add_degree_eq_add_leading_coeff
+  calc (f * g) (degree f + degree g) = (leading_coeff f) * (leading_coeff g) : mul_degree_add_degree_eq_leading_coeff_mul_leading_coeff
      ... ≠ 0 : by {simp,rw [←not_iff_not_of_iff mul_eq_zero_iff_mul_leading_coef_eq_zero], exact h1},
   have h5 : (degree f + degree g) ≤ degree (f * g),
   from le_degree h4,
@@ -1233,7 +1204,7 @@ begin
   {
     have : degree (f * g) = degree f + degree g,
     from degree_mul_eq_add_of_mul_ne_zero h1,
-    simp [leading_coeff, this, mul_add_degree_eq_add_leading_coeff]
+    simp [leading_coeff, this, mul_degree_add_degree_eq_leading_coeff_mul_leading_coeff]
   }    
 end
 
