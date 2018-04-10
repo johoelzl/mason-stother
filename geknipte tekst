@@ -392,3 +392,69 @@ end field
 
 
 end polynomial
+
+--Not used remove
+private lemma eq_zero_or_eq_one_of_le_one {n : ℕ} (h : n ≤ 1) : n = 0 ∨ n = 1 :=
+begin
+  have : n = 1 ∨ n < 1,
+    from eq_or_lt_of_le h,
+  cases this with h1,
+  {
+    simp *,
+  },
+  {
+    have : n +1 ≤ 1,
+      from this,
+    have : n ≤  0,
+      from nat.le_of_succ_le_succ this,
+    have : n = 0,
+      from nat.le_zero_iff.1 this,
+    simp *,  
+  }
+end
+
+
+
+
+  /-
+
+  by_cases h3 : (n = degree f),
+  {
+    subst h3,
+    by_cases h4 : (m = degree g) ; simp *,
+  },
+  {
+    by_cases h4 : (m = degree g), --Duplication?
+    {
+      simp *,
+    },
+    {
+      by_cases h5 : (n + m = degree f + degree g),
+      {
+        simp *,
+        by_cases h6 : (n < degree f),
+        {
+          have h7 : (m > degree g),
+            from add_lemma h6 h5,
+          have h8 : g m = 0,
+            from eq_zero_of_gt_degree h7,
+          simp *,
+        },
+        { 
+          have h8 : n > degree f,
+          {
+            have h8 : n < degree f ∨ n > degree f,
+              from lt_or_gt_of_ne h3,
+            simp * at *,
+          },
+          have h9 : f n = 0,
+            from eq_zero_of_gt_degree h8,
+          simp *
+        },
+      },
+      {
+        simp *,
+      }
+    }
+    
+  }-/

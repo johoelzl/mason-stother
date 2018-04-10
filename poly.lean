@@ -1,5 +1,5 @@
 import  .Sup_fin data.finsupp order.lattice data.nat.cast .euclidean_domain unique_factorization_domain
-import .to_finsupp
+import .to_finsupp .to_finset
 universes u v w
 
 noncomputable theory
@@ -775,39 +775,30 @@ begin
   }
 end
 
-
-
 lemma derivative_pow {n : ℕ} {p : polynomial α}:
    derivative (p^n) = ite (n = 0) 0 (n*p^(n-1)*derivative p) :=
 begin
   induction n with n h,
-  {simp},
+  { simp},
   {
-    simp,
-    have : ¬ nat.succ n = 0, from nat.succ_ne_zero _,  
-    simp [if_neg, *], 
-    rw [pow_succ'],
-    simp [derivative_mul],
-    rw [h],
+    simp [if_neg, pow_succ', derivative_mul, nat.succ_ne_zero, *], 
     cases n,
-    simp,
-    have : ¬ nat.succ n = 0, from nat.succ_ne_zero _,  
-    simp [if_neg, *],
-    rw [pow_succ'],
-    exact calc p ^ n * p * derivative p + (1 + ↑n) * p ^ n * derivative p * p = 
-    1 * p ^ n * p * derivative p + (1 + ↑n) * p ^ n * derivative p * p : by simp
-    ... = 1 * p ^ n * p * derivative p + (1 + ↑n) * p ^ n * (derivative p * p) : by simp [mul_assoc]
-    ... = 1 * p ^ n * p * derivative p + (1 + ↑n) * p ^ n * (p * derivative p) : by simp [mul_comm]
-    ... = 1 * p ^ n * p * derivative p + (1 + ↑n) * p ^ n * p * derivative p   : by simp [mul_assoc]
-    ... = 1 * (p ^ n * p * derivative p) + (1 + ↑n) * (p ^ n * p * derivative p)   : by simp [mul_assoc]
-    ... = (1 + (1 + ↑n)) * (p ^ n * p * derivative p): by rw [←( add_mul 1 (1 + ↑n) (p ^ n * p * derivative p))]
-    ... = (1 + (1 + ↑n)) * (p ^ n * p) * derivative p : by simp [mul_assoc]
+    {
+      simp,
+    },
+    {
+      simp [nat.succ_ne_zero, if_neg, pow_succ', *],
+      exact calc p ^ n * p * derivative p + (1 + ↑n) * p ^ n * derivative p * p = 
+      1 * p ^ n * p * derivative p + (1 + ↑n) * p ^ n * derivative p * p : by simp
+      ... = 1 * p ^ n * p * derivative p + (1 + ↑n) * p ^ n * (derivative p * p) : by simp [mul_assoc]
+      ... = 1 * p ^ n * p * derivative p + (1 + ↑n) * p ^ n * (p * derivative p) : by simp [mul_comm]
+      ... = 1 * p ^ n * p * derivative p + (1 + ↑n) * p ^ n * p * derivative p   : by simp [mul_assoc]
+      ... = 1 * (p ^ n * p * derivative p) + (1 + ↑n) * (p ^ n * p * derivative p)   : by simp [mul_assoc]
+      ... = (1 + (1 + ↑n)) * (p ^ n * p * derivative p): by rw [←( add_mul 1 (1 + ↑n) (p ^ n * p * derivative p))]
+      ... = (1 + (1 + ↑n)) * (p ^ n * p) * derivative p : by simp [mul_assoc]
+    }
   }
 end
-
-
-
-
 
 lemma degree_le {p : polynomial α} {n : ℕ} (h : ∀ m > n, p m = 0) : degree p ≤ n :=
 begin
@@ -817,66 +808,68 @@ begin
   },
   {
     have h2 : degree p ∈ support p,
-    from degree_mem_support_of_ne_zero h1,
+      from degree_mem_support_of_ne_zero h1,
     rw [mem_support_iff] at h2,
     by_contradiction h3,
     have h4 : degree p > n,
-    from lt_of_not_ge h3,
+      from lt_of_not_ge h3,
     have : p (degree p) = 0,
-    from h _ h4,
+      from h _ h4,
     contradiction,
   }
 end
 
-
-
---Naming correct or dvd_sum_of_forall_mem_dvd
-lemma dvd_sum {β : Type w}{p : polynomial α}{s : finset β}{f : β → polynomial α} :--should be placed in finset.
+--Are these used in MS 2? That is more general using multisets.
+--Where to place this?
+lemma dvd_sum_of_forall_mem_dvd [comm_semiring α] {β : Type u} {p : α} {s : finset β} {f : β → α} :
    (∀ x ∈ s, p ∣ f x) → p ∣ (s.sum f) :=
 begin
   apply finset.induction_on s,
   {simp},
   {
     intros a s h1 h2 h3,
-    simp [finset.sum_insert h1],
     have htmp: (∀ (x : β), x ∈ s → p ∣ f x),
     {
       intros y h4,
       have : y ∈ insert a s, 
-      rw [finset.mem_insert],
-      simp [h4],
+      {
+        simp [finset.mem_insert, h4],
+      },
       exact h3 y this,
     },
     have ha_mem : a ∈ insert a s,
-    rw [finset.mem_insert],
-    simp,
+    {
+      simp [finset.mem_insert],
+    },
     have ha: p ∣ f a,
-    exact h3 a ha_mem,
+      from h3 a ha_mem,
     have hsum: p ∣ sum s f,
-    exact h2 htmp,
-    simp [dvd_add ha hsum]
+      from h2 htmp,
+    simp [finset.sum_insert h1, dvd_add ha hsum],
   }
 end
 
-lemma dvd_prod_of_dvd_mem {β : Type w}{p : polynomial α}{s : finset β}{x : β}{h_mem :  x ∈ s}{f : β → polynomial α}{h_div : p ∣ f x} :
+--Is this used?
+lemma dvd_prod_of_dvd_mem {β : Type w} {p : polynomial α} {s : finset β} {x : β} {f : β → polynomial α} (h_mem :  x ∈ s) (h_dvd : p ∣ f x) :
 p∣ s.prod f :=
 begin
-  have : insert x (erase s x) = s,
-  exact insert_erase h_mem,
-  rw ←this,
-  rw finset.prod_insert,
-  apply dvd_mul_of_dvd_left h_div (finset.prod (erase s x) f),
-  simp
+  rw ←(insert_erase h_mem),
+  simp [finset.prod_insert, dvd_mul_of_dvd_left h_dvd (finset.prod (erase s x) f)],
 end
 
-lemma dvd_pow_sub_one_pow --naming correct?/
+--Is this used?
+lemma pow_sub_one_dvd_pow
 {p : polynomial α} {n : ℕ} : monoid.pow p (n - 1) ∣ (monoid.pow p n) :=
 begin
   cases n,
-  simp,
-  rw nat.succ_sub_one,
-  refine  dvd_of_mul_left_eq p _,
-  exact rfl,
+  {
+    simp,
+  },
+  {
+    rw nat.succ_sub_one,
+    refine  dvd_of_mul_left_eq p _,
+    exact rfl,
+  },
 end
 
 end comm_semiring
@@ -898,7 +891,8 @@ local attribute [priority 1100]  polynomial.add_comm_group
 
 @[simp] lemma sub_apply {g₁ g₂ : polynomial α } {a : ℕ} : (g₁ - g₂) a = g₁ a - g₂ a := finsupp.sub_apply
 
-lemma degree_neg {f : polynomial α} : degree (-f) = degree f:=
+--correct simp?
+@[simp] lemma degree_neg {f : polynomial α} : degree (-f) = degree f:=
 by simp [degree]
 
 lemma degree_sub {f g : polynomial α} : degree (f - g) ≤ max (degree f) (degree g) :=
@@ -909,10 +903,21 @@ calc degree (f - g) = degree (f  + (- g)) : by simp
 lemma neg_C_eq_C_neg (c : α) : - C c = C (- c) :=
 begin
   apply eq.symm,
-  rw eq_neg_iff_add_eq_zero,
-  rw C_add_C,
-  simp,
+  simp [eq_neg_iff_add_eq_zero, C_add_C],
 end
+
+/-Why doesn't this work? It produces deep recursion?
+@[simp] lemma is_constant_of_is_constant_neg (p : polynomial α) (h : is_constant (-p)) : is_constant p :=
+begin
+  rcases h with ⟨c, hc⟩,
+  have : p = - C c,
+  {
+    exact calc p = - - p : by simp
+    ... = _ : by rw hc,
+  },
+  subst this,
+  simp [neg_C_eq_C_neg],
+end-/
 
 lemma is_constant_neg_iff_is_constant (p : polynomial α) : is_constant (-p) ↔ is_constant p :=
 begin
@@ -926,8 +931,7 @@ begin
       ... = _ : by rw hc,
     },
     subst this,
-    rw neg_C_eq_C_neg,
-    simp,    
+    simp [neg_C_eq_C_neg],
   },
   {
     intro h,
@@ -953,20 +957,21 @@ variable [integral_domain α]
 
 lemma X_pow_ne_zero {n : ℕ}: (X ^ n : polynomial α) ≠ 0 :=
 begin
-  rw X_pow_eq_single,
-  by_contradiction h2,
-  rw not_not at h2,
+  intro h2,
   have h3: (single n 1 : polynomial α ) n = 1,
-  simp,
+  {
+    simp,
+  },
+  rw X_pow_eq_single at h2,   
   rw h2 at h3,
-  simp at h3,
-  exact h3,
+  simp * at *,
 end
 
 lemma zero_ne_one : (0:polynomial α) ≠ 1:=
 begin
   intro h,
-  have : (0 : polynomial α) 0 = (1 : polynomial α) 0, by rw [h],
+  have : (0 : polynomial α) 0 = (1 : polynomial α) 0, 
+  { rw [h]},
   simp * at *
 end
 
@@ -1012,65 +1017,56 @@ instance {α : Type u} [integral_domain α]: integral_domain (polynomial α) :=
 { eq_zero_or_eq_zero_of_mul_eq_zero := eq_zero_or_eq_zero_of_mul_eq_zero,
   .. polynomial.comm_ring, .. polynomial.zero_ne_one_class }
 
-
+--naming?
 lemma mul_eq_zero_iff_mul_leading_coef_eq_zero {f g : polynomial α} : f * g = 0 ↔ (leading_coeff f) * (leading_coeff g) = 0 :=
 begin
   constructor,
   { 
     intro h1,
-    rw ←mul_degree_add_degree_eq_leading_coeff_mul_leading_coeff,
-    rw h1,
+    rw [←mul_degree_add_degree_eq_leading_coeff_mul_leading_coeff, h1],
     simp,
   },
   {
     intro h1,
     have h2 : leading_coeff f = 0 ∨ leading_coeff g = 0,
-    from _root_.eq_zero_or_eq_zero_of_mul_eq_zero  h1,
-    cases h2,
-    repeat {
-      rw leading_coef_eq_zero_iff_eq_zero at h2,
-      simp [h2],      
-    }
+      from _root_.eq_zero_or_eq_zero_of_mul_eq_zero  h1,
+    cases h2 ; {simp [leading_coef_eq_zero_iff_eq_zero, * ] at *}
   }
-
 end
 
+--naming?
 lemma degree_mul_eq_add_of_mul_ne_zero {f g : polynomial α} : f * g ≠ 0 → degree (f * g) = degree f + degree g :=
 begin
-
   intro h1, 
   have h2 : f ≠ 0,
-  from ne_zero_of_mul_ne_zero_right h1,
+    from ne_zero_of_mul_ne_zero_right h1,
   have h3 : g ≠ 0,
-  from ne_zero_of_mul_ne_zero_left h1,
+    from ne_zero_of_mul_ne_zero_left h1,
   have h4 : (f * g) (degree f + degree g) ≠ 0,
-  calc (f * g) (degree f + degree g) = (leading_coeff f) * (leading_coeff g) : mul_degree_add_degree_eq_leading_coeff_mul_leading_coeff
-     ... ≠ 0 : by {simp,rw [←not_iff_not_of_iff mul_eq_zero_iff_mul_leading_coef_eq_zero], exact h1},
+  {
+    calc (f * g) (degree f + degree g) = (leading_coeff f) * (leading_coeff g) : mul_degree_add_degree_eq_leading_coeff_mul_leading_coeff
+      ... ≠ 0 : by {simp,rw [←not_iff_not_of_iff mul_eq_zero_iff_mul_leading_coef_eq_zero], exact h1},
+  },
   have h5 : (degree f + degree g) ≤ degree (f * g),
-  from le_degree h4,
+    from le_degree h4,
   have h6 : degree (f * g) ≤ (degree f + degree g),
-  from degree_mul,
+    from degree_mul,
   apply le_antisymm; simp * at *
 end
 
-
+--naming?
 lemma degree_dvd {f g : polynomial α} (h1 : f ∣ g)(h4 : g ≠ 0) : degree f ≤ degree g :=
 begin
-  let c := some h1,
-  have h2 : g = f * c,
-  from some_spec h1,
+  rcases h1 with ⟨c, h2⟩,
+  subst h2,
   by_cases h : (f = 0),
   {
-    rw h,
-    simp,
-    exact nat.zero_le _
+    simp [h, nat.zero_le],
   },
   {
-    rw h2 at h4,
     have h3 : degree (f * c) = degree f + degree c,
-    from degree_mul_eq_add_of_mul_ne_zero h4,
-    rw ←h2 at h3,
-    exact (nat.le.intro (eq.symm h3)),
+      from degree_mul_eq_add_of_mul_ne_zero h4,
+    exact (nat.le.intro h3.symm),
   }
 end
 
@@ -1085,23 +1081,20 @@ begin
     have h4 : (∀ (x : polynomial α), x ∈ s → x ≠ 0),
     {
       intros x h4,
-      apply h3 x,
-      simp *,
+      simp * at *,
     },
-    rw finset.prod_insert h1,
     have h5 : finset.prod s id ≠ 0,
-    from h2 h4,
+      from h2 h4,
     have h6 : a ≠ 0,
     {
-      apply h3,
-      simp,
+      simp * at *,
     },
-    simp,
+    simp [finset.prod_insert h1],
     exact mul_ne_zero h6 h5,
   }
 end
 
-
+--naming?
 lemma degree_prod {β : Type u} {s : finset β} {f : β → polynomial α} : finset.prod s f ≠ 0 → degree (s.prod f) = s.sum (degree ∘ f) :=
 begin
   fapply finset.induction_on s,
@@ -1110,21 +1103,21 @@ begin
   },
   {
     intros a s h1 h2 h3,
-    simp *,
     have h4 : finset.prod s f ≠ 0,
     {
       rw [finset.prod_insert h1] at h3,
       exact ne_zero_of_mul_ne_zero_left h3,      
     },
     have h5 : degree (finset.prod s f) = finset.sum s (degree ∘ f),
-    from h2 h4,
+      from h2 h4,
+    simp *,
     rw [degree_mul_eq_add_of_mul_ne_zero, h5],
     rw [finset.prod_insert h1] at h3,
     exact h3,
   },
-
 end
 
+-- naming? incliude id?
 lemma degree_prod_eq_sum_degree_of_prod_ne_zero {f : finset (polynomial α)} : (f.prod id ≠ 0) → degree (f.prod id) = f.sum (degree) :=
 begin
   fapply finset.induction_on f,
@@ -1133,8 +1126,7 @@ begin
   },
   {
     intros a s h1 h2 h3,
-    simp,
-    rw [finset.prod_insert h1, finset.sum_insert h1],
+    simp [finset.prod_insert h1, finset.sum_insert h1],
     have h4: finset.prod (s) id ≠ 0,
     {
       rw finset.prod_insert at h3,
@@ -1142,22 +1134,18 @@ begin
       exact h1,
     },
     have h5: degree (finset.prod s id) = finset.sum s degree,
-    from h2 h4,
-    simp at h5,
+      from h2 h4,
     have h6 : a * finset.prod s (λ (x : polynomial α), x) ≠ 0,
     {
-      rw finset.prod_insert h1 at h3,
-      simp at h3,
-      exact h3    
+      simp [finset.prod_insert h1, *] at *,
     },
-    rw degree_mul_eq_add_of_mul_ne_zero h6,
-    rw h5
+    simp [degree_mul_eq_add_of_mul_ne_zero h6, *] at *,
   }
 end
 
+--naming
 lemma degree_pow {x : polynomial α}{n : ℕ} : degree (x ^ n) = n * degree x :=
 begin
-  
   induction n with n h1,
   {
     simp *,
@@ -1165,8 +1153,7 @@ begin
   {
     by_cases h : (x = 0),
     {
-      simp * at *,
-      simp [pow_succ]
+      simp [pow_succ, *] at *,
     },
     {
       rw [pow_succ, degree_mul_eq_add_of_mul_ne_zero, h1],
@@ -1175,47 +1162,38 @@ begin
           ... = (n + 1) * degree x : by rw [add_mul]
           ... = nat.succ n * degree x : rfl,
       have : (x ^ n ≠ 0),
-      from pow_ne_zero _ h,
+        from pow_ne_zero _ h,
       exact mul_ne_zero h this,
     },   
   }
 end
 
+--naming?
 lemma degree_finsupp_prod {f : polynomial α →₀ ℕ} (h1 : finsupp.prod f (λ x n, x^n) ≠ 0): degree (finsupp.prod f (λ x n, x^n)) = finsupp.sum f (λ x n, n*(degree x)):=
 begin
   rw [finsupp.prod, degree_prod h1, finsupp.sum],
   simp [(∘), * , degree_pow],
 end
 
-
+--naming?
 lemma leading_coeff_mul_eq_mul_leading_coef {f g : polynomial α} : leading_coeff (f * g) = leading_coeff f * leading_coeff g :=
 begin
   by_cases h1 : (f * g = 0),
   {
     simp * at *,
-    cases eq_zero_or_eq_zero_of_mul_eq_zero _ _ h1 with h2,
-    {
-      simp *,
-    },
-    {
-      simp *,
-    }
+    cases eq_zero_or_eq_zero_of_mul_eq_zero _ _ h1 with h2 ; {simp *},
   },
   {
     have : degree (f * g) = degree f + degree g,
-    from degree_mul_eq_add_of_mul_ne_zero h1,
+      from degree_mul_eq_add_of_mul_ne_zero h1,
     simp [leading_coeff, this, mul_degree_add_degree_eq_leading_coeff_mul_leading_coeff]
   }    
 end
 
-
 lemma monic_mul_of_monic_of_monic {a b : polynomial α} (ha : monic a) (hb : monic b) : monic (a * b) :=
 begin
-  simp only [monic] at *,
-  rw leading_coeff_mul_eq_mul_leading_coef,
-  simp *,
+  simp [monic, leading_coeff_mul_eq_mul_leading_coef, *] at *,
 end
-
 
 lemma monic_prod_of_forall_mem_monic [comm_semiring α] {s : multiset (polynomial α)} (hs: ∀x ∈ s, monic x) : monic s.prod :=
 begin
@@ -1227,35 +1205,30 @@ begin
   {
     intros a s h1 h2,
     simp * at *,
-    apply monic_mul_of_monic_of_monic,
+    have ha : monic a,
     {
-      apply h2 a,
-      simp,
+      simp * at *,
     },
+    have hs : monic (multiset.prod s),
     {
       apply h1,
       intros x s,
-      apply h2,
-      simp *,
-    }
+      simp * at *,
+    },
+    exact monic_mul_of_monic_of_monic ha hs,
   }
 end
 
-
-
 --Should be in lib, used it on two spots already.
-lemma one_le_of_ne_zero {n : ℕ} : n ≠ 0 → 1 ≤ n :=
+private lemma one_le_of_ne_zero {n : ℕ} : n ≠ 0 → 1 ≤ n :=
 begin
   intro h1,
   induction n,
   {
-    have : 0 = 0,
-    from rfl,
     contradiction,
   },
   {
-    apply nat.succ_le_succ,
-    exact nat.zero_le _,
+    simp [nat.succ_le_succ, nat.zero_le],
   }
 end
 
@@ -1294,23 +1267,22 @@ lemma derivative_degree_sub_one_eq_degree_mul_leading_coeff {p : polynomial α} 
 begin
   rw [leading_coeff],
   cases h : degree p,
-  { have : is_constant p, { rwa [is_constant_iff_degree_eq_zero] },
+  { 
+    have : is_constant p, 
+    { rwa [is_constant_iff_degree_eq_zero] },
     rcases this with ⟨a, ha⟩,
     rw [ha, derivative_C],
-    simp },
-  exact derivative_apply
+    simp
+  },
+  {  exact derivative_apply}
 end
 
---set_option pp.notation false
 lemma derivative_eq_zero_of_is_constant {p : polynomial α} : (is_constant p) → (derivative p = 0) :=
 begin
   intro h1,
   rw [is_constant] at h1,
-  let c := some h1,
-  have h2: p = C c,
-  from some_spec h1,
-  rw h2,
-  simp
+  rcases h1 with ⟨c, h2⟩,
+  simp [h2],
 end
 
 --We need characteristic_zero for derivative_eq_zero -> is_constant
@@ -1329,10 +1301,10 @@ begin
       intros h2,
       rw is_constant_iff_degree_eq_zero at h2,
       have h3 : degree p ∈ support p,
-      from degree_mem_support_of_ne_zero h1,
+        from degree_mem_support_of_ne_zero h1,
       rw mem_support_iff at h3,
       have h4 : (derivative p) ((degree p)-1) = (degree p * (leading_coeff p)),
-      from derivative_degree_sub_one_eq_degree_mul_leading_coeff,
+        from derivative_degree_sub_one_eq_degree_mul_leading_coeff,
       have h5 : (derivative p) (degree p - 1) ≠ 0,
       {
         rw h4,
@@ -1344,29 +1316,24 @@ begin
           rw [←leading_coef_eq_zero_iff_eq_zero] at h1,
           exact h1,
         },
-        --simp only [coe, lift_t, has_lift_t.lift, coe_t,has_coe_t.coe, coe_b, has_coe.coe, nat.cast],
         exact h5,
-
       },
       by_contradiction h6,
-      rw h6 at h5,
-      rw [zero_apply] at h5,
+      rw [h6, zero_apply] at h5,
       contradiction
     }
-
-    
-    
   },
   {
     exact derivative_eq_zero_of_is_constant
   }
 end
 
+--naming?
 lemma is_constant_add {a b c : polynomial α} (h1 : is_constant a) (h2 : is_constant b) (h_add : a + b = c): is_constant c :=
 begin
-  rw is_constant_iff_degree_eq_zero at *,
   have h3 : degree (a + b) ≤ max (degree a) (degree b),
-  from degree_add,
+    from degree_add,
+  rw is_constant_iff_degree_eq_zero at *,    
   simp * at *,
   exact nat.eq_zero_of_le_zero h3,
 end
