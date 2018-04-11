@@ -731,7 +731,7 @@ def gcd_left := has_gcd.gcd_left a b --use {a b : α}?
 def gcd_right := has_gcd.gcd_right a b
 
 
-def rel_prime (a b : α) := is_unit (gcd a b)
+def coprime (a b : α) := is_unit (gcd a b)
 
 
 @[simp] lemma gcd_zero_zero_eq_zero : gcd (0 : α) 0 = 0 :=
@@ -2045,7 +2045,7 @@ begin
 end
 
 --naming??
-lemma mul_le_of_le_of_le_of_rel_prime {a b c : quot α} (h1 : a ⊓ b = 1) (h2 : a ≤ c) (h3 : b ≤ c) : a * b ≤ c :=
+lemma mul_le_of_le_of_le_of_coprime {a b c : quot α} (h1 : a ⊓ b = 1) (h2 : a ≤ c) (h3 : b ≤ c) : a * b ≤ c :=
 begin
   rw [← sup_mul_inf],
   simp * at *,
@@ -2482,22 +2482,22 @@ associated.mk_quot_out
 lemma mul_gcd : a * gcd b c ~ᵤ gcd (a * b) (a * c) :=
 complete $ show mk a * mk (gcd b c) = _, by simp; exact associated.mul_inf
 
-lemma rel_prime_def : (rel_prime a b) = (is_unit $ gcd a b) :=
+lemma coprime_def : (coprime a b) = (is_unit $ gcd a b) :=
 rfl
 
 --Is in isa lib
-lemma gcd_mul_cancel (h1 : rel_prime c b) : (gcd (c * a) b ~ᵤ gcd a b) :=
+lemma gcd_mul_cancel (h1 : coprime c b) : (gcd (c * a) b ~ᵤ gcd a b) :=
 begin
-  rw [rel_prime,←mk_eq_one_iff_is_unit] at h1,
+  rw [coprime,←mk_eq_one_iff_is_unit] at h1,
   apply complete,
   simp [mul_mk] at *,
   exact mul_inf_eq_inf_of_inf_eq_one h1,
 end
 
-lemma rel_prime_mul_of_rel_prime_of_rel_prime_of_rel_prime
-   (h1 : rel_prime a c) (h2 :  rel_prime b c ) : rel_prime (a * b) c :=
+lemma coprime_mul_of_coprime_of_coprime_of_coprime
+   (h1 : coprime a c) (h2 :  coprime b c ) : coprime (a * b) c :=
 begin
-  rw [rel_prime,←mk_eq_one_iff_is_unit] at *, --duplicate line with gcd_mul_cancel
+  rw [coprime,←mk_eq_one_iff_is_unit] at *, --duplicate line with gcd_mul_cancel
   simp [mul_mk] at *,
   rw mul_inf_eq_inf_of_inf_eq_one; assumption
 end
@@ -2662,12 +2662,12 @@ end
 
 
 
-lemma rel_prime_iff_mk_inf_mk_eq_one {a b : α} : rel_prime a b ↔ (mk a) ⊓ (mk b) = 1 :=
+lemma coprime_iff_mk_inf_mk_eq_one {a b : α} : coprime a b ↔ (mk a) ⊓ (mk b) = 1 :=
 begin
   split,
   {
     intro h,
-    simp [rel_prime, gcd, has_gcd.gcd] at h,
+    simp [coprime, gcd, has_gcd.gcd] at h,
     have h1 : is_unit_quot (inf (mk a) (mk b)),
     {
       rw ←quot.out_eq (inf (mk a) (mk b)),
@@ -2678,7 +2678,7 @@ begin
   },
   {
     intro h,
-    simp [rel_prime, gcd, has_gcd.gcd],
+    simp [coprime, gcd, has_gcd.gcd],
     have h1 : inf (mk a) (mk b) = 1, --anoying, that this step needs to be made.
     from h,
     rw h1,
@@ -2689,19 +2689,19 @@ begin
 end
 
 
-lemma mul_dvd_of_dvd_of_dvd_of_rel_prime {α : Type u}{a b c: α} [unique_factorization_domain α] (h1 : rel_prime a b)(h2 : a ∣ c)(h3 : b ∣ c) : (a * b) ∣ c:=
+lemma mul_dvd_of_dvd_of_dvd_of_coprime {α : Type u}{a b c: α} [unique_factorization_domain α] (h1 : coprime a b)(h2 : a ∣ c)(h3 : b ∣ c) : (a * b) ∣ c:=
 begin
   rw dvd_iff_mk_le_mk at *,
   rw [mul_mk],
-  rw rel_prime_iff_mk_inf_mk_eq_one at h1,
-  exact mul_le_of_le_of_le_of_rel_prime h1 h2 h3,
+  rw coprime_iff_mk_inf_mk_eq_one at h1,
+  exact mul_le_of_le_of_le_of_coprime h1 h2 h3,
 end
 
 
 
-@[symm] protected lemma rel_prime.symm {γ : Type u} [unique_factorization_domain γ] {a b : γ} (h1: rel_prime a b ): rel_prime b a :=
+@[symm] protected lemma coprime.symm {γ : Type u} [unique_factorization_domain γ] {a b : γ} (h1: coprime a b ): coprime b a :=
 begin
-  rw rel_prime at *,
+  rw coprime at *,
   apply is_unit_of_associated h1 gcd_comm
 end
 
@@ -2734,15 +2734,15 @@ begin
   apply is_unit_of_associated is_unit_one gcd_one_right.symm,
 end
 
-lemma rel_prime_mul_iff_rel_prime_and_rel_prime {a b c : α} : rel_prime a (b * c) ↔ rel_prime a b ∧ rel_prime a c :=
+lemma coprime_mul_iff_coprime_and_coprime {a b c : α} : coprime a (b * c) ↔ coprime a b ∧ coprime a c :=
 begin
-  repeat {rw [rel_prime_iff_mk_inf_mk_eq_one]},
+  repeat {rw [coprime_iff_mk_inf_mk_eq_one]},
   rw mul_mk,
   exact inf_mul_eq_one_iff_inf_eq_one_and_inf_eq_one,
 end
 
 
-lemma rel_prime_pow {x y : α } {n : ℕ} (h : n ≠ 0) : rel_prime x (y ^ n) ↔ rel_prime x y :=
+lemma coprime_pow {x y : α } {n : ℕ} (h : n ≠ 0) : coprime x (y ^ n) ↔ coprime x y :=
 begin
   induction n with n ih,
   {
@@ -2755,12 +2755,12 @@ begin
     split,
     {
       intro h,
-      rw rel_prime_mul_iff_rel_prime_and_rel_prime at h,
+      rw coprime_mul_iff_coprime_and_coprime at h,
       exact h.1,
     },
     {
       intro h1,
-      rw rel_prime_mul_iff_rel_prime_and_rel_prime,
+      rw coprime_mul_iff_coprime_and_coprime,
       split,
         exact h1,
       {
@@ -2770,26 +2770,26 @@ begin
   }
 end
 
-@[simp] lemma rel_prime_one_left {x : α} : rel_prime x 1 :=
+@[simp] lemma coprime_one_left {x : α} : coprime x 1 :=
 begin
-  simp [rel_prime],
+  simp [coprime],
 end
 
-@[simp] lemma rel_prime_one_right{x : α} : rel_prime 1 x :=
+@[simp] lemma coprime_one_right{x : α} : coprime 1 x :=
 begin
-  simp [rel_prime],
+  simp [coprime],
 end
 
-lemma rel_prime_pow_pow_of_rel_prime {x y : α}{n m : ℕ}(h  : rel_prime x y) : rel_prime (x ^ n) (y ^ m) :=
+lemma coprime_pow_pow_of_coprime {x y : α}{n m : ℕ}(h  : coprime x y) : coprime (x ^ n) (y ^ m) :=
 begin
   by_cases h1 : n = 0,
     {simp [h1]},
     by_cases h2 : m = 0,
       {simp [h2]},
       {
-        rw [rel_prime_pow h2],
-        apply rel_prime.symm,
-        rw [rel_prime_pow h1],
+        rw [coprime_pow h2],
+        apply coprime.symm,
+        rw [coprime_pow h1],
         exact h.symm,
       }
 end
@@ -2800,16 +2800,16 @@ iff.intro
   quot.sound
   complete
 
-lemma rel_prime_of_irreducible_of_irreducible_of_not_associated {x y : α} (hx : irreducible x) (hy : irreducible y) (h : ¬ (x ~ᵤ y)) : rel_prime x y :=
+lemma coprime_of_irreducible_of_irreducible_of_not_associated {x y : α} (hx : irreducible x) (hy : irreducible y) (h : ¬ (x ~ᵤ y)) : coprime x y :=
 begin
   rw associated_iff_mk_eq_mk at h,
-  rw [rel_prime_iff_mk_inf_mk_eq_one],
+  rw [coprime_iff_mk_inf_mk_eq_one],
   rw inf_eq_one_iff_ne_eq_of_irred_of_irred; assumption,
 end
 
-lemma rel_prime_iff_not_associated_of_irreducible_of_irreducible {x y : α} (hx : irreducible x) (hy : irreducible y) : rel_prime x y ↔ ¬ (x ~ᵤ y) :=
+lemma coprime_iff_not_associated_of_irreducible_of_irreducible {x y : α} (hx : irreducible x) (hy : irreducible y) : coprime x y ↔ ¬ (x ~ᵤ y) :=
 begin
-  rw [rel_prime_iff_mk_inf_mk_eq_one, inf_eq_one_iff_ne_eq_of_irred_of_irred, associated_iff_mk_eq_mk],
+  rw [coprime_iff_mk_inf_mk_eq_one, inf_eq_one_iff_ne_eq_of_irred_of_irred, associated_iff_mk_eq_mk],
   exact hx,
   exact hy,
 end
@@ -2818,9 +2818,9 @@ lemma pow_mul_pow_dvd [unique_factorization_domain α] {x y z : α} {n m : ℕ}
   (hx : irreducible x) (hy : irreducible y) (hxz: x ^ n ∣ z) (hyz : y ^ m ∣ z) (h : ¬ (x ~ᵤ y)) :
   (x ^ n * y ^ m) ∣ z :=
 begin
-  apply @mul_dvd_of_dvd_of_dvd_of_rel_prime _ (x ^ n) (y ^ m) z,
-  apply rel_prime_pow_pow_of_rel_prime,
-  rw rel_prime_iff_not_associated_of_irreducible_of_irreducible,
+  apply @mul_dvd_of_dvd_of_dvd_of_coprime _ (x ^ n) (y ^ m) z,
+  apply coprime_pow_pow_of_coprime,
+  rw coprime_iff_not_associated_of_irreducible_of_irreducible,
   repeat {assumption},
 end
 
@@ -3102,9 +3102,9 @@ begin
 end
 
 --Why do we need irreucible here?? (h : ∀x ∈ s, irreducible x)
-lemma rel_prime_prod_iff_forall_rel_prime  {y: α} {s : multiset α}: rel_prime y s.prod ↔ ∀x ∈ s, rel_prime y x :=
+lemma coprime_prod_iff_forall_coprime  {y: α} {s : multiset α}: coprime y s.prod ↔ ∀x ∈ s, coprime y x :=
 begin
-  rw rel_prime_iff_mk_inf_mk_eq_one,
+  rw coprime_iff_mk_inf_mk_eq_one,
   rw [mk_def, mk_def],
   rw [←prod_mk],
   --have h4 : ∀ x, x ∈ map mk s → irred x,
@@ -3113,7 +3113,7 @@ begin
   split,
   {
     intros h1 z h3,
-    rw rel_prime_iff_mk_inf_mk_eq_one,
+    rw coprime_iff_mk_inf_mk_eq_one,
     apply h1 (mk z),
     rw mem_map,
     exact ⟨z, h3, rfl⟩,
@@ -3125,9 +3125,9 @@ begin
     rw mem_map at h2,
     rcases h2 with ⟨b, hb⟩,
     rw ←hb.2,
-    have h2: rel_prime y b,
+    have h2: coprime y b,
     from h1 b hb.1,
-    rw rel_prime_iff_mk_inf_mk_eq_one at h2,
+    rw coprime_iff_mk_inf_mk_eq_one at h2,
     exact h2,
   }
 end
@@ -3248,16 +3248,16 @@ begin
   {
     intros a s h2 h3 h4,
     simp [finset.prod_insert h2],
-    apply mul_dvd_of_dvd_of_dvd_of_rel_prime,
+    apply mul_dvd_of_dvd_of_dvd_of_coprime,
     {
       rw finset_prod_eq_map_prod,
-      rw rel_prime_prod_iff_forall_rel_prime,
+      rw coprime_prod_iff_forall_coprime,
       {
         intros y h5,
         rw mem_map at h5,
         rcases h5 with ⟨b, hb⟩,
         rw ←hb.2,
-        apply rel_prime_pow_pow_of_rel_prime,
+        apply coprime_pow_pow_of_coprime,
         have h5 : a ∈ insert a s,
         {simp},
         have h6 : b ∈ s,
@@ -3272,7 +3272,7 @@ begin
           subst h9,
           exact h2 h6,
         },
-        rwa rel_prime_iff_not_associated_of_irreducible_of_irreducible (h4 a h5).1 (h4 b h7).1,
+        rwa coprime_iff_not_associated_of_irreducible_of_irreducible (h4 a h5).1 (h4 b h7).1,
       },
 
 
@@ -3335,10 +3335,10 @@ begin
     have h3 : t - repeat a (count a t) + repeat a (count a t) = t,
       from multiset.sub_add_cancel this,
     rw [←h3, ←prod_mul_prod_eq_add_prod, mul_comm a, mul_assoc],
-    apply mul_dvd_of_dvd_of_dvd_of_rel_prime,
+    apply mul_dvd_of_dvd_of_dvd_of_coprime,
     {
-      apply rel_prime.symm,
-      rw [rel_prime_prod_iff_forall_rel_prime],
+      apply coprime.symm,
+      rw [coprime_prod_iff_forall_coprime],
       intros x h,
       have : x ≠ a,
       {
@@ -3354,13 +3354,13 @@ begin
         exact nat.not_lt_zero 0 h,
       },
       rw [prod_repeat, mul_comm, ←pow_succ, ←pow_one x],
-      apply rel_prime_pow_pow_of_rel_prime,
+      apply coprime_pow_pow_of_coprime,
       have ht : x ∈ t,
       {
         refine mem_of_le _ h,
         apply multiset.sub_le_self,
       },
-      refine (rel_prime_iff_not_associated_of_irreducible_of_irreducible _ _).2 _,
+      refine (coprime_iff_not_associated_of_irreducible_of_irreducible _ _).2 _,
       {
         refine (h2 a _).1,
         simp,
@@ -3435,9 +3435,9 @@ begin
 end
 
 
-lemma dvd_of_dvd_mul_of_rel_prime {a b c : α} (h1 : a ∣ b * c) (h2 : rel_prime a b) : a ∣ c :=
+lemma dvd_of_dvd_mul_of_coprime {a b c : α} (h1 : a ∣ b * c) (h2 : coprime a b) : a ∣ c :=
 begin
-  rw rel_prime_iff_mk_inf_mk_eq_one at h2,
+  rw coprime_iff_mk_inf_mk_eq_one at h2,
   rw dvd_iff_mk_le_mk at *,
   rw [mul_mk] at h1,
   apply le_of_le_mul_of_le_of_inf_eq_one h2,
@@ -3507,20 +3507,20 @@ begin
   exact not_is_unit_of_not_is_unit_dvd h4 h2b,
 end
 
-lemma rel_prime_of_rel_prime_of_associated_left {a a' b : α} (h1 : rel_prime a b)  (h2 : a' ~ᵤ a) : rel_prime a' b :=
+lemma coprime_of_coprime_of_associated_left {a a' b : α} (h1 : coprime a b)  (h2 : a' ~ᵤ a) : coprime a' b :=
 begin
-  rw rel_prime_iff_mk_inf_mk_eq_one at *,
+  rw coprime_iff_mk_inf_mk_eq_one at *,
   have : mk a' = mk a,
     from quot.sound h2,
   simp * at *,
 end
 
-lemma rel_prime_of_rel_prime_of_associated_right {a b b': α} (h1 : rel_prime a b)  (h2 : b' ~ᵤ b) : rel_prime a b' :=
+lemma coprime_of_coprime_of_associated_right {a b b': α} (h1 : coprime a b)  (h2 : b' ~ᵤ b) : coprime a b' :=
 begin
-  have h3 : rel_prime b a,
+  have h3 : coprime b a,
     from h1.symm,
-  apply rel_prime.symm,
-  exact rel_prime_of_rel_prime_of_associated_left h3 h2,
+  apply coprime.symm,
+  exact coprime_of_coprime_of_associated_left h3 h2,
 end
 
 end ufd

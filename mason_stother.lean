@@ -503,9 +503,9 @@ begin
 end
 
 --In MS detailed I call this zero wronskian
-lemma derivative_eq_zero_and_derivative_eq_zero_of_rel_prime_of_wron_eq_zero
+lemma derivative_eq_zero_and_derivative_eq_zero_of_coprime_of_wron_eq_zero
 {a b : polynomial β}
-(h1 : rel_prime a b)
+(h1 : coprime a b)
 (h2 : d[a] * b - a * d[b] = 0)
 : d[a] = 0 ∧  d[b] = 0 :=
 begin
@@ -520,7 +520,7 @@ begin
   from dvd.intro _ h3.symm,
   rw mul_comm at h4,
   have h5 : a ∣ d[a],
-  exact dvd_of_dvd_mul_of_rel_prime h4 h1,
+  exact dvd_of_dvd_mul_of_coprime h4 h1,
   have h6 : d[a] = 0,
   from derivative_eq_zero_of_dvd_derivative_self h5,
 
@@ -529,13 +529,13 @@ begin
   have h7 : b ∣ a * d[b],
   from dvd.intro _ h3,
   have h8 : b ∣ d[b],
-  exact dvd_of_dvd_mul_of_rel_prime h7 (rel_prime_comm h1),
+  exact dvd_of_dvd_mul_of_coprime h7 (coprime_comm h1),
   have h9 : d[b] = 0,
   from derivative_eq_zero_of_dvd_derivative_self h8,
   exact ⟨h6, h9⟩,
 end
 
-lemma rel_prime_gcd_derivative_gcd_derivative_of_rel_prime {a b : polynomial β} (h : rel_prime a b) : rel_prime (gcd a d[a]) (gcd b d[b]) :=
+lemma coprime_gcd_derivative_gcd_derivative_of_coprime {a b : polynomial β} (h : coprime a b) : coprime (gcd a d[a]) (gcd b d[b]) :=
 sorry
 
 lemma degree_gcd_derivative_le_degree {a : polynomial β}: degree (gcd a d[a]) ≤ degree a :=
@@ -755,9 +755,9 @@ end
 lemma rw_aux_1 [field β]
   (h_char : characteristic_zero β)
   (a b c : polynomial β)
-  (h_rel_prime_ab : rel_prime a b)
-  (h_rel_prime_bc : rel_prime b c)
-  (h_rel_prime_ca : rel_prime c a)
+  (h_coprime_ab : coprime a b)
+  (h_coprime_bc : coprime b c)
+  (h_coprime_ca : coprime c a)
   (h_add : a + b = c)
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c))
   (h_deg_add_le : degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c]) ≤ degree a + degree b - 1) :
@@ -814,9 +814,9 @@ end
 lemma rw_aux_2 [field β] --We want to use the Mason Stothers lemmas here
   (h_char : characteristic_zero β)
   (a b c : polynomial β)
-  (h_rel_prime_ab : rel_prime a b)
-  (h_rel_prime_bc : rel_prime b c)
-  (h_rel_prime_ca : rel_prime c a)
+  (h_coprime_ab : coprime a b)
+  (h_coprime_bc : coprime b c)
+  (h_coprime_ca : coprime c a)
   (h_add : a + b = c)
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c))
   (h_rad: rad(a)*rad(b)*rad(c)= rad(a*b*c))
@@ -836,9 +836,9 @@ end
 theorem Mason_Stothers [field β]
   (h_char : characteristic_zero β)
   (a b c : polynomial β)
-  (h_rel_prime_ab : rel_prime a b)
-  (h_rel_prime_bc : rel_prime b c)
-  (h_rel_prime_ca : rel_prime c a)
+  (h_coprime_ab : coprime a b)
+  (h_coprime_bc : coprime b c)
+  (h_coprime_ca : coprime c a)
   (h_add : a + b = c)
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)) :
   degree c ≤ degree ( rad (a*b*c)) - 1 :=
@@ -924,13 +924,13 @@ begin
   },
   have h_gcds_dvd : (gcd a d[a]) * (gcd b d[b]) * (gcd c d[c]) ∣ d[a] * b - a * d[b],
   {
-    apply mul_dvd_of_dvd_of_dvd_of_rel_prime,
-    apply rel_prime_mul_of_rel_prime_of_rel_prime_of_rel_prime,
-    exact rel_prime_gcd_derivative_gcd_derivative_of_rel_prime (rel_prime_comm h_rel_prime_ca),
-    exact rel_prime_gcd_derivative_gcd_derivative_of_rel_prime h_rel_prime_bc,
-    exact rel_prime_gcd_derivative_gcd_derivative_of_rel_prime h_rel_prime_ca,
-    apply mul_dvd_of_dvd_of_dvd_of_rel_prime,
-    exact rel_prime_gcd_derivative_gcd_derivative_of_rel_prime h_rel_prime_ab,
+    apply mul_dvd_of_dvd_of_dvd_of_coprime,
+    apply coprime_mul_of_coprime_of_coprime_of_coprime,
+    exact coprime_gcd_derivative_gcd_derivative_of_coprime (coprime_comm h_coprime_ca),
+    exact coprime_gcd_derivative_gcd_derivative_of_coprime h_coprime_bc,
+    exact coprime_gcd_derivative_gcd_derivative_of_coprime h_coprime_ca,
+    apply mul_dvd_of_dvd_of_dvd_of_coprime,
+    exact coprime_gcd_derivative_gcd_derivative_of_coprime h_coprime_ab,
     exact h_dvd_wron_a,
     exact h_dvd_wron_b,
     exact h_dvd_wron_c
@@ -940,11 +940,11 @@ begin
     by_contradiction h1,
     rw not_not at h1,
     have h_a_b : d[a] = 0 ∧ d[b] = 0,
-    from derivative_eq_zero_and_derivative_eq_zero_of_rel_prime_of_wron_eq_zero h_rel_prime_ab h1,
+    from derivative_eq_zero_and_derivative_eq_zero_of_coprime_of_wron_eq_zero h_coprime_ab h1,
     have h2 : d[a] * c - a * d[c] = 0,
     {rw [←h_wron, h1]},
     have h_a_c : d[a] = 0 ∧ d[c] = 0,
-    from derivative_eq_zero_and_derivative_eq_zero_of_rel_prime_of_wron_eq_zero (rel_prime_comm h_rel_prime_ca) h2,
+    from derivative_eq_zero_and_derivative_eq_zero_of_coprime_of_wron_eq_zero (coprime_comm h_coprime_ca) h2,
     have h3 : (d[a] = 0 ∧ d[b] = 0 ∧ d[c] = 0),
     exact ⟨and.elim_left h_a_b, and.elim_right h_a_b, and.elim_right h_a_c⟩,
     contradiction

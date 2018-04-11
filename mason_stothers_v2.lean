@@ -389,9 +389,9 @@ begin
 end
 
 --In MS detailed I call this zero wronskian
-lemma derivative_eq_zero_and_derivative_eq_zero_of_rel_prime_of_wron_eq_zero
+lemma derivative_eq_zero_and_derivative_eq_zero_of_coprime_of_wron_eq_zero
 {a b : polynomial β} 
-(h1 : rel_prime a b)
+(h1 : coprime a b)
 (h2 : d[a] * b - a * d[b] = 0)
 : d[a] = 0 ∧  d[b] = 0 := 
 begin
@@ -406,7 +406,7 @@ begin
   from dvd.intro _ h3.symm,
   rw mul_comm at h4,
   have h5 : a ∣ d[a],
-  exact dvd_of_dvd_mul_of_rel_prime h4 h1,
+  exact dvd_of_dvd_mul_of_coprime h4 h1,
   have h6 : d[a] = 0,
   from derivative_eq_zero_of_dvd_derivative_self h5,
 
@@ -415,16 +415,16 @@ begin
   have h7 : b ∣ a * d[b],
   from dvd.intro _ h3,
   have h8 : b ∣ d[b],
-  exact dvd_of_dvd_mul_of_rel_prime h7 (h1.symm),
+  exact dvd_of_dvd_mul_of_coprime h7 (h1.symm),
   have h9 : d[b] = 0,
   from derivative_eq_zero_of_dvd_derivative_self h8,
   exact ⟨h6, h9⟩,
 end
 
---Lemma rel_prime_gcd in MS_detailed
-lemma rel_prime_gcd_derivative_gcd_derivative_of_rel_prime {a b : polynomial β} (h : rel_prime a b) (c d : polynomial β) : rel_prime (gcd a c) (gcd b d) :=
+--Lemma coprime_gcd in MS_detailed
+lemma coprime_gcd_derivative_gcd_derivative_of_coprime {a b : polynomial β} (h : coprime a b) (c d : polynomial β) : coprime (gcd a c) (gcd b d) :=
 begin
-  rw rel_prime,
+  rw coprime,
   by_contradiction h1,
   let e := (gcd (gcd a c) (gcd b d)),
   have ha : e ∣ a,
@@ -447,7 +447,7 @@ begin
     from gcd_min ha hb,
   have h2 : ¬is_unit (gcd a b),
     from not_is_unit_of_not_is_unit_dvd h1 he,
-  rw rel_prime at h,
+  rw coprime at h,
   exact h2 h,
 end
 
@@ -537,7 +537,7 @@ begin
 end
 
 --a and b can be implicit
-lemma factors_inter_factors_eq_zero_of_rel_prime (a b : polynomial β) (h : rel_prime a b) : a.factors ∩ b.factors = 0 :=
+lemma factors_inter_factors_eq_zero_of_coprime (a b : polynomial β) (h : coprime a b) : a.factors ∩ b.factors = 0 :=
 begin
   by_cases ha: a = 0,
   {
@@ -550,9 +550,9 @@ begin
       subst hb,
       simp,
     },
-    { --I already have a similar lemma for rel_prime
-      rw [rel_prime_iff_mk_inf_mk_eq_one, a.factors_eq, b.factors_eq, mul_mk, mul_mk] at h, --we go to the quotient structure with respect to units.
-      rw inf_mul_eq_one_iff_inf_eq_one_and_inf_eq_one at h, --We probably can do without going to the quotient, because we have the lemmas for rel_prime
+    { --I already have a similar lemma for coprime
+      rw [coprime_iff_mk_inf_mk_eq_one, a.factors_eq, b.factors_eq, mul_mk, mul_mk] at h, --we go to the quotient structure with respect to units.
+      rw inf_mul_eq_one_iff_inf_eq_one_and_inf_eq_one at h, --We probably can do without going to the quotient, because we have the lemmas for coprime
       let h1 := h.2,    
       rw mul_inf_eq_one_iff_inf_eq_one_and_inf_eq_one at h1,
       let h2 := h1.2,
@@ -574,7 +574,7 @@ begin
             exact ⟨y, hy, rfl⟩,            
           },
         },
-        rw [←rel_prime_iff_mk_inf_mk_eq_one, rel_prime_iff_not_associated_of_irreducible_of_irreducible] at h3,
+        rw [←coprime_iff_mk_inf_mk_eq_one, coprime_iff_not_associated_of_irreducible_of_irreducible] at h3,
         rw [associated_iff_eq_of_monic_of_monic] at h3,
         exact h3,
         exact a.factors_monic x hx,
@@ -715,7 +715,7 @@ begin
   simp [rad],
 end
 
-lemma rad_mul_eq_rad_mul_rad_of_rel_prime {a b : polynomial β} (ha : a ≠ 0) (hb : b ≠ 0) (h : rel_prime a b) : rad (a * b) = (rad a) * (rad b) :=
+lemma rad_mul_eq_rad_mul_rad_of_coprime {a b : polynomial β} (ha : a ≠ 0) (hb : b ≠ 0) (h : coprime a b) : rad (a * b) = (rad a) * (rad b) :=
 begin
   simp only [rad],
   rw prod_mul_prod_eq_add_prod,
@@ -736,7 +736,7 @@ begin
     have h3 : x ∈ a.factors ∩ b.factors ↔ x ∈ a.factors ∧ x ∈ b.factors,
       from mem_inter,
     have h4: a.factors ∩ b.factors = 0,
-      from factors_inter_factors_eq_zero_of_rel_prime _ _ h,
+      from factors_inter_factors_eq_zero_of_coprime _ _ h,
     cases h1,
     {
       have : x ∉ b.factors,
@@ -795,9 +795,9 @@ end
 
 --We will need extra conditions here
 --We only need this one
-lemma degree_rad_add {a b: polynomial β} (ha : a ≠ 0) (hb : b ≠ 0) (hab : rel_prime a b): degree (rad a) + degree (rad b) ≤ degree (rad (a * b)) :=
+lemma degree_rad_add {a b: polynomial β} (ha : a ≠ 0) (hb : b ≠ 0) (hab : coprime a b): degree (rad a) + degree (rad b) ≤ degree (rad (a * b)) :=
 begin
-  rw rad_mul_eq_rad_mul_rad_of_rel_prime ha hb hab,
+  rw rad_mul_eq_rad_mul_rad_of_coprime ha hb hab,
   rw degree_mul_eq_add_of_mul_ne_zero,
   apply _root_.mul_ne_zero,
   {
@@ -814,15 +814,15 @@ begin
   },
 end
 
-private lemma h_rad_add {a b c: polynomial β} (ha : a ≠ 0) (hb : b ≠ 0) (hc : c ≠ 0) (hab : rel_prime a b) (h_rel_prime_bc : rel_prime b c)
-  (h_rel_prime_ca : rel_prime c a)
+private lemma h_rad_add {a b c: polynomial β} (ha : a ≠ 0) (hb : b ≠ 0) (hc : c ≠ 0) (hab : coprime a b) (h_coprime_bc : coprime b c)
+  (h_coprime_ca : coprime c a)
 :  degree(rad(a))+degree(rad(b))+degree(rad(c)) ≤ degree(rad(a*b*c)) :=
 begin
-  have habc : rel_prime (a*b) c,
+  have habc : coprime (a*b) c,
     {
       have h1: ((gcd (a * b) c) ~ᵤ (gcd b c)),
-        from gcd_mul_cancel h_rel_prime_ca.symm,
-      exact is_unit_of_associated h_rel_prime_bc h1.symm,
+        from gcd_mul_cancel h_coprime_ca.symm,
+      exact is_unit_of_associated h_coprime_bc h1.symm,
     },
   have h1 : a * b ≠ 0,
     from mul_ne_zero ha hb,
@@ -1239,9 +1239,9 @@ end
 lemma rw_aux_1 [field β]
   --(h_char : characteristic_zero β)
   (a b c : polynomial β)
-  --(h_rel_prime_ab : rel_prime a b)
-  --(h_rel_prime_bc : rel_prime b c)
-  --(h_rel_prime_ca : rel_prime c a)
+  --(h_coprime_ab : coprime a b)
+  --(h_coprime_bc : coprime b c)
+  --(h_coprime_ca : coprime c a)
   (h_add : a + b = c)
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)) 
   (h_deg_add_le : degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c]) ≤ degree a + degree b - 1) :
@@ -1300,15 +1300,15 @@ lemma rw_aux_2 [field β] --We want to use the Mason Stothers lemmas here
   (ha : a ≠ 0)
   (hb : b ≠ 0)
   (hc : c ≠ 0)
-  (h_rel_prime_ab : rel_prime a b)
-  (h_rel_prime_bc : rel_prime b c)
-  (h_rel_prime_ca : rel_prime c a)
+  (h_coprime_ab : coprime a b)
+  (h_coprime_bc : coprime b c)
+  (h_coprime_ca : coprime c a)
    : degree a - degree (gcd a d[a]) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1 ≤
   degree (rad (a * b * c)) - 1:=
 begin
   apply nat.sub_le_sub_right,
   have h_rad:  degree(rad(a))+degree(rad(b))+degree(rad(c)) ≤ degree(rad(a*b*c)),
-    from h_rad_add ha hb hc h_rel_prime_ab h_rel_prime_bc h_rel_prime_ca,
+    from h_rad_add ha hb hc h_coprime_ab h_coprime_bc h_coprime_ca,
   refine nat.le_trans _ h_rad,
   apply nat.add_mono _ (Mason_Stothers_lemma' c),
   apply nat.add_mono (Mason_Stothers_lemma' a) (Mason_Stothers_lemma' b), 
@@ -1480,8 +1480,8 @@ end
 
 private lemma h_wron_ne_zero 
   (a b c : polynomial β)   
-  (h_rel_prime_ab : rel_prime a b)
-  (h_rel_prime_ca : rel_prime c a)
+  (h_coprime_ab : coprime a b)
+  (h_coprime_ca : coprime c a)
   (h_der_not_all_zero : ¬(d[a] = 0 ∧ d[b] = 0 ∧ d[c] = 0))
   (h_wron : d[a] * b - a * d[b] = d[a] * c - a * d[c]): 
   d[a] * b - a * d[b] ≠ 0 :=
@@ -1489,11 +1489,11 @@ begin
   by_contradiction h1,
   rw not_not at h1,
   have h_a_b : d[a] = 0 ∧ d[b] = 0,
-  from derivative_eq_zero_and_derivative_eq_zero_of_rel_prime_of_wron_eq_zero h_rel_prime_ab h1,
+  from derivative_eq_zero_and_derivative_eq_zero_of_coprime_of_wron_eq_zero h_coprime_ab h1,
   have h2 : d[a] * c - a * d[c] = 0,
   {rw [←h_wron, h1]},
   have h_a_c : d[a] = 0 ∧ d[c] = 0,
-  from derivative_eq_zero_and_derivative_eq_zero_of_rel_prime_of_wron_eq_zero (h_rel_prime_ca.symm) h2,
+  from derivative_eq_zero_and_derivative_eq_zero_of_coprime_of_wron_eq_zero (h_coprime_ca.symm) h2,
   have h3 : (d[a] = 0 ∧ d[b] = 0 ∧ d[c] = 0),
   exact ⟨and.elim_left h_a_b, and.elim_right h_a_b, and.elim_right h_a_c⟩,
   contradiction    
@@ -1540,20 +1540,20 @@ end
 
 private lemma h_gcds_dvd 
 (a b c : polynomial β)
-(h_rel_prime_ab : rel_prime a b)
-(h_rel_prime_bc : rel_prime b c)
-(h_rel_prime_ca : rel_prime c a)
+(h_coprime_ab : coprime a b)
+(h_coprime_bc : coprime b c)
+(h_coprime_ca : coprime c a)
 (h_dvd_wron_a : gcd a d[a] ∣ d[a] * b - a * d[b])
 (h_dvd_wron_b : gcd b d[b] ∣ d[a] * b - a * d[b])
 (h_dvd_wron_c : gcd c d[c] ∣ d[a] * b - a * d[b]):
   (gcd a d[a]) * (gcd b d[b]) * (gcd c d[c]) ∣ d[a] * b - a * d[b] :=
 begin 
-  apply mul_dvd_of_dvd_of_dvd_of_rel_prime,
-  apply rel_prime_mul_of_rel_prime_of_rel_prime_of_rel_prime,
-  exact rel_prime_gcd_derivative_gcd_derivative_of_rel_prime (h_rel_prime_ca.symm) _ _,
-  exact rel_prime_gcd_derivative_gcd_derivative_of_rel_prime h_rel_prime_bc _ _,
-  apply mul_dvd_of_dvd_of_dvd_of_rel_prime,
-  exact rel_prime_gcd_derivative_gcd_derivative_of_rel_prime h_rel_prime_ab _ _,
+  apply mul_dvd_of_dvd_of_dvd_of_coprime,
+  apply coprime_mul_of_coprime_of_coprime_of_coprime,
+  exact coprime_gcd_derivative_gcd_derivative_of_coprime (h_coprime_ca.symm) _ _,
+  exact coprime_gcd_derivative_gcd_derivative_of_coprime h_coprime_bc _ _,
+  apply mul_dvd_of_dvd_of_dvd_of_coprime,
+  exact coprime_gcd_derivative_gcd_derivative_of_coprime h_coprime_ab _ _,
   exact h_dvd_wron_a,
   exact h_dvd_wron_b,
   exact h_dvd_wron_c
@@ -1580,15 +1580,15 @@ begin
 end
 
 
-theorem Mason_Stothers [field β]
+theorem Mason_Stothers_special [field β]
   (h_char : characteristic_zero β)
   (a b c : polynomial β)
   (ha : a ≠ 0)
   (hb : b ≠ 0)
   (hc : c ≠ 0)
-  (h_rel_prime_ab : rel_prime a b)
-  (h_rel_prime_bc : rel_prime b c)
-  (h_rel_prime_ca : rel_prime c a)
+  (h_coprime_ab : coprime a b)
+  (h_coprime_bc : coprime b c)
+  (h_coprime_ca : coprime c a)
   (h_add : a + b = c)
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)) :
   degree c < degree ( rad (a*b*c)) :=
@@ -1612,9 +1612,9 @@ begin
   have h_dvd_wron_c : gcd c d[c] ∣ d[a] * b - a * d[b],
     from h_dvd_wron_c a b c h_wron,
   have h_gcds_dvd : (gcd a d[a]) * (gcd b d[b]) * (gcd c d[c]) ∣ d[a] * b - a * d[b],
-    from h_gcds_dvd a b c h_rel_prime_ab h_rel_prime_bc h_rel_prime_ca h_dvd_wron_a h_dvd_wron_b h_dvd_wron_c,
+    from h_gcds_dvd a b c h_coprime_ab h_coprime_bc h_coprime_ca h_dvd_wron_a h_dvd_wron_b h_dvd_wron_c,
   have h_wron_ne_zero : d[a] * b - a * d[b] ≠ 0,
-    from h_wron_ne_zero a b c h_rel_prime_ab h_rel_prime_ca h_der_not_all_zero h_wron,
+    from h_wron_ne_zero a b c h_coprime_ab h_coprime_ca h_der_not_all_zero h_wron,
   have h_deg_add : degree (gcd a d[a] * gcd b d[b] * gcd c d[c]) = degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c]),
     from h_deg_add a b c h_wron_ne_zero h_gcds_dvd,
   have h_deg_add_le : degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c]) ≤ degree a + degree b - 1,
@@ -1628,7 +1628,7 @@ begin
     from rw_aux_1 a b c h_add h_constant h_deg_add_le,
   have h_le_rad : degree a - degree (gcd a d[a]) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1 ≤
   degree (rad (a * b * c)) - 1,
-    from rw_aux_2 ha hb hc h_rel_prime_ab h_rel_prime_bc h_rel_prime_ca,
+    from rw_aux_2 ha hb hc h_coprime_ab h_coprime_bc h_coprime_ca,
   have h_ms : degree c ≤ degree ( rad (a*b*c)) - 1,
     from nat.le_trans h_deg_c_le_1 h_le_rad,
   have h_eq : degree ( rad (a*b*c)) - 1 + 1 = degree ( rad (a*b*c)),
@@ -1694,29 +1694,29 @@ begin
   rw [rad, rad, h1],
 end
 
-@[simp] lemma rel_prime_neg_iff_rel_prime_left {a b : polynomial β} : rel_prime (-a) b ↔ rel_prime a b :=
+@[simp] lemma coprime_neg_iff_coprime_left {a b : polynomial β} : coprime (-a) b ↔ coprime a b :=
 begin
   split,
   {
     intro h,
-    apply rel_prime_of_rel_prime_of_associated_left h (associated_neg _),
+    apply coprime_of_coprime_of_associated_left h (associated_neg _),
   },
   {
     intro h,
-    apply rel_prime_of_rel_prime_of_associated_left h (associated_neg _).symm,
+    apply coprime_of_coprime_of_associated_left h (associated_neg _).symm,
   }
 end
 
-@[simp] lemma rel_prime_neg_iff_rel_prime_right {a b : polynomial β} : rel_prime a (-b) ↔ rel_prime a b :=
+@[simp] lemma coprime_neg_iff_coprime_right {a b : polynomial β} : coprime a (-b) ↔ coprime a b :=
 begin
   split,
   {
     intro h,
-    apply rel_prime_of_rel_prime_of_associated_right h (associated_neg _),
+    apply coprime_of_coprime_of_associated_right h (associated_neg _),
   },
   {
     intro h,
-    apply rel_prime_of_rel_prime_of_associated_right h (associated_neg _).symm,
+    apply coprime_of_coprime_of_associated_right h (associated_neg _).symm,
   }
 end
 
@@ -1746,9 +1746,9 @@ theorem Mason_Stothers_case_c [field β]
   (ha : a ≠ 0)
   (hb : b ≠ 0)
   (hc : c ≠ 0)
-  (h_rel_prime_ab : rel_prime a b)
-  (h_rel_prime_bc : rel_prime b c)
-  (h_rel_prime_ca : rel_prime c a)
+  (h_coprime_ab : coprime a b)
+  (h_coprime_bc : coprime b c)
+  (h_coprime_ca : coprime c a)
   (h_add : a + b + c = 0)
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)): --You can do this one by cc? simpa [and.comm, and.left_comm, and.assoc] using h_constant
   degree c < degree ( rad (a*b*c)) :=
@@ -1763,15 +1763,15 @@ theorem Mason_Stothers_case_c [field β]
           ... = _ : by simp,
       },
       rw ←(is_constant_neg_iff_is_constant c) at h_constant, --The argument should not have been implicit
-      apply Mason_Stothers h_char _ _ _ ha hb _ h_rel_prime_ab _ _ h_add h_constant,--We need relPrime.symm in general 
+      apply Mason_Stothers_special h_char _ _ _ ha hb _ h_coprime_ab _ _ h_add h_constant,--We need relPrime.symm in general 
       {
         simp [neg_ne_zero_iff_ne_zero, *],
       },
-      have : rel_prime b (-c),--Rather as rw, rather as simp rule, rel_prime a -c = rel_prime a c
-        from rel_prime_neg_iff_rel_prime_right.2 h_rel_prime_bc,
+      have : coprime b (-c),--Rather as rw, rather as simp rule, coprime a -c = coprime a c
+        from coprime_neg_iff_coprime_right.2 h_coprime_bc,
       exact this,
-      have : rel_prime (-c) a,
-        from rel_prime_neg_iff_rel_prime_left.2 h_rel_prime_ca,
+      have : coprime (-c) a,
+        from coprime_neg_iff_coprime_left.2 h_coprime_ca,
       exact this,
     },
     have h_neg_abc: a * b * -c = - (a * b * c),
@@ -1789,9 +1789,9 @@ theorem Mason_Stothers_case_a [field β]
   (ha : a ≠ 0)
   (hb : b ≠ 0)
   (hc : c ≠ 0)
-  (h_rel_prime_ab : rel_prime a b)
-  (h_rel_prime_bc : rel_prime b c)
-  (h_rel_prime_ca : rel_prime c a)
+  (h_coprime_ab : coprime a b)
+  (h_coprime_bc : coprime b c)
+  (h_coprime_ca : coprime c a)
   (h_add : a + b + c = 0)
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)):
   degree a < degree ( rad (a*b*c)) :=
@@ -1815,7 +1815,7 @@ theorem Mason_Stothers_case_a [field β]
         intros h1 h2,
         simp *,
       },
-      apply Mason_Stothers h_char b c (-a) hb hc (neg_ne_zero_iff_ne_zero.2 ha) h_rel_prime_bc _ _ h_add_2 h_constant_2,
+      apply Mason_Stothers_special h_char b c (-a) hb hc (neg_ne_zero_iff_ne_zero.2 ha) h_coprime_bc _ _ h_add_2 h_constant_2,
       {
         simp *,
       },
@@ -1839,9 +1839,9 @@ theorem Mason_Stothers_case_b [field β]
   (ha : a ≠ 0)
   (hb : b ≠ 0)
   (hc : c ≠ 0)
-  (h_rel_prime_ab : rel_prime a b)
-  (h_rel_prime_bc : rel_prime b c)
-  (h_rel_prime_ca : rel_prime c a)
+  (h_coprime_ab : coprime a b)
+  (h_coprime_bc : coprime b c)
+  (h_coprime_ca : coprime c a)
   (h_add : a + b + c = 0)
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)):
   degree b < degree ( rad (a*b*c)) :=
@@ -1863,12 +1863,12 @@ theorem Mason_Stothers_case_b [field β]
       {
         simpa [(is_constant_neg_iff_is_constant b), and_comm, and_assoc] using h_constant,
       },
-      apply Mason_Stothers h_char a c (-b) ha hc (neg_ne_zero_iff_ne_zero.2 hb) h_rel_prime_ca.symm _ _ h_add_2 h_constant_2,
+      apply Mason_Stothers_special h_char a c (-b) ha hc (neg_ne_zero_iff_ne_zero.2 hb) h_coprime_ca.symm _ _ h_add_2 h_constant_2,
       {
-        simp [h_rel_prime_bc.symm, *],
+        simp [h_coprime_bc.symm, *],
       },
       {
-        simp [h_rel_prime_ab.symm, *],
+        simp [h_coprime_ab.symm, *],
       }
     },    
     have h_neg_abc: a * c * -b = - (a * b * c),
@@ -1881,25 +1881,25 @@ theorem Mason_Stothers_case_b [field β]
     exact h_b,
   end
 
-theorem Mason_Stothers_general [field β]
+theorem Mason_Stothers [field β]
   (h_char : characteristic_zero β)
   (a b c : polynomial β)
   (ha : a ≠ 0)
   (hb : b ≠ 0)
   (hc : c ≠ 0)
-  (h_rel_prime_ab : rel_prime a b)
-  (h_rel_prime_bc : rel_prime b c)
-  (h_rel_prime_ca : rel_prime c a)
+  (h_coprime_ab : coprime a b)
+  (h_coprime_bc : coprime b c)
+  (h_coprime_ca : coprime c a)
   (h_add : a + b + c = 0)
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)):
   max (degree a) (max (degree b) (degree c)) < degree ( rad (a*b*c)) :=
 begin
   have h_a: degree a < degree ( rad (a*b*c)), 
-    from Mason_Stothers_case_a h_char a b c ha hb hc h_rel_prime_ab h_rel_prime_bc h_rel_prime_ca h_add h_constant,
+    from Mason_Stothers_case_a h_char a b c ha hb hc h_coprime_ab h_coprime_bc h_coprime_ca h_add h_constant,
   have h_b: degree b < degree ( rad (a*b*c)),
-    from Mason_Stothers_case_b h_char a b c ha hb hc h_rel_prime_ab h_rel_prime_bc h_rel_prime_ca h_add h_constant,
+    from Mason_Stothers_case_b h_char a b c ha hb hc h_coprime_ab h_coprime_bc h_coprime_ca h_add h_constant,
   have h_c: degree c < degree ( rad (a*b*c)),
-    from Mason_Stothers_case_c h_char a b c ha hb hc h_rel_prime_ab h_rel_prime_bc h_rel_prime_ca h_add h_constant,
+    from Mason_Stothers_case_c h_char a b c ha hb hc h_coprime_ab h_coprime_bc h_coprime_ca h_add h_constant,
   apply max_lt h_a,
   apply max_lt h_b h_c,
 end
