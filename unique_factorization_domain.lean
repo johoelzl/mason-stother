@@ -3200,9 +3200,6 @@ begin
     cases h3,
     {
       simp * at *,
-      have : ¬ irreducible (1 : α),
-      from  not_irreducible_one,
-      contradiction,
     },
     {
       rcases h3 with ⟨m, hm⟩,

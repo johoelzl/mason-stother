@@ -1220,6 +1220,30 @@ begin
   }
 end
 
+lemma not_is_constant_mul_of_not_is_constant_of_ne_zero (p q : polynomial α) 
+(h1 : ¬ is_constant p)(h2 : q ≠ 0) : ¬ is_constant (p * q) :=
+begin
+  intro h,
+  by_cases hc : p * q = 0,
+  {
+    have h6 : p = 0 ∨ q = 0,
+      from eq_zero_or_eq_zero_of_mul_eq_zero _ _ hc,
+    cases h6 ; simp * at *, 
+  },
+  {
+    have : degree (p*q) = degree p + degree q,
+      from degree_mul_eq_add_of_mul_ne_zero hc,
+    have h3 : degree (p*q) = 0,
+    { rwa [←is_constant_iff_degree_eq_zero]},
+    have h4 : degree p > 0,
+    { rwa [nat.pos_iff_ne_zero, ne.def, ←is_constant_iff_degree_eq_zero]},
+    have h6 : degree p + degree q > 0,
+      from nat.add_pos_left h4 _,
+    simp [*] at *,
+    exact nat.not_lt_zero _ h6,
+  },
+end
+
 --Should be in lib, used it on two spots already.
 lemma one_le_of_ne_zero {n : ℕ} : n ≠ 0 → 1 ≤ n := --is also used in MS, hence can't make private.
 begin

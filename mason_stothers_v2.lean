@@ -1559,6 +1559,27 @@ begin
   exact h_dvd_wron_c
 end
 
+private lemma degree_rad_pos  
+(a b c : polynomial β)
+(ha : a ≠ 0)
+(hb : b ≠ 0)
+(hc : c ≠ 0)
+(h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)) :
+degree (rad (a*b*c)) > 0 :=
+begin
+  apply gt_zero_of_ne_zero,
+  rw [ne.def, degree_rad_eq_zero_iff_is_constant],
+  simp only [not_and_distrib] at *,
+  have : a * b ≠ 0,
+    from mul_ne_zero ha hb,
+  cases h_constant,
+  { simp [not_is_constant_mul_of_not_is_constant_of_ne_zero, *]},
+  cases h_constant,
+  { simp [mul_comm a, not_is_constant_mul_of_not_is_constant_of_ne_zero, *]},
+  { simp [mul_comm _ c, not_is_constant_mul_of_not_is_constant_of_ne_zero, *]}
+end
+
+
 theorem Mason_Stothers [field β]
   (h_char : characteristic_zero β)
   (a b c : polynomial β)
@@ -1570,7 +1591,7 @@ theorem Mason_Stothers [field β]
   (h_rel_prime_ca : rel_prime c a)
   (h_add : a + b = c)
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)) :
-  degree c ≤ degree ( rad (a*b*c)) - 1 :=
+  degree c < degree ( rad (a*b*c)) :=
 
 begin
   have h_der_not_all_zero : ¬(d[a] = 0 ∧ d[b] = 0 ∧ d[c] = 0),
@@ -1608,7 +1629,16 @@ begin
   have h_le_rad : degree a - degree (gcd a d[a]) + (degree b - degree (gcd b d[b])) + (degree c - degree (gcd c d[c])) - 1 ≤
   degree (rad (a * b * c)) - 1,
     from rw_aux_2 ha hb hc h_rel_prime_ab h_rel_prime_bc h_rel_prime_ca,
-  exact nat.le_trans h_deg_c_le_1 h_le_rad,
+  have h_ms : degree c ≤ degree ( rad (a*b*c)) - 1,
+    from nat.le_trans h_deg_c_le_1 h_le_rad,
+  have h_eq : degree ( rad (a*b*c)) - 1 + 1 = degree ( rad (a*b*c)),
+  {
+    have h_pos : degree ( rad (a*b*c)) > 0,
+      from degree_rad_pos a b c ha hb hc h_constant,
+    apply nat.succ_pred_eq_of_pos h_pos,
+  },
+  exact show degree c < degree ( rad (a*b*c)), from calc degree c + 1 ≤ degree ( rad (a*b*c) ) - 1 + 1 : by simp [h_ms]
+    ... = degree ( rad (a*b*c)) : h_eq
 end
 
 --place in to_multiset
@@ -1721,9 +1751,9 @@ theorem Mason_Stothers_case_c [field β]
   (h_rel_prime_ca : rel_prime c a)
   (h_add : a + b + c = 0)
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)): --You can do this one by cc? simpa [and.comm, and.left_comm, and.assoc] using h_constant
-  degree c ≤ degree ( rad (a*b*c)) - 1 :=
+  degree c < degree ( rad (a*b*c)) :=
   begin
-    have h_c : degree (-c) ≤ degree ( rad (a*b*(-c))) - 1,
+    have h_c : degree (-c) < degree ( rad (a*b*(-c))),
     {
       have h_add : a + b = - c,
       {
@@ -1764,9 +1794,9 @@ theorem Mason_Stothers_case_a [field β]
   (h_rel_prime_ca : rel_prime c a)
   (h_add : a + b + c = 0)
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)):
-  degree a ≤ degree ( rad (a*b*c)) - 1 :=
+  degree a < degree ( rad (a*b*c)) :=
   begin
-    have h_a : degree (-a) ≤ degree ( rad (b*c*(-a))) - 1,
+    have h_a : degree (-a) < degree ( rad (b*c*(-a))),
     {
       have h_add_1 : b + c + a = 0,
       {
@@ -1814,9 +1844,9 @@ theorem Mason_Stothers_case_b [field β]
   (h_rel_prime_ca : rel_prime c a)
   (h_add : a + b + c = 0)
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)):
-  degree b ≤ degree ( rad (a*b*c)) - 1 :=
+  degree b < degree ( rad (a*b*c)) :=
   begin
-    have h_b : degree (-b) ≤ degree ( rad (a*c*(-b))) - 1,
+    have h_b : degree (-b) < degree ( rad (a*c*(-b))),
     {
       have h_add_1 : a + c + b = 0,
       {
@@ -1862,16 +1892,16 @@ theorem Mason_Stothers_general [field β]
   (h_rel_prime_ca : rel_prime c a)
   (h_add : a + b + c = 0)
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)):
-  max (degree a) (max (degree b) (degree c)) ≤ degree ( rad (a*b*c)) - 1 :=
+  max (degree a) (max (degree b) (degree c)) < degree ( rad (a*b*c)) :=
 begin
-  have h_a: degree a ≤ degree ( rad (a*b*c)) - 1, 
+  have h_a: degree a < degree ( rad (a*b*c)), 
     from Mason_Stothers_case_a h_char a b c ha hb hc h_rel_prime_ab h_rel_prime_bc h_rel_prime_ca h_add h_constant,
-  have h_b: degree b ≤ degree ( rad (a*b*c)) - 1,
+  have h_b: degree b < degree ( rad (a*b*c)),
     from Mason_Stothers_case_b h_char a b c ha hb hc h_rel_prime_ab h_rel_prime_bc h_rel_prime_ca h_add h_constant,
-  have h_c: degree c ≤ degree ( rad (a*b*c)) - 1,
+  have h_c: degree c < degree ( rad (a*b*c)),
     from Mason_Stothers_case_c h_char a b c ha hb hc h_rel_prime_ab h_rel_prime_bc h_rel_prime_ca h_add h_constant,
-  apply max_le h_a,
-  apply max_le h_b h_c,
+  apply max_lt h_a,
+  apply max_lt h_b h_c,
 end
 
 end mason_stothers
