@@ -26,160 +26,117 @@ We might want to define composite numbers:
 With a possible defintion: a product of at least two irred elem.
 -/
 
+--Do we even need this? Because we can always do an r_cases on is_unit?
 def to_unit {t : Type u}[semiring t] {x : t} (h : is_unit x) : units t :=
 some h
 
---correct simp?
---The parameters should have been explicit I think
-@[simp] lemma  to_unit_is_unit_eq {t : Type u}[semiring t] {x : t} {h : is_unit x} : ↑(@to_unit t _ x h) = x :=
+
+@[simp] lemma  to_unit_is_unit_eq {t : Type u}[semiring t] {x : t} (h : is_unit x) : ↑(@to_unit t _ x h) = x :=
 eq.symm (some_spec h)
 
-@[simp] lemma  to_unit_is_unit_val_eq {t : Type u}[semiring t] {x : t} {h : is_unit x} : (@to_unit t _ x h).val = x :=
+@[simp] lemma  to_unit_is_unit_val_eq {t : Type u}[semiring t] {x : t} (h : is_unit x) : (@to_unit t _ x h).val = x :=
 eq.symm (some_spec h)
 
 lemma mul_inv'' {t : Type u}[semiring t] {x : t} (h : is_unit x) :  x * (to_unit h).inv = 1 :=
-begin
-  exact calc x * (to_unit h).inv = (to_unit h).val * (to_unit h).inv : by simp
-  ... = 1 : (to_unit h).val_inv
-end
+calc x * (to_unit h).inv = (to_unit h).val * (to_unit h).inv : by simp
+... = 1 : (to_unit h).val_inv
+
 
 lemma inv_mul'' {t : Type u}[semiring t] {x : t} (h : is_unit x) :  (to_unit h).inv * x = 1 :=
-begin
-  exact calc (to_unit h).inv * x = (to_unit h).inv * (to_unit h).val : by simp
-  ... = 1 : (to_unit h).inv_val
-end
+calc (to_unit h).inv * x = (to_unit h).inv * (to_unit h).val : by simp
+... = 1 : (to_unit h).inv_val
+
 
 def associated [integral_domain α] (x y : α) : Prop:=
 ∃u : units α, x = u * y
 
+--can the priority be set better? Because now we often have to provide parentheses
 local notation a `~ᵤ` b : 50 := associated a b
-
 
 def prime {t : Type u}[integral_domain t] (p : t) : Prop :=
 p ≠ 0 ∧ ¬ is_unit p ∧ ∀ a b, p ∣ (a * b) → (p ∣ a ∨ p ∣ b)
 
 
---Correct???? Should be unit or associate.
 def irreducible [integral_domain α] (p : α) : Prop :=
 p ≠ 0 ∧ ¬ is_unit p ∧ ∀d, d∣p → (is_unit d ∨ (d ~ᵤ p))
 
 def irreducible' [integral_domain α] (p : α) : Prop :=
 p ≠ 0 ∧ ¬ is_unit p ∧ ∀ a b : α, p = a * b → (is_unit a ∨ is_unit b)
 
-lemma irreducible_iff_irreducible' [integral_domain α] {p : α} : irreducible p ↔ irreducible' p :=
+lemma irreducible'_of_irreducible [integral_domain α] {p : α} (h1 : irreducible p): irreducible' p :=
 begin
-  apply iff.intro,
+  have : ∀ (a b : α), p = a * b → is_unit a ∨ is_unit b,
   {
-    intro h1,
-    have h2 : (p ≠ 0),
-    from and.elim_left h1,
-    have h3 : (¬ is_unit p),
-    from and.elim_left (and.elim_right h1),
-    have h4 : ∀d, d∣p → (is_unit d ∨ (d ~ᵤ p)),
-    from and.elim_right (and.elim_right h1),
-    constructor,
-    exact h2,
-    constructor,
-    exact h3,
     intros a b h5,
-    have h6 : a∣p,
-    {simp *},
     have h7 : (is_unit a ∨ (a ~ᵤ p)),
-    from h4 a h6,
+      from h1.2.2 a ⟨b, h5⟩,
     cases h7,
     {
       simp *
     },
     {
-      rw associated at h7,
-      let u := some h7,
-      have h8 : a = ↑u * p,
-      from some_spec h7,
-      rw h8 at h5,
-      rw [mul_comm _ p, mul_assoc] at h5,
+      rcases h7 with ⟨u, h8⟩,
       have h9 : p * 1 = p * (↑u * b),
       {
-        rw [←h5],
-        simp
+        subst h8,
+        rw [mul_comm _ p, mul_assoc] at h5,
+        simpa *,
       },
-      have h10 : 1 = (↑u * b),
-      from eq_of_mul_eq_mul_left h2 h9,
       have h11 : is_unit b,
       {
-        constructor,
-        swap,
-        exact u⁻¹ * 1,
-        simp [h10],
-        have : ↑u⁻¹ * 1 = ↑u⁻¹ * (↑u * b),
-        {simp [h10]},
-        rw [←mul_assoc, units.inv_mul] at this,
-        simp at this,
-        exact eq.symm this
+        exact ⟨u⁻¹, eq.symm 
+            (calc ↑(u⁻¹) = ↑u⁻¹ * 1 : by simp
+            ... = ↑u⁻¹ * (↑u * b) : by rw [eq_of_mul_eq_mul_left h1.1 h9]
+            ... = _ : by rw [←mul_assoc, units.inv_mul, one_mul])⟩,
       },
       simp [h11]
-    }
+    }  
   },
+  exact ⟨h1.1, h1.2.1, this⟩, 
+end
+
+lemma irreducible_of_irreducible' [integral_domain α] {p : α} (h1 : irreducible' p): irreducible p :=
+begin
+  have : ∀ (d : α), d ∣ p → is_unit d ∨ (d~ᵤ p),
   {
-    intro h1,
-    have h2 : (p ≠ 0),
-    from and.elim_left h1,
-    have h3 : (¬ is_unit p),
-    from and.elim_left (and.elim_right h1),
-    have h4 : ∀ a b : α, p = a * b → (is_unit a ∨ is_unit b),
-    from and.elim_right (and.elim_right h1),
-    constructor,
-    exact h2,
-    constructor,
-    exact h3,
     intros a h5,
-    simp only [has_dvd.dvd] at h5,
-    let b := some h5,
-    have h6 : p = a * b,
-    from some_spec h5,
+    rcases h5 with ⟨b, h6⟩,
     have h7 : is_unit a ∨ is_unit b,
-    from h4 _ _ h6,
+      from h1.2.2 _ _ h6,
     cases h7,
     {
-      simp [h7]
+      simp *,
     },
     {
       have h8 : (a ~ᵤ p),
       {
-        simp only [associated],
         let bᵤ := to_unit h7,
-        fapply exists.intro,
-        exact bᵤ⁻¹,
-        rw [mul_comm _ _] at h6,
-        rw [h6, ←mul_assoc, ←@to_unit_is_unit_val_eq _ _ b _, ←units.val_coe],
-        rw [units.inv_mul],
-        simp
+        apply exists.intro bᵤ⁻¹,
+        { 
+          subst h6,
+          rw [mul_comm a b, ←mul_assoc, ←@to_unit_is_unit_val_eq _ _ b _, ←units.val_coe, units.inv_mul, one_mul],       
+        }
       },
       simp [h8]
     }
-  }
+  },
+  exact ⟨h1.1, h1.2.1, this⟩,
 end
 
---correct simp?
-@[simp] lemma is_unit_one [semiring α] : is_unit (1 : α ) := --existential in is unit is anoying.
-⟨1, rfl⟩
+lemma irreducible_iff_irreducible' [integral_domain α] {p : α} : irreducible p ↔ irreducible' p :=
+iff.intro irreducible'_of_irreducible irreducible_of_irreducible'
+
+@[simp] lemma is_unit_one [semiring α] : is_unit (1 : α ) := ⟨1, rfl⟩
 
 @[simp] lemma not_is_unit_zero [semiring α] (h : (0 : α) ≠ 1) : ¬ is_unit (0 : α) := --Do we need semiring?
 begin
-  by_contradiction h1,
-  let u := to_unit h1,
+  intro h,
+  rcases h with ⟨u, hu⟩,
   have h2: u.val*u.inv = 1,
-  from u.val_inv,
-  have h3: u.val*u.inv = (0 : α),
-  {
-    have : ↑u = (0 : α),
-    simp [u, h1],
-    --rw [to_unit_is_unit_eq (0 : α)],
-    have : u.val = (0 : α),
-    exact this,
-    simp [this],
-  },
-  rw h2 at h3,
-  exact h (eq.symm h3)
+    from u.val_inv,
+  simp [units.val_coe] at *,
+  rw [←hu, zero_mul] at h2,
+  contradiction,
 end
 
 lemma ne_zero_of_is_unit [semiring α] {a : α} (h : (0 : α) ≠ 1) : is_unit a → a ≠ 0 :=
