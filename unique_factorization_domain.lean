@@ -21,32 +21,6 @@ def is_unit {t : Type u}[semiring t] (a : t) : Prop := ∃b : units t, a = b
 lemma is_unit_unit {t : Type u}[h : semiring t] (u : units t) : @is_unit t h u :=
 ⟨u, rfl⟩
 
-/-
-We might want to define composite numbers:
-With a possible defintion: a product of at least two irred elem.
--/
-
---Do we even need this? Because we can always do an r_cases on is_unit?
---def to_unit {t : Type u}[semiring t] {x : t} (h : is_unit x) : units t :=
---some h
-
-
---@[simp] lemma  to_unit_is_unit_eq {t : Type u}[semiring t] {x : t} (h : is_unit x) : ↑(@to_unit t _ x h) = x :=
---eq.symm (some_spec h)
-
---@[simp] lemma  to_unit_is_unit_val_eq {t : Type u}[semiring t] {x : t} (h : is_unit x) : (@to_unit t _ x h).val = x :=
---eq.symm (some_spec h)
-
---lemma mul_inv'' {t : Type u}[semiring t] {x : t} (h : is_unit x) :  x * (to_unit h).inv = 1 :=
---calc x * (to_unit h).inv = (to_unit h).val * (to_unit h).inv : by simp
---... = 1 : (to_unit h).val_inv
-
-
---lemma inv_mul'' {t : Type u}[semiring t] {x : t} (h : is_unit x) :  (to_unit h).inv * x = 1 :=
---calc (to_unit h).inv * x = (to_unit h).inv * (to_unit h).val : by simp
---... = 1 : (to_unit h).inv_val
-
-
 def associated [integral_domain α] (x y : α) : Prop:=
 ∃u : units α, x = u * y
 
@@ -55,7 +29,6 @@ local notation a `~ᵤ` b : 50 := associated a b
 
 def prime {t : Type u}[integral_domain t] (p : t) : Prop :=
 p ≠ 0 ∧ ¬ is_unit p ∧ ∀ a b, p ∣ (a * b) → (p ∣ a ∨ p ∣ b)
-
 
 def irreducible [integral_domain α] (p : α) : Prop :=
 p ≠ 0 ∧ ¬ is_unit p ∧ ∀d, d∣p → (is_unit d ∨ (d ~ᵤ p))
@@ -127,6 +100,7 @@ iff.intro irreducible'_of_irreducible irreducible_of_irreducible'
 
 @[simp] lemma is_unit_one [semiring α] : is_unit (1 : α ) := ⟨1, rfl⟩
 
+--Should I do all these lemmas using the zero_ne_one class?
 @[simp] lemma not_is_unit_zero [semiring α] (h : (0 : α) ≠ 1) : ¬ is_unit (0 : α) := --Do we need semiring?
 begin
   intro h,
@@ -140,330 +114,178 @@ end
 
 lemma ne_zero_of_is_unit [semiring α] {a : α} (h : (0 : α) ≠ 1) : is_unit a → a ≠ 0 :=
 begin
-  intro h1,
-  by_contradiction h2,
-  simp at h2,
-  rw h2 at h1,
-  have : ¬ is_unit (0 : α),
-  from not_is_unit_zero h,
-  contradiction
+  intros h1 h2,
+  subst h2,
+  exact not_is_unit_zero h h1,
 end
-
 
 lemma is_unit_mul_of_is_unit_of_is_unit {a b : α} [semiring α] (h1 : is_unit a) (h2 : is_unit b) : is_unit (a * b) :=
-begin
-  rcases h1 with ⟨aᵤ, ha⟩,
-  rcases h2 with ⟨bᵤ, hb⟩,
-  exact ⟨(aᵤ*bᵤ), by simp [units.mul_coe, *]⟩
-end
+let ⟨aᵤ, ha⟩ := h1 in
+let ⟨bᵤ, hb⟩ := h2 in ⟨aᵤ*bᵤ, by simp [units.mul_coe, *]⟩
 
-lemma not_is_unit_of_irreducible {a : α}[integral_domain α](h : irreducible a) : ¬ (is_unit a) :=
-begin
-  exact and.elim_left (and.elim_right h)
-end
+lemma not_is_unit_of_irreducible {a : α}[integral_domain α](h : irreducible a) : ¬ (is_unit a) := h.2.1
 
 lemma dvd_irreducible_of_dvd_mul_unit_irreducible {a b c: α}[integral_domain α](h2 : is_unit b)(h3 : irreducible c)(h4 : a ∣ (b * c)) : a ∣ c :=
-begin
-  rcases h2 with ⟨bᵤ, hb⟩,
-  rcases h4 with ⟨d, h5⟩,
-  apply exists.intro ( d*bᵤ.inv),
-  {
-    calc c = 1 * c : by simp
+let ⟨bᵤ, hb⟩ := h2 in
+let ⟨d, h5⟩ := h4 in exists.intro ( d*bᵤ.inv) 
+    (calc c = 1 * c : by simp
     ... = (↑bᵤ⁻¹* ↑bᵤ) * c : by rw [←units.inv_mul _]
     ... = ↑bᵤ⁻¹ * (↑bᵤ * c) : by simp [mul_assoc]
     ... = ↑bᵤ⁻¹ * (b * c): by rw [hb]
     ... = ↑bᵤ⁻¹ * (a * d): by rw h5
     ... = bᵤ.inv * (a * d): by rw [units.inv_coe]
     ... = (a * d) * bᵤ.inv : by simp [mul_assoc, mul_comm]
-    ... = a * (d * bᵤ.inv) : by simp [mul_assoc]
-  }
-end
-
-
+    ... = a * (d * bᵤ.inv) : by simp [mul_assoc])
 
 @[refl] protected lemma associated.refl [integral_domain α] : ∀ (x : α), x ~ᵤ x :=
-assume x, ⟨ 1, (by simp) ⟩
+assume x, let ⟨u, hu⟩ := is_unit_one in ⟨u, by rw [←hu, one_mul]⟩
 
-@[symm] protected lemma associated.symm [integral_domain α] {x y : α} (p : x ~ᵤ y) : y ~ᵤ x :=
-begin
-  fapply exists.intro,
-  exact units.inv' (some p ),
-  have h1 : x = ↑(some p) * y, from some_spec p,
-  have h1a : (↑(units.inv' (some p))) * (↑(some p)) = (1 : α),
-    exact units.inv_mul (some p),
-  have h2 : (↑(units.inv' (some p))) * x = y,
-  exact calc
-  (↑(units.inv' (some p))) * x = (↑(units.inv' (some p))) * (↑(some p) * y) : by rw ←h1
-  ... = (↑(units.inv' (some p))) * (↑(some p)) * y : by rw mul_assoc
-  ... = 1*y : by rw h1a
-  ... = y : by simp,
-  simp [mul_comm, h2]
-end
-
+@[symm] protected lemma associated.symm [integral_domain α] {x y : α} (h : x ~ᵤ y) : y ~ᵤ x :=
+let ⟨u, hu⟩ := h in ⟨u⁻¹, by rw [hu, ←mul_assoc, units.inv_mul, one_mul]⟩
 
 --Why protected??
 @[trans] protected lemma associated.trans [integral_domain α] {x y z: α} (h1 : x ~ᵤ y)(h2 : y ~ᵤ z): x ~ᵤ z :=
-begin
-  fapply exists.intro,
-  exact (some h1) * (some h2),
-  have h1a: x = ↑(some h1) * y, from some_spec h1,
-  have h2a: y = ↑(some h2) * z, from some_spec h2,
-  have h3 : x = ↑(some h1) * (↑(some h2) * z),
-  from calc x = ↑(some h1) * y : h1a
-  ... = ↑(some h1) * (↑(some h2) * z) : by rw ←h2a,
-  have h4 : ↑(some h1) * (↑(some h2) * z) = (↑(some h1) * ↑(some h2)) * z, simp [mul_assoc],
-  exact calc  x = ↑(some h1) * (↑(some h2) * z) : h3
-  ... = (↑(some h1) * ↑(some h2)) * z : h4
-  ... = ↑(some h1 * some h2) * z : by simp [units.mul_coe]
-end
+let ⟨u1, hu1⟩ := h1 in
+let ⟨u2, hu2⟩ := h2 in
+exists.intro (u1 * u2) $ by rw [hu1, hu2, ←mul_assoc, units.mul_coe]
 
 lemma associated.eqv [integral_domain α] : equivalence (@associated α _) :=
 mk_equivalence (@associated α _) (@associated.refl α _) (@associated.symm α _) (@associated.trans α _)
 
+--correct simp?
+@[simp] lemma associated_zero_iff_eq_zero {α : Type u} {a : α} [integral_domain α] : (a ~ᵤ (0 : α)) ↔ a = 0 :=
+iff.intro
+  (assume h1, let ⟨u, h2⟩ := h1 in by simp [h2, *])
+  (assume h1, by rw h1)
+
+--correct simp?
+@[simp] lemma not_irreducible_one [integral_domain α]: ¬ irreducible (1 : α) :=
+begin
+  by_contradiction h,
+  have : ¬is_unit (1 : α),
+    from h.2.1,
+  have : is_unit (1 : α),
+    from is_unit_one,
+  contradiction,
+end
+
+@[simp] lemma not_irreducible_zero [integral_domain α]: ¬ irreducible (0 : α) :=
+begin
+  by_contradiction h1,
+  have : (0 : α) ≠ 0,
+    from h1.1,
+  contradiction,
+end
 
 --Problem with 'a' in the namespace
 lemma irreducible_of_associated {γ : Type u}[integral_domain γ]{p b : γ}(h1 : irreducible p)(h2 : p ~ᵤ b) : irreducible b :=
-begin
-  --rw [associated] at h2,
-  let u:= some h2,
-  have h3 : p = ↑u * b,
-  from some_spec h2,
-
-  have h4 : (p ≠ 0),
-  from and.elim_left h1,
-  have h5 : (¬ is_unit p),
-  from and.elim_left (and.elim_right h1),
-  have h6 : (∀c, (c∣p → (is_unit c ∨ (c ~ᵤ p)))),
-  from and.elim_right (and.elim_right h1),
-
+begin   
+  rcases h2 with ⟨u, hu⟩,   
   have h7 : (b ≠ 0),
   {
-    by_contradiction h5,
-    simp at h5,
-    have : p = 0,
-    {simp [h5, h3]},
-    contradiction,
+    intro h6,
+    simp * at *,
   },
   have h8 : (¬ is_unit b),
   {
-    by_contradiction,
-    have : is_unit ↑u,
-    {
-      constructor,
-      swap,
-      exact u,
-      simp
-    },
-    have h9 : is_unit (↑u * b),
-    from is_unit_mul_of_is_unit_of_is_unit this a,
-    rw ←h3 at h9,
-    contradiction,
+    intro h8,
+    have h9 : is_unit p,
+      from hu.symm ▸ (is_unit_mul_of_is_unit_of_is_unit (is_unit_unit u) h8),
+    exact h1.2.1 h9
   },
   have h9 : (∀c, (c∣b → (is_unit c ∨ (c ~ᵤ b)))),
   {
     intros c h9,
     by_cases h10 : is_unit c,
+    { simp [h10]},
     {
-      simp [h10],
-    },
-    {
-      simp [has_dvd.dvd] at h9,
-      let d := some h9,
-      have h11 : b = c * d,
-      from some_spec h9,
-      have h12 :↑(u⁻¹) * p = b,
-      {
-        rw [h3, ←mul_assoc, units.inv_mul],
-        simp
-      },
-      rw ←h12 at h11,
-      have h13 : p = ↑u * (c * d),
-      {
-        rw [←h11, ←mul_assoc, units.mul_inv],
-        simp
-      },
-      have h14 : c ∣ p,
-      {
-        rw [←mul_assoc, mul_comm _ c, mul_assoc] at h13,
-        simp [h13],
-      },
       have h15 : (c~ᵤ p),
       {
-        have h16: is_unit c ∨ (c~ᵤ p),
-        from h6 c h14,
-        cases h16,
-        {contradiction},
+        have h14 : c ∣ p,
         {
-          assumption,
-        }
-
+          rcases h9 with ⟨d, h11⟩,             
+          exact ⟨u * d, by {subst h11, subst hu, rw [←mul_assoc, ←mul_assoc, mul_comm c]}⟩
+        },
+        have h16: is_unit c ∨ (c~ᵤ p),
+          from h1.2.2 c h14,
+        simp * at *,
       },
       have h16 : (c~ᵤ b),
-      {exact h15.trans h2},
-      simp [h16],
+        from h15.trans ⟨u, hu⟩,
+      simp *,
     }
   },
   exact ⟨h7,h8,h9⟩,
 end
 
-lemma unit_mul_irreducible_is_irreducible'  {γ : Type u}[integral_domain γ]{a b : γ}(h1 : is_unit a)(h2 : irreducible b) : irreducible (a * b) :=
-begin
-  rcases h1 with ⟨aᵤ, ha⟩,
+lemma unit_mul_irreducible_is_irreducible'  {γ : Type u}[integral_domain γ]{a b : γ}: is_unit a → irreducible b → irreducible (a * b)
+| ⟨aᵤ, ha⟩ h2 := 
   have h3 : (b ~ᵤ (a*b)),
-  {
-    apply exists.intro aᵤ⁻¹,
-    subst ha,
-    rw [←mul_assoc, units.inv_mul, one_mul],
-  },
-  exact irreducible_of_associated h2 h3
-end
+    from ⟨aᵤ⁻¹, by {rw [ha, ←mul_assoc, units.inv_mul, one_mul]}⟩,
+  irreducible_of_associated h2 h3
 
-lemma zero_associated_zero  {γ : Type u}[integral_domain γ] : (0 : γ) ~ᵤ 0 :=
-begin
-  simp [associated],
-  fapply exists.intro,
-  exact 1,
-  exact true.intro
-end
+lemma zero_associated_zero  {γ : Type u}[integral_domain γ] : (0 : γ) ~ᵤ 0 := ⟨1, by simp⟩
 
 lemma associated_of_mul_eq_one {γ : Type u}[integral_domain γ]{a b : γ}(h1 : a * b = 1) : a ~ᵤ b :=
 begin
   have h2 : b * a = 1,
-  {
-    rw mul_comm a b at h1,
-    exact h1
-  },
+  { rwa mul_comm a b at h1},
   have h3 : a * a * (b * b) = 1,
-  {
-    rw [←mul_assoc, @mul_assoc _ _ a a _, h1],
-    simp [h1]
-  },
+  { rwa [←mul_assoc, @mul_assoc _ _ a a _, h1, mul_one]},
   have h4 : b * b * (a * a) = 1,
-  {
-    rw [mul_comm _ _] at h3,
-    exact h3
-  },
-  rw associated,
-  fapply exists.intro,
-  {
-    exact units.mk (a * a) (b * b) h3 h4,
-  },
-  {
-    rw [units.val_coe],
-    simp [mul_assoc, h1]
-  }
+  { rwa [mul_comm _ _] at h3},
+  exact ⟨units.mk (a * a) (b * b) h3 h4, by {rw [units.val_coe], simp [mul_assoc, h1]}⟩,
 end
 
---How is this usefull?
 def unit_of_mul_eq_one {γ : Type u}[integral_domain γ]{a b : γ} (h1 : a * b = 1) : units γ :=
 units.mk a b h1 (by {rw mul_comm _ _ at h1, exact h1})
 
 lemma associated_of_dvd_dvd {γ : Type u} [integral_domain γ] {a b : γ}
   (h1 : a ∣ b) (h2 : b ∣ a) : a ~ᵤ b :=
 begin
-  simp only [has_dvd.dvd] at *,
-  let c := some h2,
-  have h3 : a = b * c,
-  from some_spec h2,
-  let d := some h1,
-  have h4 : b = a * d,
-  from some_spec h1,
-
+  rcases h2 with ⟨c, h3⟩,
+  rcases h1 with ⟨d, h4⟩,
   by_cases h6 : (a = 0),
   {
     have h7 : (b = 0),
     {
-      rw h6 at h4,
-      simp at h4,
-      exact h4,
+      simp [h6] at h4,
+      assumption,
     },
-    rw [h6, h7]
+    simp * at *,
   },
   {
     have h3b : a = a * (d * c),
-    {
-      rw [h4, mul_assoc] at h3,
-      exact h3,
-    },
-
+    { rwa [h4, mul_assoc] at h3},
     have h5 : a * 1 = a * (d * c),
-    {simp, exact h3b},
+    { simpa},
     have h7 : 1 = (d * c),
-    from eq_of_mul_eq_mul_left h6 h5,
-    rw associated,
+      from eq_of_mul_eq_mul_left h6 h5,
     rw mul_comm _ _ at h7,
-    fapply exists.intro,
-    exact unit_of_mul_eq_one (eq.symm h7),
-    rw [unit_of_mul_eq_one, units.val_coe],
-    simp,
-    rw h3,
-    exact mul_comm _ _,
+    exact ⟨unit_of_mul_eq_one (h7.symm), by rw [h4, unit_of_mul_eq_one, units.val_coe, ←mul_assoc, mul_comm c, mul_assoc, ←h7, mul_one]⟩,
   }
 end
 
 lemma dvd_dvd_of_associated {γ : Type u} [integral_domain γ] {a b : γ}
    : (a ~ᵤ b) → ( a ∣ b) ∧ ( b ∣ a):=
-begin
-  intro h1,
-  rw associated at h1,
-  let u := some h1,
-  have h2 : a = ↑u * b,
-  from some_spec h1,
-  have h3 : ↑u * b = a,
-  from eq.symm h2,
-  constructor,
-  {
-    have h3 : u.inv * a = b,
-    {
-      exact calc u.inv * a = u.inv * (↑u * b) : by rw h2
-      ... = (u.inv * u.val) * b : by simp [units.val_coe, mul_assoc]
-      ... = b : by simp [u.inv_val]
-    },
-    exact dvd.intro_left _ h3,
-  },
-  {
-    exact dvd.intro_left _ h3,
-  }
-end
+assume h1, let ⟨u, h2⟩ := h1 in
+and.intro
+  (have h3 : u.inv * a = b, from 
+    (calc u.inv * a = u.inv * (↑u * b) : by rw h2
+        ... = (u.inv * u.val) * b : by {simp [units.val_coe, mul_assoc]}
+        ... = b : by simp [u.inv_val]),
+   dvd.intro_left _ h3)
+  (dvd.intro_left _ h2.symm)
 
 lemma dvd_dvd_iff_associated {γ : Type u} [integral_domain γ] {a b : γ}
    : (a ~ᵤ b) ↔ ( a ∣ b) ∧ ( b ∣ a):=
-⟨dvd_dvd_of_associated,
-begin
-  intro h1,
-  have h1a : a ∣ b,
-  from and.elim_left h1,
-  have h1b : b ∣ a,
-  from and.elim_right h1,
-  exact associated_of_dvd_dvd h1a h1b,
+⟨dvd_dvd_of_associated, assume h1, associated_of_dvd_dvd h1.1 h1.2⟩
 
-end⟩
-
-
-
-lemma associated_zero_iff_eq_zero {α : Type u} {a : α} [integral_domain α] : (a ~ᵤ (0 : α)) ↔ a = 0 :=
-begin
-  constructor,
-  {
-    intro h1,
-    rw [associated] at h1,
-    let u := some h1,
-    have h2: a = u * 0,
-    from some_spec h1,
-    simp [h2],
-  },
-  {
-    intro h1,
-    rw h1
-  }
-end
-
-lemma unit_associated_one [integral_domain α] {u : units α}: (u : α) ~ᵤ 1 :=
-⟨u, by simp⟩
+lemma unit_associated_one [integral_domain α] {u : units α}: (u : α) ~ᵤ 1 := ⟨u, by simp⟩
 
 lemma is_unit_left_iff_exists_mul_eq_one [comm_semiring α] {a: α} : (is_unit a) ↔ ∃ b, a * b = 1 :=
 begin
-  constructor,
+  apply iff.intro,
   {
     intro h1,
     rcases h1 with ⟨aᵤ, ha⟩,
@@ -472,19 +294,14 @@ begin
   },
   {
     intro h1,
-    let b := some h1,
-    have h2 : a * b = 1,
-    from some_spec h1,
-    rw is_unit,
-    have h3 :b * a = 1,
+    rcases h1 with ⟨b, h2⟩,
+    have h3 : b * a = 1,
     { rw [mul_comm a b]at h2, exact h2},
-    fapply exists.intro,
-    {
-      exact ⟨a, b, h2, h3⟩
-    },
-    exact rfl
+    exact ⟨⟨a, b, h2, h3⟩, rfl⟩,
   }
 end
+
+--Cleanup done till 11 april 2018
 
 lemma is_unit_right_iff_exists_mul_eq_one [comm_semiring α] {b: α} : (is_unit b) ↔ ∃ a, a * b = 1 :=
 begin
@@ -2799,24 +2616,6 @@ end
 
 
 
---Add to simp?
-lemma not_irreducible_one : ¬ irreducible (1 : α) :=
-begin
-  by_contradiction h,
-  have : ¬is_unit (1 : α),
-  from (h.2).1,
-  have : is_unit (1 : α),
-  from is_unit_one,
-  contradiction,
-end
-
-@[simp] lemma not_irreducible_zero : ¬ irreducible (0 : α) :=
-begin
-  by_contradiction h1,
-  have : (0 : α) ≠ 0,
-  from h1.1,
-  contradiction,
-end
 
 @[simp] lemma not_irred_one : ¬ irred (1 : quot α) :=
 not_irreducible_one
