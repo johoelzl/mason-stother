@@ -25,12 +25,10 @@ lemma degree_eq_zero_of_is_unit [integral_domain α]{p : polynomial α}(h : is_u
 begin
   have h1 : ∃(r : polynomial α), p * r = 1,
   {
-    fapply exists.intro,
-    exact (to_unit h).inv,
-    have h2 : (to_unit h).val*(to_unit h).inv = 1,
-    from (to_unit h).val_inv,
-    rw [to_unit_is_unit_val_eq] at h2,
-    assumption
+    rcases h with ⟨u, hu⟩,
+    fapply exists.intro u.inv,
+    subst hu,
+    rw [←units.inv_coe, units.mul_inv],
   },
   let r := some h1,
   have h2 : p * r = 1,
@@ -89,23 +87,15 @@ end
 lemma is_unit_of_is_unit [integral_domain α] {a : α}(h1 : is_unit a) : is_unit (C a) :=
 begin
   simp [is_unit] at *,
-  let u := to_unit h1,
-  fapply exists.intro,
+  rcases h1 with ⟨u, hu⟩,
+  let Cu : units (polynomial α):=
   {
-    constructor,
-    tactic.rotate_right 2,
-    exact C a,
-    exact C (↑u⁻¹),
-    {
-      rw [←C_mul_C,←@to_unit_is_unit_val_eq _ _ a _, ←units.val_coe, units.mul_inv],
-      simp
-    },
-    {
-      rw [←C_mul_C,←@to_unit_is_unit_val_eq _ _ a _, ←units.val_coe, units.inv_mul],
-      simp
-    }
+    val := C u.val,
+    inv := C u.inv,
+    val_inv := by rw [←C_mul_C, u.val_inv, C_1],
+    inv_val := by rw [←C_mul_C, u.inv_val, C_1]
   },
-  exact rfl,
+  exact ⟨Cu, by simp [hu, units.val_coe]⟩,
 end
 
 lemma eq_one_of_monic_unit [integral_domain α] {f : polynomial α}(h1 : monic f) (h2 : is_unit f) : f = 1 :=
@@ -290,7 +280,7 @@ begin
       constructor,
       {
         rw h3a,
-        rw [C_prod_eq_prod_C, multiset.map_map],--, ←multiset.prod_add
+        rw [C_prod_eq_map_C_prod, multiset.map_map],--, ←multiset.prod_add
 
         have h4 : ∀ g : multiset (polynomial α), (∀ (y : polynomial α), y ∈ g → irreducible y) → multiset.prod g =
     C (multiset.prod (multiset.map leading_coeff g)) *
@@ -330,7 +320,7 @@ begin
             assumption
           },
           clear h4,
-          simp only [multiset.map_cons, multiset.prod_cons, C_prod_eq_prod_C],
+          simp only [multiset.map_cons, multiset.prod_cons, C_prod_eq_map_C_prod],
           apply eq.symm,
           calc C (leading_coeff a * multiset.prod (multiset.map leading_coeff s)) *
       (C (leading_coeff a)⁻¹ * a *
@@ -365,7 +355,7 @@ begin
       C (multiset.prod (multiset.map leading_coeff f)) *
         multiset.prod (multiset.map (λ (y : polynomial α), C (leading_coeff y)⁻¹ * y) f),
       from h4 f h3b,
-      rw [C_prod_eq_prod_C, multiset.map_map] at this,
+      rw [C_prod_eq_map_C_prod, multiset.map_map] at this,
       exact this,
       },
       intros y h1,
@@ -384,25 +374,17 @@ begin
          from and.elim_right h4,
          have h6 : is_unit (C (leading_coeff a)⁻¹),
          {
-           constructor,
-           swap,
-           have h6: is_unit ((leading_coeff a)⁻¹),
-           {
-             apply for_all_is_unit_of_not_zero,
-             have : a ≠ 0,
-             from and.elim_left h5,
-             rw [ne.def, ←leading_coef_eq_zero_iff_eq_zero] at this,
-             exact inv_ne_zero this,
-           },
-           have h7: is_unit (C (leading_coeff a)⁻¹),
-           from is_unit_of_is_unit h6,
-           exact to_unit h7,
-           simp,
+           apply is_unit_of_is_unit,
+           apply for_all_is_unit_of_not_zero,
+           apply inv_ne_zero,
+           rw [ne.def, leading_coef_eq_zero_iff_eq_zero],
+           exact h5.1,
          },
          have h7 : (y ~ᵤ a),
          {
-           rw [←@to_unit_is_unit_val_eq _ _ (C (leading_coeff a)⁻¹) _] at h4b,
-           exact ⟨to_unit h6,eq.symm h4b⟩
+           rcases h6 with ⟨u, hu⟩,
+           exact ⟨u, by simp * at *⟩,
+
          },
          have h8 : (a ~ᵤ y),
          from associated.symm h7,
@@ -475,11 +457,8 @@ begin
     },
     exact is_unit_of_mul_eq_one_left this,
   },
-  fapply exists.intro (to_unit h_u),
-  rw [@to_unit_is_unit_eq _ _ (-1) h_u],
-  simp,
-
-
+  rcases h_u with ⟨u, hu⟩,
+  exact ⟨u, by {rw ←hu, simp}⟩,
 end
 
 end polynomial

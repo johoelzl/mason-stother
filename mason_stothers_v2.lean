@@ -652,9 +652,8 @@ begin
         },
         have h5c: is_unit (C (c_fac a)⁻¹),
           from is_unit_C_of_ne_zero h5a,
-        fapply exists.intro,
-        exact to_unit h5c,--
-        rw [to_unit_is_unit_eq],
+        rcases h5c with ⟨u, hu⟩,
+        exact ⟨u, by simp *⟩,
       },
       exact associated.trans h5 h4,
       rwa [ne.def, mk_eq_zero_iff_eq_zero],
@@ -1426,7 +1425,7 @@ begin
             exact nat.zero_le _,
           },
           {
-            rw [degree_neg],
+            --rw [degree_neg],
             apply nat.le_trans degree_mul,
             simp *,
             exact degree_derivative_le,

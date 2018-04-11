@@ -734,6 +734,7 @@ end
 
 --Clean up done till here 9 april 2018
 
+--For the lemmas below I did not try to refactor them yet.
 
 
 lemma derivative_prod_multiset {s : multiset (polynomial α)} :
@@ -1220,7 +1221,7 @@ begin
 end
 
 --Should be in lib, used it on two spots already.
-private lemma one_le_of_ne_zero {n : ℕ} : n ≠ 0 → 1 ≤ n :=
+lemma one_le_of_ne_zero {n : ℕ} : n ≠ 0 → 1 ≤ n := --is also used in MS, hence can't make private.
 begin
   intro h1,
   induction n,

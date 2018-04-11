@@ -27,24 +27,24 @@ With a possible defintion: a product of at least two irred elem.
 -/
 
 --Do we even need this? Because we can always do an r_cases on is_unit?
-def to_unit {t : Type u}[semiring t] {x : t} (h : is_unit x) : units t :=
-some h
+--def to_unit {t : Type u}[semiring t] {x : t} (h : is_unit x) : units t :=
+--some h
 
 
-@[simp] lemma  to_unit_is_unit_eq {t : Type u}[semiring t] {x : t} (h : is_unit x) : ↑(@to_unit t _ x h) = x :=
-eq.symm (some_spec h)
+--@[simp] lemma  to_unit_is_unit_eq {t : Type u}[semiring t] {x : t} (h : is_unit x) : ↑(@to_unit t _ x h) = x :=
+--eq.symm (some_spec h)
 
-@[simp] lemma  to_unit_is_unit_val_eq {t : Type u}[semiring t] {x : t} (h : is_unit x) : (@to_unit t _ x h).val = x :=
-eq.symm (some_spec h)
+--@[simp] lemma  to_unit_is_unit_val_eq {t : Type u}[semiring t] {x : t} (h : is_unit x) : (@to_unit t _ x h).val = x :=
+--eq.symm (some_spec h)
 
-lemma mul_inv'' {t : Type u}[semiring t] {x : t} (h : is_unit x) :  x * (to_unit h).inv = 1 :=
-calc x * (to_unit h).inv = (to_unit h).val * (to_unit h).inv : by simp
-... = 1 : (to_unit h).val_inv
+--lemma mul_inv'' {t : Type u}[semiring t] {x : t} (h : is_unit x) :  x * (to_unit h).inv = 1 :=
+--calc x * (to_unit h).inv = (to_unit h).val * (to_unit h).inv : by simp
+--... = 1 : (to_unit h).val_inv
 
 
-lemma inv_mul'' {t : Type u}[semiring t] {x : t} (h : is_unit x) :  (to_unit h).inv * x = 1 :=
-calc (to_unit h).inv * x = (to_unit h).inv * (to_unit h).val : by simp
-... = 1 : (to_unit h).inv_val
+--lemma inv_mul'' {t : Type u}[semiring t] {x : t} (h : is_unit x) :  (to_unit h).inv * x = 1 :=
+--calc (to_unit h).inv * x = (to_unit h).inv * (to_unit h).val : by simp
+--... = 1 : (to_unit h).inv_val
 
 
 def associated [integral_domain α] (x y : α) : Prop:=
@@ -110,12 +110,11 @@ begin
     {
       have h8 : (a ~ᵤ p),
       {
-        let bᵤ := to_unit h7,
-        apply exists.intro bᵤ⁻¹,
-        { 
-          subst h6,
-          rw [mul_comm a b, ←mul_assoc, ←@to_unit_is_unit_val_eq _ _ b _, ←units.val_coe, units.inv_mul, one_mul],       
-        }
+        rcases h7 with ⟨u ,hu⟩,
+        apply exists.intro u⁻¹,
+        subst h6,
+        subst hu,
+        rw [mul_comm a, ←mul_assoc, units.inv_mul, one_mul],
       },
       simp [h8]
     }
@@ -153,12 +152,9 @@ end
 
 lemma is_unit_mul_of_is_unit_of_is_unit {a b : α} [semiring α] (h1 : is_unit a) (h2 : is_unit b) : is_unit (a * b) :=
 begin
-  let aᵤ := to_unit h1,
-  let bᵤ := to_unit h2,
-  simp only [is_unit],
-  fapply exists.intro,
-  exact (aᵤ*bᵤ),
-  simp
+  rcases h1 with ⟨aᵤ, ha⟩,
+  rcases h2 with ⟨bᵤ, hb⟩,
+  exact ⟨(aᵤ*bᵤ), by simp [units.mul_coe, *]⟩
 end
 
 lemma not_is_unit_of_irreducible {a : α}[integral_domain α](h : irreducible a) : ¬ (is_unit a) :=
@@ -168,20 +164,14 @@ end
 
 lemma dvd_irreducible_of_dvd_mul_unit_irreducible {a b c: α}[integral_domain α](h2 : is_unit b)(h3 : irreducible c)(h4 : a ∣ (b * c)) : a ∣ c :=
 begin
-  simp [has_dvd.dvd] at h4,
-  let bᵤ := to_unit h2,
-  let d := some h4,
-  have h5 : b * c = a * d,
-  from some_spec h4,
-  simp [has_dvd.dvd],
-  fapply exists.intro,
-  exact d*bᵤ.inv,
+  rcases h2 with ⟨bᵤ, hb⟩,
+  rcases h4 with ⟨d, h5⟩,
+  apply exists.intro ( d*bᵤ.inv),
   {
-    --rw ←@to_unit_is_unit_val_eq _ _ b h2 at h5,
     calc c = 1 * c : by simp
     ... = (↑bᵤ⁻¹* ↑bᵤ) * c : by rw [←units.inv_mul _]
     ... = ↑bᵤ⁻¹ * (↑bᵤ * c) : by simp [mul_assoc]
-    ... = ↑bᵤ⁻¹ * (b * c): by rw [to_unit_is_unit_eq]
+    ... = ↑bᵤ⁻¹ * (b * c): by rw [hb]
     ... = ↑bᵤ⁻¹ * (a * d): by rw h5
     ... = bᵤ.inv * (a * d): by rw [units.inv_coe]
     ... = (a * d) * bᵤ.inv : by simp [mul_assoc, mul_comm]
@@ -318,14 +308,12 @@ end
 
 lemma unit_mul_irreducible_is_irreducible'  {γ : Type u}[integral_domain γ]{a b : γ}(h1 : is_unit a)(h2 : irreducible b) : irreducible (a * b) :=
 begin
-  let aᵤ := to_unit h1,
+  rcases h1 with ⟨aᵤ, ha⟩,
   have h3 : (b ~ᵤ (a*b)),
   {
-    constructor,
-    swap,
-    exact aᵤ⁻¹,
-    rw [←mul_assoc, ←@to_unit_is_unit_val_eq _ _ a _, ←units.val_coe, units.inv_mul],
-    simp
+    apply exists.intro aᵤ⁻¹,
+    subst ha,
+    rw [←mul_assoc, units.inv_mul, one_mul],
   },
   exact irreducible_of_associated h2 h3
 end
@@ -478,11 +466,9 @@ begin
   constructor,
   {
     intro h1,
-    fapply exists.intro,
-    exact ((to_unit h1) : units α).inv,
-    {
-      simp [mul_inv'' h1],
-    }
+    rcases h1 with ⟨aᵤ, ha⟩,
+    subst ha,
+    exact ⟨aᵤ.inv, by {rw [←units.inv_coe, units.mul_inv]}⟩,
   },
   {
     intro h1,
@@ -568,11 +554,8 @@ begin
   },
   {
     intro h1,
-    have h2 : ↑(to_unit h1) = a,
-    {simp},
-    rw ←h2,
-    exact unit_associated_one
-
+    rcases h1 with ⟨aᵤ, ha⟩,
+    exact ⟨aᵤ, by simp *⟩,
   }
 end
 
@@ -624,11 +607,12 @@ end
 lemma is_unit_left_of_is_unit_mul [comm_semiring α] {a b : α} : is_unit (a * b) → is_unit a :=
 begin
   intro h1,
-  let u := to_unit h1,
+  rcases h1 with ⟨u, hu⟩,
+
   have h2 : a * (b* (↑u⁻¹ : α) ) = 1,
   {
     exact calc a * (b* (↑u⁻¹ : α) ) = (a * b) * (↑u⁻¹ : α) : by rw ← mul_assoc
-    ... = u.val * (↑u⁻¹ : α) : by rw ← @to_unit_is_unit_val_eq _ _ (a * b) _
+    ... = u.val * (↑u⁻¹ : α) : by simp [units.val_coe, *]
     ... = u.val * u.inv : by rw units.inv_coe
     ... = 1 : u.val_inv,
   },
@@ -824,23 +808,17 @@ begin
   intros x h1,
   by_cases h2 : (is_unit x),
   {
-    fapply exists.intro,
-    exact to_unit h2,
-    fapply exists.intro,
-    exact 0,
-    simp
+    rcases h2 with ⟨u, hu⟩,
+    refine ⟨u, 0, by simp * at *⟩,
   },
   {
-    let f := some (unique_factorization_domain.fac h1 h2),
-    fapply exists.intro,
-    exact to_unit is_unit_one,
-    fapply exists.intro,
-    exact f,
-    simp,
-    exact some_spec (unique_factorization_domain.fac h1 h2)
+    rcases (unique_factorization_domain.fac h1 h2) with ⟨f, hf⟩,
+    rcases is_unit_one with ⟨u, hu⟩,
+    refine ⟨u, f, _⟩,
+    rwa [←hu, one_mul],
   }
-
 end
+
 --To prove, that a field is an instance of an unique_fac_dom
 
 /-
@@ -1348,9 +1326,9 @@ begin
   },
   {
     intro h1,
-    rw ←@to_unit_is_unit_eq _ _ a _,
+    rcases h1 with ⟨u, hu⟩,
+    subst hu,
     exact mk_unit_eq_one,
-    exact h1,
   }
 end
 
@@ -2513,10 +2491,10 @@ end
 lemma associated_of_mul_is_unit {a b c : α} [integral_domain α] (h1 : is_unit b) (h2 : a * b = c) : (a ~ᵤ c) :=
 begin
   apply associated.symm,
-  fapply exists.intro,
-  exact to_unit h1,
-  rw [← h2, mul_comm a b],
-  simp,
+  rcases h1 with ⟨u, hu⟩,
+  apply exists.intro u,
+  subst hu,
+  simp [mul_comm, *],
 end
 
 lemma mul_is_unit_div {a b : α} [comm_semiring α] (h : is_unit a) : b * a ∣ b :=
