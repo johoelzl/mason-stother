@@ -293,25 +293,21 @@ lemma Mason_Stothers_lemma (f : polynomial β) :
   degree f ≤ degree (gcd f (derivative f )) + degree (rad f) := --I made degree radical from this one
 begin
   by_cases hf : (f = 0),
-  {
-    simp [hf, nat.zero_le],
-  },
+  { simp [hf, nat.zero_le]},
   {
     have h_dvd_der : ∀x ∈ f.factors, x^(count x f.factors - 1) ∣ d[f],
     {
       rw [f.factors_eq] {occs := occurrences.pos [3]},
       rw [derivative_C_mul],
       intros x h,
-      apply dvd_mul_of_dvd_right,
-      exact Mason_Stothers_lemma_aux_1 f x h,
+      exact dvd_mul_of_dvd_right (Mason_Stothers_lemma_aux_1 f x h) _,
     },
     have h_dvd_f : ∀x ∈ f.factors, x^(count x f.factors - 1) ∣ f,
     {
       rw [f.factors_eq] {occs := occurrences.pos [3]},
       intros x hx, --We have intros x hx a lot here, duplicate?
       apply dvd_mul_of_dvd_right,
-      refine dvd_trans _ (forall_pow_count_dvd_prod _ x), --Duplicate 2 lines with Mason_Stothers_lemma_aux_1
-      apply pow_count_sub_one_dvd_pow_count,
+      exact dvd_trans (pow_count_sub_one_dvd_pow_count _ _) (forall_pow_count_dvd_prod _ x), --Duplicate 2 lines with Mason_Stothers_lemma_aux_1
     },
     have h_dvd_gcd_f_der : ∀x ∈ f.factors, x^(count x f.factors - 1) ∣ gcd f d[f],
     {
@@ -1383,100 +1379,25 @@ begin
   exact nat.zero_le _,
 end
 
+
 lemma degree_wron_le {a b : polynomial β} : degree (d[a] * b - a * d[b]) ≤ degree a + degree b - 1 :=
 begin
-  by_cases h1 : (a = 0),
+  apply nat.le_trans degree_sub,
+  have h5 : degree (d[a] * b) ≤ degree a + degree b - 1,
   {
-    simp *,
-    exact nat.zero_le _,
+    apply nat.le_trans degree_mul,
+    rw [add_comm _ (degree b), add_comm _ (degree b), nat.add_sub_assoc (polynomial.one_le_of_ne_zero h2)],
+    apply add_le_add_left degree_derivative_le,
   },
+  have h6 : (degree (a * d[b])) ≤ degree a + degree b - 1,
   {
-    by_cases h2 : (degree a = 0),
-    {
-
-      by_cases h3 : (b = 0),
-      {
-        rw h3,
-        simp,
-        exact nat.zero_le _,
-      },
-      {
-        simp [*],
-        by_cases h4 : (degree b = 0),
-        {
-          simp *,
-          rw [←is_constant_iff_degree_eq_zero] at *,
-          have h5 : derivative a = 0,
-          from derivative_eq_zero_of_is_constant h2,
-          have h6 : derivative b = 0,
-          from derivative_eq_zero_of_is_constant h4,
-          simp *,          
-        },
-        {
-          have h2a : degree a = 0,
-          from h2,
-          rw [←is_constant_iff_degree_eq_zero] at h2,
-          have h5 : derivative a = 0,
-          from derivative_eq_zero_of_is_constant h2,
-          simp *,
-          by_cases h6 : (derivative b = 0),
-          {
-            simp *,
-            exact nat.zero_le _,
-          },
-          {
-            --rw [degree_neg],
-            apply nat.le_trans degree_mul,
-            simp *,
-            exact degree_derivative_le,
-          }
-        },
-
-      }
-    },
-    {
-      by_cases h3 : (b = 0),
-      {
-        simp *,
-        exact nat.zero_le _,
-      },
-      {
-        by_cases h4 : (degree b = 0),
-        {
-          simp *,
-          rw [←is_constant_iff_degree_eq_zero] at h4,
-          have h5 : derivative b = 0,
-          from derivative_eq_zero_of_is_constant h4,
-          simp *,
-          apply nat.le_trans degree_mul,
-          rw [is_constant_iff_degree_eq_zero] at h4,
-          simp *,
-          exact degree_derivative_le,
-        },
-        {
-          apply nat.le_trans degree_sub,
-          have h5 : degree (d[a] * b) ≤ degree a + degree b - 1,
-          {
-            apply nat.le_trans degree_mul,
-            rw [add_comm _ (degree b), add_comm _ (degree b), nat.add_sub_assoc],
-            apply add_le_add_left,
-            exact degree_derivative_le,
-            exact polynomial.one_le_of_ne_zero h2, --Can I remove this from polynomial??
-          },
-          have h6 : (degree (a * d[b])) ≤ degree a + degree b - 1,
-          {
-            apply nat.le_trans degree_mul,
-            rw [nat.add_sub_assoc],
-            apply add_le_add_left,
-            exact degree_derivative_le,
-            exact polynomial.one_le_of_ne_zero h4,        
-          },
-          exact max_le h5 h6,
-        }
-      }
-    }
-  }
+    apply nat.le_trans degree_mul,
+    rw [nat.add_sub_assoc (polynomial.one_le_of_ne_zero h4)],
+    apply add_le_add_left degree_derivative_le,  
+  },
+  exact max_le h5 h6,  
 end
+
 
 private lemma h_wron_ne_zero 
   (a b c : polynomial β)   
