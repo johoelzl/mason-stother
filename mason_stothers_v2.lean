@@ -23,6 +23,7 @@ local notation `~`a:=polynomial a
 local notation a `~ᵤ` b : 50 := associated a b
 
 open polynomial
+open associated
 open classical
 local attribute [instance] prop_decidable
 
@@ -570,7 +571,8 @@ begin
       rw ←associated_iff_eq_of_monic_of_monic,
       rw to_multiset_prod_eq,
       have h4 : (a ~ᵤ (monic_out (mk a))),
-        from (monic_out_mk_associated _).symm,
+        from (monic_out_mk_associated a).symm, --It can no longer elaborate it?? After I refactored all the files
+
       have h5 : (C (c_fac a)⁻¹ * a ~ᵤ a),
       {
         have h5a : (c_fac a)⁻¹ ≠ 0,
@@ -1677,7 +1679,7 @@ begin
   },
   {
     intro h,
-    apply coprime_of_coprime_of_associated_left h (associated_neg _).symm,
+    apply coprime_of_coprime_of_associated_left h (associated_neg a).symm, --again elaborator does no longer find placeholder
   }
 end
 
@@ -1690,7 +1692,7 @@ begin
   },
   {
     intro h,
-    apply coprime_of_coprime_of_associated_right h (associated_neg _).symm,
+    apply coprime_of_coprime_of_associated_right h (associated_neg b).symm,
   }
 end
 

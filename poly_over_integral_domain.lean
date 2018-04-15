@@ -1,5 +1,5 @@
 import  .Sup_fin data.finsupp order.lattice data.nat.cast .euclidean_domain unique_factorization_domain
-import .to_finsupp .to_finset poly
+import .to_finsupp .to_finset poly associated_quotient
 universes u v w
 
 noncomputable theory
@@ -13,6 +13,8 @@ local notation a `~ᵤ` b : 50 := associated a b --also present in UFD
 namespace polynomial
 local attribute [instance] prop_decidable
 variables {α : Type u} {a a' a₁ a₂ : α} --{n m : ℕ} --do we want n and m?
+
+open associated
 
 section integral_domain
 variable [integral_domain α]
@@ -37,6 +39,7 @@ begin
   simp * at *
 end
 
+--Do we need the arguments here? --i.e. [integral_domain α]?
 instance {α : Type u} [integral_domain α] : zero_ne_one_class (polynomial α):=
 { zero_ne_one := zero_ne_one, .. polynomial.comm_ring }
 
@@ -330,7 +333,7 @@ end
 
 
 
-lemma degree_eq_zero_of_is_unit [integral_domain α]{p : polynomial α}(h : is_unit p) : degree p = 0 :=
+lemma degree_eq_zero_of_is_unit {p : polynomial α}(h : is_unit p) : degree p = 0 :=
 begin
   have h1 : ∃(r : polynomial α), p * r = 1,
   {
@@ -354,7 +357,7 @@ begin
   exact nat.eq_zero_of_add_eq_zero_right (eq.symm h4),
 end
 
-lemma is_constant_of_is_unit [integral_domain α]{p : polynomial α}(h : is_unit p) : is_constant p :=
+lemma is_constant_of_is_unit {p : polynomial α}(h : is_unit p) : is_constant p :=
 begin
   have h1 : degree p = 0,
   from degree_eq_zero_of_is_unit h,
@@ -364,7 +367,7 @@ end
 
 
 --Naming is incorrect, need C in the name here
-lemma is_unit_of_is_unit [integral_domain α] {a : α}(h1 : is_unit a) : is_unit (C a) :=
+lemma is_unit_of_is_unit {a : α}(h1 : is_unit a) : is_unit (C a) :=
 begin
   simp [is_unit] at *,
   rcases h1 with ⟨u, hu⟩,
@@ -378,7 +381,7 @@ begin
   exact ⟨Cu, by simp [hu, units.val_coe]⟩,
 end
 
-lemma eq_one_of_monic_unit [integral_domain α] {f : polynomial α}(h1 : monic f) (h2 : is_unit f) : f = 1 :=
+lemma eq_one_of_monic_unit  {f : polynomial α}(h1 : monic f) (h2 : is_unit f) : f = 1 :=
 begin
   rw monic at *,
   have h3 : ∃c : α, f =  C c,
@@ -393,7 +396,7 @@ begin
 end
 
 --lemma monic polynomials are associated iff they are equal.
-lemma associated_iff_eq_of_monic_of_monic [integral_domain α] {x y : polynomial α}(h1 : monic x)(h2 : monic y) : (x ~ᵤ y) ↔ x = y :=
+lemma associated_iff_eq_of_monic_of_monic {x y : polynomial α}(h1 : monic x)(h2 : monic y) : (x ~ᵤ y) ↔ x = y :=
 begin
   constructor,
   {
@@ -430,7 +433,7 @@ begin
 end
 
 
-lemma eq_C_leading_coeff_of_is_unit [integral_domain α] {a : polynomial α} (h : is_unit a) : a = C (leading_coeff a) :=
+lemma eq_C_leading_coeff_of_is_unit {a : polynomial α} (h : is_unit a) : a = C (leading_coeff a) :=
 begin
   have : ∃c : α, a =  C c,
     from is_constant_of_is_unit h,

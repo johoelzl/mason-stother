@@ -14,6 +14,8 @@ local attribute [instance] finsupp.to_semiring
 local infix ^ := monoid.pow
 
 namespace polynomial
+
+open associated
 variables {α : Type u} {a a' a₁ a₂ : α} --{n m : ℕ} --do we want n and m?
 
 instance {α : Type u} [unique_factorization_domain α]: unique_factorization_domain (polynomial α) :=

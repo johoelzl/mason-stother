@@ -1,5 +1,5 @@
 import  .Sup_fin data.finsupp order.lattice data.nat.cast .euclidean_domain unique_factorization_domain
-import .to_finsupp poly .to_multiset poly_over_UFD
+import .to_finsupp poly .to_multiset poly_over_UFD to_field
 --import data.multiset
 universes u v w
 
@@ -14,6 +14,7 @@ local attribute [instance] finsupp.to_semiring
 local infix ^ := monoid.pow
 
 namespace polynomial
+open associated
 variables {α : Type u} 
 
 section field
@@ -55,8 +56,6 @@ open associated
 
 
 def make_monic [field α] (f : polynomial α) := if (f = 0) then 0 else (C (f.leading_coeff)⁻¹ * f)
-
-#check make_monic
 
 
 
@@ -117,9 +116,6 @@ quot.lift_on a make_monic (assume f p h,
       }
     }
   end)
-
-
-#check monic_out
 
 lemma monic_monic_out_of_ne_zero [field α] (f : quot (polynomial α)) (h : f ≠ 0) : monic (monic_out f) :=
 begin
@@ -470,6 +466,8 @@ end
 
 open multiset
 
+#check monic_out_mk_associated
+
 lemma monic_out_mul_eq_monic_out_mul_monic_out (a b : quot (polynomial α)): monic_out (a * b) = monic_out a * monic_out b :=
 begin
   apply quot.induction_on a,
@@ -491,12 +489,12 @@ begin
         from mul_ne_zero ha hb,
       rw ←associated_iff_eq_of_monic_of_monic,
       have h1 : ((b * a) ~ᵤ (monic_out (mk (b * a)))),
-        from (monic_out_mk_associated _).symm,
+        from (monic_out_mk_associated (b * a)).symm,
       have h2 : ((b * a) ~ᵤ (monic_out (mk b) * monic_out (mk a))),
       {
         apply mul_associated_mul_of_associated_of_associated,
-        exact (monic_out_mk_associated _).symm,
-        exact (monic_out_mk_associated _).symm,
+        exact (monic_out_mk_associated b).symm,
+        exact (monic_out_mk_associated a).symm,
       },
       exact associated.trans h1.symm h2,
       {
