@@ -22,305 +22,10 @@ lemma is_unit_unit {t : Type u}[h : semiring t] (u : units t) : @is_unit t h u :
 ⟨u, rfl⟩
 -/
 open associated
+open multiset
 
 --can the priority be set better? Because now we often have to provide parentheses
 local notation a `~ᵤ` b : 50 := associated a b
-
-def prime {t : Type u}[integral_domain t] (p : t) : Prop :=
-p ≠ 0 ∧ ¬ is_unit p ∧ ∀ a b, p ∣ (a * b) → (p ∣ a ∨ p ∣ b)
-
-def irreducible [integral_domain α] (p : α) : Prop :=
-p ≠ 0 ∧ ¬ is_unit p ∧ ∀d, d∣p → (is_unit d ∨ (d ~ᵤ p))
-
-def irreducible' [integral_domain α] (p : α) : Prop :=
-p ≠ 0 ∧ ¬ is_unit p ∧ ∀ a b : α, p = a * b → (is_unit a ∨ is_unit b)
-
-lemma irreducible'_of_irreducible [integral_domain α] {p : α} (h1 : irreducible p): irreducible' p :=
-begin
-  have : ∀ (a b : α), p = a * b → is_unit a ∨ is_unit b,
-  {
-    intros a b h5,
-    have h7 : (is_unit a ∨ (a ~ᵤ p)),
-      from h1.2.2 a ⟨b, h5⟩,
-    cases h7,
-    {
-      simp *
-    },
-    {
-      rcases h7 with ⟨u, h8⟩,
-      have h9 : p * 1 = p * (↑u * b),
-      {
-        subst h8,
-        rw [mul_comm _ p, mul_assoc] at h5,
-        simpa *,
-      },
-      have h11 : is_unit b,
-      {
-        exact ⟨u⁻¹, eq.symm 
-            (calc ↑(u⁻¹) = ↑u⁻¹ * 1 : by simp
-            ... = ↑u⁻¹ * (↑u * b) : by rw [eq_of_mul_eq_mul_left h1.1 h9]
-            ... = _ : by rw [←mul_assoc, units.inv_mul, one_mul])⟩,
-      },
-      simp [h11]
-    }  
-  },
-  exact ⟨h1.1, h1.2.1, this⟩, 
-end
-
-lemma irreducible_of_irreducible' [integral_domain α] {p : α} (h1 : irreducible' p): irreducible p :=
-begin
-  have : ∀ (d : α), d ∣ p → is_unit d ∨ (d~ᵤ p),
-  {
-    intros a h5,
-    rcases h5 with ⟨b, h6⟩,
-    have h7 : is_unit a ∨ is_unit b,
-      from h1.2.2 _ _ h6,
-    cases h7,
-    {
-      simp *,
-    },
-    {
-      have h8 : (a ~ᵤ p),
-      {
-        rcases h7 with ⟨u ,hu⟩,
-        apply exists.intro u⁻¹,
-        subst h6,
-        subst hu,
-        rw [mul_comm a, ←mul_assoc, units.inv_mul, one_mul],
-      },
-      simp [h8]
-    }
-  },
-  exact ⟨h1.1, h1.2.1, this⟩,
-end
-
-lemma irreducible_iff_irreducible' [integral_domain α] {p : α} : irreducible p ↔ irreducible' p :=
-iff.intro irreducible'_of_irreducible irreducible_of_irreducible'
-
-
-lemma not_is_unit_of_irreducible {a : α}[integral_domain α](h : irreducible a) : ¬ (is_unit a) := h.2.1
-
-lemma dvd_irreducible_of_dvd_mul_unit_irreducible {a b c: α}[integral_domain α](h2 : is_unit b)(h3 : irreducible c)(h4 : a ∣ (b * c)) : a ∣ c :=
-let ⟨bᵤ, hb⟩ := h2 in
-let ⟨d, h5⟩ := h4 in exists.intro ( d*bᵤ.inv) 
-    (calc c = 1 * c : by simp
-    ... = (↑bᵤ⁻¹* ↑bᵤ) * c : by rw [←units.inv_mul _]
-    ... = ↑bᵤ⁻¹ * (↑bᵤ * c) : by simp [mul_assoc]
-    ... = ↑bᵤ⁻¹ * (b * c): by rw [hb]
-    ... = ↑bᵤ⁻¹ * (a * d): by rw h5
-    ... = bᵤ.inv * (a * d): by rw [units.inv_coe]
-    ... = (a * d) * bᵤ.inv : by simp [mul_assoc, mul_comm]
-    ... = a * (d * bᵤ.inv) : by simp [mul_assoc])
-
-
---correct simp?
-@[simp] lemma not_irreducible_one [integral_domain α]: ¬ irreducible (1 : α) :=
-begin
-  by_contradiction h,
-  have : ¬is_unit (1 : α),
-    from h.2.1,
-  have : is_unit (1 : α),
-    from is_unit_one,
-  contradiction,
-end
-
-@[simp] lemma not_irreducible_zero [integral_domain α]: ¬ irreducible (0 : α) :=
-begin
-  by_contradiction h1,
-  have : (0 : α) ≠ 0,
-    from h1.1,
-  contradiction,
-end
-
---Problem with 'a' in the namespace
-lemma irreducible_of_associated {γ : Type u}[integral_domain γ]{p b : γ}(h1 : irreducible p)(h2 : p ~ᵤ b) : irreducible b :=
-begin   
-  rcases h2 with ⟨u, hu⟩,   
-  have h7 : (b ≠ 0),
-  {
-    intro h6,
-    simp * at *,
-  },
-  have h8 : (¬ is_unit b),
-  {
-    intro h8,
-    have h9 : is_unit p,
-      from hu.symm ▸ (is_unit_mul_of_is_unit_of_is_unit (is_unit_unit u) h8),
-    exact h1.2.1 h9
-  },
-  have h9 : (∀c, (c∣b → (is_unit c ∨ (c ~ᵤ b)))),
-  {
-    intros c h9,
-    by_cases h10 : is_unit c,
-    { simp [h10]},
-    {
-      have h15 : (c~ᵤ p),
-      {
-        have h14 : c ∣ p,
-        {
-          rcases h9 with ⟨d, h11⟩,             
-          exact ⟨u * d, by {subst h11, subst hu, rw [←mul_assoc, ←mul_assoc, mul_comm c]}⟩
-        },
-        have h16: is_unit c ∨ (c~ᵤ p),
-          from h1.2.2 c h14,
-        simp * at *,
-      },
-      have h16 : (c~ᵤ b),
-        from h15.trans ⟨u, hu⟩,
-      simp *,
-    }
-  },
-  exact ⟨h7,h8,h9⟩,
-end
-
-lemma unit_mul_irreducible_is_irreducible'  {γ : Type u}[integral_domain γ]{a b : γ}: is_unit a → irreducible b → irreducible (a * b)
-| ⟨aᵤ, ha⟩ h2 := 
-  have h3 : (b ~ᵤ (a*b)),
-    from ⟨aᵤ⁻¹, by {rw [ha, ←mul_assoc, units.inv_mul, one_mul]}⟩,
-  irreducible_of_associated h2 h3
-
-
-lemma irreducible_of_prime {α : Type u}[integral_domain α] {p : α} (h1 : prime p) : irreducible p :=
-begin
-  rw prime at h1,
-  --rw irreducible,
-  have h2 : (p ≠ 0),
-  {
-    from and.elim_left h1,
-  },
-  have h3 : (¬ is_unit p),
-  from and.elim_left (and.elim_right h1),
-  rw [irreducible_iff_irreducible', irreducible'],
-  have h4 : ∀ (a b : α), p = a * b → is_unit a ∨ is_unit b,
-  {
-    intros b c h4a,
-    by_cases h4b : (b = 0),
-    {
-      simp [h4b] at h4a,
-      contradiction,
-    },
-    {
-      by_cases h4c : (c = 0),
-      {
-        simp [h4c] at h4a,
-        contradiction,
-      }, --no indent here
-      have h4 : p ∣ (b * c),
-      {
-        simp *,
-      },
-      have h5 : p ∣ b ∨ p ∣ c,
-      from and.elim_right (and.elim_right h1) b c h4,
-      cases h5,
-      {
-        have h6 : b ∣ b * c,
-        {simp},
-        have h7 : b ∣ p,
-        {
-          apply dvd.trans h6,
-          simp *,
-        },
-        have h8 : (p ~ᵤ b),
-        from associated_of_dvd_dvd h5 h7,
-        rw associated at h8,
-        let u := some h8,
-        have h9 : p = ↑u * b,
-        from some_spec h8,
-        rw [h9, mul_comm b c] at h4a,
-        have h10 : ↑u = c,
-        from eq_of_mul_eq_mul_right_of_ne_zero h4b h4a,
-        have h11 : is_unit c,
-        {
-          fapply exists.intro u,
-          exact eq.symm h10,
-        },
-        simp *,
-      },
-      {
-        have h6 : c ∣ b * c,
-        {simp},
-        have h7 : c ∣ p,
-        {
-          apply dvd.trans h6,
-          simp *,
-        },
-        have h8 : (p ~ᵤ c),
-        from associated_of_dvd_dvd h5 h7,
-        rw associated at h8,
-        let u := some h8,
-        have h9 : p = ↑u * c,
-        from some_spec h8,
-        rw [h9] at h4a,
-        have h10 : ↑u = b,
-        from eq_of_mul_eq_mul_right_of_ne_zero h4c h4a,
-        have h11 : is_unit b,
-        {
-          fapply exists.intro u,
-          exact eq.symm h10,
-        },
-        simp *,
-      }
-    }
-  },
-  exact ⟨h2, h3, h4 ⟩
-end
-
-
-
-inductive rel_multiset {α β : Type u} (r : α → β → Prop) : multiset α → multiset β → Prop
-| nil : rel_multiset ∅ ∅
-| cons : ∀a b xs ys, r a b → rel_multiset xs ys → rel_multiset (a::xs) (b::ys)
-
-lemma rel_multiset_def {α β : Type u} {r : α → β → Prop} {x : multiset α} {y : multiset β} :
-  rel_multiset r x y ↔
-    ((x = ∅ ∧ y = ∅) ∨ (∃a b x' y', r a b ∧ rel_multiset r x' y' ∧ x = a :: x' ∧ y = b :: y')) :=
-iff.intro
-  (assume h,
-    match x, y, h with
-    | _, _, (rel_multiset.nil r) := or.inl ⟨rfl, rfl⟩
-    | _, _, (rel_multiset.cons a b x y r r') := or.inr ⟨a, b, x, y, r, r', rfl, rfl⟩
-    end)
-  (assume h,
-    match x, y, h with
-    | _, _, or.inl ⟨rfl, rfl⟩ := rel_multiset.nil r
-    | _, _, or.inr ⟨a, b, x, y, r, r', rfl, rfl⟩ := rel_multiset.cons a b x y r r'
-    end)
-
-open multiset
-
-lemma multiset.cons_ne_empty {α : Type u} (a : α) (as : multiset α) : a :: as ≠ ∅ :=
-assume h,
-have a ∈ a :: as, by simp,
-have a ∈ (∅ : multiset α), from h ▸ this,
-not_mem_zero a this
-
---Can we do an induction on rel_multiset?
-lemma rel_multiset.cons_right {α β: Type u} {r : α → β → Prop} {as : multiset α} {bs : multiset β} {b : β} :
-  rel_multiset r as (b :: bs) → ∃a' as', as = (a' :: as') ∧ r a' b ∧ rel_multiset r as' bs :=
-begin
-  generalize hbs' : (b :: bs) = bs',
-  intro h,
-  induction h generalizing bs,
-  case rel_multiset.nil { exact (multiset.cons_ne_empty _ _ hbs').elim },
-  case rel_multiset.cons : a b' as bs' hr₁ hr' ih {
-    by_cases b_b' : b = b',
-    { subst b_b',
-      have h : bs = bs', from (cons_inj_right b).1 hbs',
-      subst h,
-      exact ⟨_, _, rfl, hr₁, hr'⟩ },
-    exact (
-      have b ∈ b' :: bs', by rw [← hbs']; simp,
-      have b ∈ bs', by simpa [b_b'],
-      have b :: bs'.erase b = bs', from cons_erase this,
-      let ⟨a'', as'', eq, hr₂, hr''⟩ := ih this in
-      have ih' : rel_multiset r (a :: as'') (b' :: bs'.erase b),
-        from rel_multiset.cons _ _ _ _ hr₁ hr'',
-      have b' :: bs'.erase b = bs,
-        by rw [← erase_cons_tail, ← hbs', erase_cons_head]; exact ne.symm b_b',
-      ⟨a'', a :: as'', by simp [eq, cons_swap], hr₂, this ▸ ih'⟩
-    )
-  }
-end
 
 class unique_factorization_domain (α : Type u) extends integral_domain α :=
 (fac : ∀{x : α}, x ≠ 0 → ¬ is_unit x → ∃ p : multiset α, x = p.prod ∧ (∀x∈p, irreducible x))
@@ -359,128 +64,9 @@ instance discrete_field.to_integral_domain [s : discrete_field α] : integral_do
 --is there a conversion from a division ring to a group over the multiplication?
 
 
---gcds
-class has_gcd (α : Type u) [comm_semiring α] := --can we define it for comm_monoid?
-(gcd : α → α → α)
-(gcd_right : ∀ a b, gcd a b ∣ b)
-(gcd_left  : ∀ a b, gcd a b ∣ a)
-(gcd_min   : ∀ a b g, g ∣ a → g ∣ b → g ∣ gcd a b)
 
 
 
-section gcd_sr
-variables [comm_semiring α] [has_gcd α] {a b c : α}
-
-def gcd : α → α → α := has_gcd.gcd
-def gcd_min := has_gcd.gcd_min a b c  --Correct???
-def gcd_left := has_gcd.gcd_left a b --use {a b : α}?
-def gcd_right := has_gcd.gcd_right a b
-
-
-def coprime (a b : α) := is_unit (gcd a b)
-
-
-@[simp] lemma gcd_zero_zero_eq_zero : gcd (0 : α) 0 = 0 :=
-begin
-  by_contradiction,
-  have h1 : (0 : α)∣0,
-  {simp},
-  have h2 : 0 ∣ (gcd (0 : α) 0),
-  from gcd_min h1 h1,
-  have : (gcd (0 : α) 0) = 0,
-  from eq_zero_of_zero_dvd h2,
-  contradiction
-end
-
-
-end gcd_sr
-
-section gcd_id
-variables [integral_domain α] [has_gcd α] {a b c : α}
-
-lemma gcd_zero_associated_left {f : α} : (gcd f (0 : α)) ~ᵤ f :=
-begin
-  apply associated_of_dvd_dvd,
-  exact gcd_left,
-  apply gcd_min,
-  simp,
-  simp
-end
-
-lemma gcd_zero_associated_right {α : Type u} [integral_domain α][has_gcd α] {f : α} : (gcd (0 : α) f) ~ᵤ f :=
-begin
-  apply associated_of_dvd_dvd,
-  exact gcd_right,
-  apply gcd_min,
-  simp,
-  simp
-end
-
-lemma gcd_eq_zero_iff_eq_zero_and_eq_zero {α : Type u} [integral_domain α][has_gcd α] {f g : α}  : gcd f g = 0 ↔ f = 0 ∧ g = 0:=
-begin
-  constructor,
-  {
-     intro h1,
-     by_contradiction h2,
-     have h3 : ¬(g = 0 ∧ f = 0),
-     {
-       rw and.comm at h2,
-       exact h2
-     },
-     simp at *,
-     by_cases h4 : (f = 0),
-     {
-       have h5 : g ≠ 0,
-       from h2 h4,
-       rw h4 at h1,
-       have h6 : ((gcd 0 g) ~ᵤ g),
-       from gcd_zero_associated_right,
-       rw [h1] at h6,
-       have h7 : (g ~ᵤ 0),
-       from associated.symm h6,
-       rw [associated_zero_iff_eq_zero] at h7,
-       contradiction,
-     },
-     {
-       apply h4,
-       apply eq_zero_of_zero_dvd,
-       rw ← h1,
-       exact gcd_left,
-     }
-
-  },
-  {
-    intro h1,
-    have h2 : f = 0,
-    from and.elim_left h1,
-    have h3 : g = 0,
-    from and.elim_right h1,
-    rw [h2, h3],
-    exact gcd_zero_zero_eq_zero
-  }
-end
-
---Isn't it associated?
-lemma gcd_comm : (gcd a b ~ᵤ  gcd b a) :=
-begin
-  apply associated_of_dvd_dvd,
-  {
-    have h1 : gcd a b ∣ a,
-    from gcd_left,
-    have h2 : gcd a b ∣ b,
-    from gcd_right,
-    exact gcd_min h2 h1,
-  },
-  {
-    have h1 : gcd b a ∣ b,
-    from gcd_left,
-    have h2 : gcd b a ∣ a,
-    from gcd_right,
-    exact gcd_min h2 h1,
-  }
-end
-
-end gcd_id
 
 
 namespace associated 
@@ -491,47 +77,6 @@ local attribute [instance] setoid
 variables {α} [unique_factorization_domain α]
 
 
-
-def irred (a : quot α) : Prop :=
-quotient.lift_on a irreducible $
-assume a b h, propext $ iff.intro
-  (assume h', irreducible_of_associated h' h)
-  (assume h', irreducible_of_associated h' h.symm)
-
---We don't need this one I think.
-lemma irreducible_iff_mk_irred {a : α} : irreducible a ↔ irred (mk a) :=
-begin
-  --rw propext,
-  constructor,
-  {
-
-    intro h1,
-    exact h1, --Importatnt to understand this
-  },
-  {
-    intro h1,
-    exact h1, --Why does it work the other wat?
-  }
-end
-
-
-
-lemma ne_one_of_irred {a : quot α} : irred a → a ≠ 1 :=
-begin
-  apply quotient.induction_on a,
-  intro a,
-  intro h1,
-  have h2 : irreducible a,
-  from h1,
-  rw ne.def,
-  rw [associated.has_one],
-  rw mk_eq_mk_iff_associated,
-  by_contradiction h3,
-  have h4 : ¬ (is_unit a),
-  from and.elim_left ( and.elim_right h2),
-  rw asssociated_one_iff_is_unit at h3,
-  contradiction,
-end
 /-
 lemma irred_iff_ne_zero {a : quot α} : irred a ↔ a ≠ 0 :=
 begin
@@ -548,128 +93,6 @@ begin
 
 end-/
 
-lemma forall_associated_of_map_eq_map : ∀(p q : multiset α),
-  p.map mk = q.map mk → rel_multiset associated p q :=
-begin
-assume p,
-  apply multiset.induction_on p,
-  {
-    intro q,
-    simp * at *,
-    by_cases h1 : (q = 0),
-    {
-      simp * at *,
-      exact rel_multiset.nil _,
-    },
-    {
-      intro h2,
-      have h3 : ∃ a, a ∈ q,
-      from multiset.exists_mem_of_ne_zero h1,
-      let a := some h3,
-      have h4 : a ∈ q,
-      from some_spec h3,
-      have h5 : mk a ∈ (multiset.map mk q),
-      from multiset.mem_map_of_mem mk h4,
-      rw ← h2 at h5,
-      by_contradiction h6,
-      exact multiset.not_mem_zero _ h5,
-    }
-
-  },
-  intros a p h1 q h3,
-  simp * at *,
-  have h4 : mk a ∈ multiset.map mk q,
-  {
-    rw ← h3,
-    simp,
-  },
-  have h5 : ∃ t', multiset.map mk q = mk a :: t',
-  from multiset.exists_cons_of_mem h4,
-  let t' := some h5,
-  have h6 : multiset.map mk q = mk a :: t',
-  from some_spec h5,
-  have h7 : ∃ b : α, b ∈ q ∧ mk b = mk a,
-  {
-    rw multiset.mem_map at h4,
-    exact h4,
-  },
-  let b := some h7,
-  have h8 : b ∈ q ∧ mk b = mk a,
-  from some_spec h7,
-  have h9 : ∃ t, q = b :: t,
-  from multiset.exists_cons_of_mem (and.elim_left h8),
-  let t := some h9,
-  have h10 : q = b :: t,
-  from some_spec h9,
-  rw h10,
-  have h11 : mk a = mk b,
-  exact eq.symm (and.elim_right h8),
-  apply rel_multiset.cons,
-  {
-    rw mk at h11,
-    rw mk at h11,
-    exact complete h11,
-  },
-  {
-    apply h1 _,
-    rw h10 at h3,
-    simp at h3,
-    rw [h11, multiset.cons_inj_right] at h3,
-    exact h3,
-  }
-end
-
-lemma multiset_eq (p q : multiset α) :
-  rel_multiset associated p q ↔ p.map mk = q.map mk :=
-begin
-  constructor,
-  {
-    intro h1,
-    induction h1 with a b h1 h2 h3 h4 h5,
-    {
-      exact rfl,
-    },
-    {
-      simp [h5],
-      exact h3
-    },
-  },
-  {
-    exact forall_associated_of_map_eq_map _ _
-  },
-end
-
-
-
---correct simp?
-@[simp] lemma mk_unit_eq_one {u : units α} : mk (u : α) = 1 :=
-begin
-  apply quot.sound,
-  exact unit_associated_one
-end
-
-
-lemma mk_eq_one_iff_is_unit {a : α} : mk a = 1 ↔ is_unit a :=
-begin
-  constructor,
-  {
-    intro h1,
-    have h2 : is_unit_quot (mk a),
-    {
-      rw h1,
-      exact is_unit_one
-    },
-    {
-      exact h2,
-    }
-  },
-  {
-    intro h1,
-    rcases h1 with ⟨u, hu⟩,
-    subst hu,
-    exact mk_unit_eq_one,
-  }
-end
 
 lemma representation (a' : quot α) : a' ≠ 0 →
   ∃p : multiset (quot α), (∀a∈p, irred a) ∧ a' = p.prod :=
@@ -721,82 +144,6 @@ lemma some_spec_representation (a' : quot α) (h : a' ≠ 0) :
 some_spec (representation a' h)
 
 
-lemma exists_eq_map_mk (p : multiset (quot α)) : ∃q:multiset α, p = q.map mk :=
-multiset.induction_on p ⟨0, rfl⟩ $
-  assume a', quotient.induction_on a' $ assume a p ⟨q, hq⟩,
-  ⟨a :: q, by simp [hq]⟩
-
---Doens't this hold already for not is_unit? admit done, do we need this one.
- lemma prod_not_is_unit_quot_eq_one_iff_eq_zero {p : multiset (quot α)}: (∀ (a : quot α), a ∈ p → (¬ is_unit_quot a)) → (p.prod = 1 ↔ p = 0) :=
- begin
-  intro h1a,
-  constructor,
-  {
-    intro h2a,
-    by_contradiction h1,
-    have h2 : ∃a , a ∈ p,
-    from multiset.exists_mem_of_ne_zero h1,
-    let h := some h2,
-    have h3 : h ∈ p,
-    from some_spec h2,
-    have h4 : ∃ t, p = h :: t,
-    from multiset.exists_cons_of_mem h3,
-    let t := some h4,
-    have h5 : p = h :: t,
-    from some_spec h4,
-    rw h5 at h2a,
-    simp at h2a,
-    have h6 : ¬is_unit_quot h,
-    from h1a h h3,
-    let h' := quot.out h,
-    have h7 : mk h' = h,
-    from quot.out_eq h,
-    have h8 : ∃t':multiset α, t = t'.map mk,
-    from exists_eq_map_mk _,
-    let t' := some h8,
-    have h9 : t = t'.map mk,
-    from some_spec h8,
-    rw [h9, prod_mk, ←h7, ←mul_mk] at h2a,
-    have h10 : ((h' * (multiset.prod t')) ~ᵤ (1 : α)),
-    from complete h2a,
-    rw asssociated_one_iff_is_unit at h10,
-    --have h11: is_unit_quot (mk (h' * multiset.prod t')),
-    --from h10,
-    have h12 : is_unit h',
-    from is_unit_left_of_is_unit_mul h10,
-    have h13 : is_unit_quot (mk h'),
-    from h12,
-    rw h7 at h13,
-    contradiction,
-  },
-  {
-    intro h1,
-    simp *,
-  }
- end
-
-lemma prod_irred_quot_eq_one_iff_eq_zero {p : multiset (quot α)}: (∀ (a : quot α), a ∈ p → (irred a)) → (p.prod = 1 ↔ p = 0) :=
-begin
-  intro h1,
-  have h2 : ∀ (a : quot α), a ∈ p → (¬  is_unit_quot a),
-  {
-    intros b h2,
-    have h3 : irred b,
-    from h1 b h2,
-    let b' := quot.out b,
-    have h4  : mk b' = b,
-    from quot.out_eq _,
-    rw ← h4 at h3,
-    have h5 : irreducible b',
-    from h3,
-    have h6 : ¬ is_unit b',
-    from and.elim_left (and.elim_right h5),
-    rw ← h4,
-    exact h6,
-  },
-  apply prod_not_is_unit_quot_eq_one_iff_eq_zero,
-  exact h2,
-end
 
 lemma uniqueness (p q : multiset (quot α))
   (hp : ∀a∈p, irred a) (hq : ∀a∈q, irred a)
@@ -979,138 +326,6 @@ end
 
 
 
---Think it should be le not subset
---lemma prod_le_prod_of_subset {p q : multiset (quot α)} (h : p ⊆ q) : p.prod ≤ q.prod :=
---Could we work with  lattice morphism?
-lemma prod_le_prod_of_le {p q : multiset (quot α)} (h : p ≤ q) : p.prod ≤ q.prod :=
-begin
-  have h1 : p + (q - p) = q,
-  from multiset.add_sub_of_le h,
-  rw ← h1,
-  simp,
-  fapply exists.intro,
-  exact multiset.prod (q - p),
-  exact rfl,
-end
-
-lemma zero_ne_one : (0 : quot α) ≠ 1 :=
-begin
-  by_contradiction h1,
-  simp [not_not] at *,
-  have h2 : ((0 : α) ~ᵤ (1 : α)),
-  {
-    rw [zero_def, one_def] at h1,
-    exact complete h1,
-  },
-  have h3 : ((1 : α) ~ᵤ (0 : α)),
-  from associated.symm h2,
-  rw associated_zero_iff_eq_zero at h3,
-  have h4 : (0 : α) ≠ 1,
-  from zero_ne_one,
-  have h5 : (0 : α) = 1,
-  from eq.symm h3,
-  contradiction,
-end
-
-lemma mul_ne_zero {a' b' : quot α} (h1 : a' ≠ 0) (h2 : b' ≠ 0) : a' * b' ≠ 0 :=
-begin
-  let a := quot.out a',
-  have h3 : mk a = a',
-  from quot.out_eq a',
-  let b := quot.out b',
-  have h4 : mk b = b',
-  from quot.out_eq b',
-  rw [←h3, ←h4, ← mul_mk],
-  rw [←h3, ne.def, mk_eq_zero_iff_eq_zero] at h1,
-  rw [← h4, ne.def, mk_eq_zero_iff_eq_zero] at h2,
-  rw [ne.def, mk_eq_zero_iff_eq_zero],
-  exact mul_ne_zero h1 h2,
-end
-
---Can possibly be simplified, because we have prod_ne_zero_of_ne_zero
-lemma prod_ne_zero_of_irred {q : multiset (quot α)}: (∀ (a : quot α), a ∈ q → irred a) → multiset.prod q ≠ 0 :=
-begin
-  apply multiset.induction_on q,
-  {
-    intro h1,
-    simp,
-    apply ne.symm,
-    exact zero_ne_one,
-  },
-  {
-    intros a' s h1 h2,
-    simp,
-    have h3 : irred a',
-    {
-      apply h2 a',
-      simp,
-    },
-    have h4 : (∀ (a : quot α), a ∈ s → irred a),
-    {
-      intros a h4,
-      apply h2 a,
-      simp *,
-    },
-    have h5 : multiset.prod s ≠ 0,
-    from h1 h4,
-    let a := quot.out a',
-    have h6 : mk a = a',
-    from quot.out_eq a',
-    rw ← h6 at h3,
-    have h7 : irreducible a,
-    from h3,
-    have h9 : a ≠ 0,
-    from and.elim_left h7,
-    have h10 : mk a ≠ 0,
-    {
-      rw [ne.def, mk_eq_zero_iff_eq_zero],
-      exact h9,
-    },
-    apply mul_ne_zero,
-    {
-      rw h6 at h10,
-      exact h10,
-    },
-    exact h5,
-
-  }
-end
-
---is eq_one better then is_unit_quot?
-lemma is_unit_quot_of_mul_eq_one_left [unique_factorization_domain α] {a b : quot α} (h : a * b = 1) : is_unit_quot a :=
-begin
-  revert h,
-  apply quot.induction_on a,
-  apply quot.induction_on b,
-  intros a' b' h,
-  rw [←mk_def',←mk_def',←mul_mk, mk_eq_one_iff_is_unit] at h,
-  have h1 : is_unit_quot (mk (b' * a')),
-  from h,
-  have h2 : is_unit b',
-  from is_unit_left_of_is_unit_mul h1,
-  exact h2,
-end
-
-lemma is_unit_quot_of_mul_eq_one_right [unique_factorization_domain α] {a b : quot α} (h : a * b = 1) : is_unit_quot b :=
-begin
-  rw mul_comm at h,
-  exact is_unit_quot_of_mul_eq_one_left h,
-end
-
-
-
-lemma not_is_unit_quot_of_irred {a : quot α} (h : irred a) : ¬ is_unit_quot a :=
-begin
-  revert h,
-  apply quot.induction_on a,
-  intros a h,
-  have : irreducible a,
-  from h,
-  have : ¬ is_unit a,
-  from this.2.1,
-  exact this,
-end
-
 
 @[simp] lemma to_multiset_one : to_multiset (1 : quot α) = 0 :=
 begin
@@ -1134,28 +349,6 @@ begin
   contradiction,
 end
 
-lemma prod_ne_one_of_ne_zero_of_irred {q : multiset (quot α)} (h : q ≠ 0) : (∀ (a : quot α), a ∈ q → irred a) → multiset.prod q ≠ 1 :=
-begin
-  revert h,
-  apply multiset.induction_on q,
-  {
-    simp * at *,
-  },
-  {
-    intros a s h1 h2 h3,
-    simp * at *,
-    by_contradiction h4,
-    have h5 : is_unit_quot a,
-    from is_unit_quot_of_mul_eq_one_left h4,
-    have : ¬is_unit_quot a,
-    {
-      apply not_is_unit_quot_of_irred,
-      apply h3,
-      simp,
-    },
-    contradiction,
-  }
-end
 
 lemma to_multiset_mul {a b : quot α} (h1 : a ≠ 0) (h2 : b ≠ 0): to_multiset (a * b) = to_multiset a + to_multiset b :=
 begin
@@ -1188,6 +381,33 @@ begin
   rw multiset.prod_add,
   simp * at *,
   end
+
+
+
+
+def inf (a b : quot α) :=
+if a = 0 then b else if b = 0 then a else (to_multiset a ∩ to_multiset b).prod
+
+
+
+def sup (a b : quot α) :=
+if a = 0 then 0 else if b = 0 then 0 else (to_multiset a ∪ to_multiset b).prod
+
+
+
+lemma inf_comm (a b : quot α) : inf a b = inf b a :=
+by by_cases ha0 : a = 0; by_cases hb0 : b = 0; simp [*, inf, inter_comm]
+
+--left or right?
+@[simp] lemma sup_zero_eq_zero_left {a : quot α} : sup 0 a = 0 :=
+by simp [sup]
+
+@[simp] lemma sup_zero_eq_zero_right {a : quot α} : sup a 0 = 0 :=
+by simp [sup]
+
+lemma sup_comm {a b : quot α} : sup a b = sup b a :=
+by by_cases ha0 : a = 0; by_cases hb0 : b = 0; simp [*, sup, union_comm]
+
 
 --should be le
 lemma prod_le_prod_iff_subset {p q : multiset (quot α)}
@@ -1249,52 +469,6 @@ begin
     exact prod_le_prod_of_le,
   }
 end
-
-
-
-lemma le_def {a b : quot α} : a ≤ b = ∃ c, a * c = b := rfl
-
-instance : lattice.order_bot (quot α) :=
-{ bot := 1,
-  bot_le := assume a, ⟨a, one_mul a⟩,
-  .. associated.partial_order }
-
-instance : lattice.order_top (quot α) :=
-{ top := 0,
-  le_top := assume a, ⟨0, mul_zero⟩,
-  .. associated.partial_order }
-
-lemma eq_zero_of_zero_le {a : quot α} : 0 ≤ a → a = 0 := lattice.top_unique
-
---0 is the largest element, division order
-@[simp] lemma one_le_zero : (1 : quot α) ≤ (0 : quot α) := lattice.bot_le
-
-def inf (a b : quot α) :=
-if a = 0 then b else if b = 0 then a else (to_multiset a ∩ to_multiset b).prod
-
-
-
-def sup (a b : quot α) :=
-if a = 0 then 0 else if b = 0 then 0 else (to_multiset a ∪ to_multiset b).prod
-
-
-lemma bot_def : ⊥ = (1 : quot α) := rfl
-lemma top_def : ⊤ = (0 : quot α) := rfl
-
-lemma zero_is_top (a : quot α) : a ≤ 0 := ⟨0, mul_zero⟩
-
-lemma inf_comm (a b : quot α) : inf a b = inf b a :=
-by by_cases ha0 : a = 0; by_cases hb0 : b = 0; simp [*, inf, inter_comm]
-
---left or right?
-@[simp] lemma sup_zero_eq_zero_left {a : quot α} : sup 0 a = 0 :=
-by simp [sup]
-
-@[simp] lemma sup_zero_eq_zero_right {a : quot α} : sup a 0 = 0 :=
-by simp [sup]
-
-lemma sup_comm {a b : quot α} : sup a b = sup b a :=
-by by_cases ha0 : a = 0; by_cases hb0 : b = 0; simp [*, sup, union_comm]
 
 lemma le_sup_left {a b : quot α} : a ≤ sup a b :=
 begin
@@ -1378,6 +552,7 @@ end
 
 open lattice
 
+/-
 instance : semilattice_inf_top (quot α) := --We need bot aswell
 { inf := inf,
   inf_le_left := assume a b, inf_le_left,
@@ -1386,9 +561,8 @@ instance : semilattice_inf_top (quot α) := --We need bot aswell
   top := 0,
   le_top := assume a, zero_is_top _,
   .. associated.partial_order }
+-/
 
-lemma one_le :  ∀ (a : quot α), 1 ≤ a :=
-assume a, ⟨a, by simp⟩
 
 instance : bounded_lattice (quot α) := --We need bot aswell
 { inf := inf,
@@ -1426,9 +600,7 @@ instance : semilattice_inf_bot (quot α) := --We need bot aswell
 
 
 
-lemma mul_mono {a b c d : quot α} (h₁ : a ≤ b) (h₂ : c ≤ d) : a * c ≤ b * d :=
-let ⟨x, hx⟩ := h₁, ⟨y, hy⟩ := h₂ in
-⟨x * y, by simp [hx.symm, hy.symm, mul_comm, mul_assoc, mul_left_comm]⟩
+
 
 @[simp] lemma inf_zero {a : quot α} : a ⊓ 0 = a := @inf_top_eq (quot α) _ a
 @[simp] lemma zero_inf {a : quot α} : 0 ⊓ a = a := @top_inf_eq (quot α) _ a
@@ -1436,21 +608,7 @@ let ⟨x, hx⟩ := h₁, ⟨y, hy⟩ := h₂ in
 @[simp] lemma sup_zero {a : quot α} : a ⊔ 0 = 0 := @sup_top_eq (quot α) _ a
 @[simp] lemma zero_sup {a : quot α} : 0 ⊔ a = 0 := @top_sup_eq (quot α) _ a
 
-lemma eq_of_mul_eq_mul {a b c : quot α} : a ≠ 0 → a * b = a * c → b = c :=
-quotient.induction_on₃ a b c $ assume a b c h eq,
-  have a ≠ 0, from assume h', h $ mk_eq_zero_iff_eq_zero.2 h',
-  let ⟨d, hd⟩ := complete eq in
-  have a * b = a * (↑d * c), by simpa [mul_assoc, mul_comm, mul_left_comm] using hd,
-  quotient.sound ⟨d, eq_of_mul_eq_mul_left_of_ne_zero ‹a ≠ 0› this⟩
 
-lemma le_of_mul_le_mul {a b c : quot α} (h : a ≠ 0) : a * b ≤ a * c → b ≤ c
-| ⟨d, hd⟩ :=
-  have b * d = c, from eq_of_mul_eq_mul h $ by simpa [mul_assoc] using hd,
-  ⟨d, this⟩
-
-lemma le_mul_right {a b : quot α} : a ≤ a * b := ⟨b, rfl⟩
-
-lemma le_mul_left {a b : quot α} : a ≤ b * a := by rw [mul_comm]; exact le_mul_right
 
 lemma mul_inf {a b c : quot α} : a * (b ⊓ c) = (a * b) ⊓ (a * c) :=
 begin
@@ -1497,22 +655,6 @@ begin
   rw [prod_mul_prod_eq_add_prod, prod_mul_prod_eq_add_prod],
   simp [multiset.union_add_inter], --Again the properties from multiset carry over
 end
-
-lemma dvd_of_mk_le_mk {a b : α} (h : mk a ≤ mk b) : a ∣ b :=
-let ⟨c', hc'⟩ := h in
-(quotient.induction_on c' $ assume c (hc : mk (a * c) = mk b),
-  have (a * c) ~ᵤ b, from complete hc,
-  let ⟨d, hd⟩ := this.symm in
-  ⟨d * c, by simp [mul_comm, mul_assoc, hd]⟩) hc'
-
-lemma mk_le_mk_of_dvd {a b : α} (h : a ∣ b) : mk a ≤ mk b :=
-let ⟨c, hc⟩ := h in ⟨mk c, by simp [hc]; refl⟩
-
-lemma dvd_iff_mk_le_mk {a b : α} : a ∣ b ↔ mk a ≤ mk b :=
-iff.intro mk_le_mk_of_dvd dvd_of_mk_le_mk
-
-@[simp] lemma mk_quot_out {a : quot α} : mk (quot.out a) = a :=
-quot.out_eq _
 
 --I have a duplicate of this lemma with wrong naming: see dvd_right bla bla
 --Do we use the case c = 0.
@@ -1779,10 +921,7 @@ begin
   exact ⟨x, (by simp *)⟩,
 end
 
-@[simp] lemma le_self {a : quot α} : a ≤ a:=
-begin
-  exact ⟨1, by simp⟩,
-end
+
 
 
 --Do we need a right variant here?
@@ -1815,66 +954,7 @@ end associated
 open associated
 
 
-lemma is_unit_mul_div {a b : α} [comm_semiring α] (h : is_unit a) : a * b ∣ b :=
-begin
-  by_cases h1 : (b = 0),
-  {
-    simp * at *,
-  },
-  {
-    rcases h with ⟨u, hu ⟩,
-    have h1 : b = a * b * u.inv,
-    {
-      exact calc b = 1 * b : by simp
-      ... = (u.val*u.inv) * b : by rw [u.val_inv]
-      ... = (a * u.inv) * b : by rw [←units.val_coe u, ← hu]
-      ... = _ : by simp [mul_assoc, mul_comm u.inv b],
-    },
-    exact ⟨u.inv, h1⟩
-  }
-end
 
-lemma associated_of_mul_is_unit {a b c : α} [integral_domain α] (h1 : is_unit b) (h2 : a * b = c) : (a ~ᵤ c) :=
-begin
-  apply associated.symm,
-  rcases h1 with ⟨u, hu⟩,
-  apply exists.intro u,
-  subst hu,
-  simp [mul_comm, *],
-end
-
-lemma mul_is_unit_div {a b : α} [comm_semiring α] (h : is_unit a) : b * a ∣ b :=
-begin
-  rw mul_comm b a,
-  exact is_unit_mul_div h,
-end
-
-lemma irreducible_of_mul_is_unit {a b c : α} [integral_domain α] (h1 : irreducible a) (h2 : is_unit b) (h3 : a * b = c) : irreducible c :=
-begin
-  apply irreducible_of_associated h1,
-  exact associated_of_mul_is_unit h2 h3,
-end
-
-lemma dvd_of_mem_prod [comm_semiring α] {a x : α}{b : multiset α} (h1 : a = b.prod) (h2 : x ∈ b) : x ∣ a :=
-begin
-  rw ←cons_erase h2 at h1,
-  simp at h1,
-  split,
-  exact h1,
-end
-
-lemma associated.dvd_of_associated {a b c : α} [integral_domain α] (h1 : a ~ᵤ b) (h2 : b ∣ c) : a ∣ c :=
-begin
-  rcases h1 with ⟨u, hu⟩,
-  rcases h2 with ⟨d, hd⟩,
-  fapply exists.intro,
-  exact u.inv * d,
-  rw mul_comm _ b at hu,
-  rw [hu,←mul_assoc],
-  apply eq.symm,
-  exact calc b * ↑u * u.inv * d = b * (↑u * u.inv) * d : by simp [mul_assoc]
-  ... = c : by simp [units.val_coe, u.val_inv, hd]
-end
 
 
 open unique_factorization_domain
@@ -2014,8 +1094,7 @@ associated.mk_quot_out
 lemma mul_gcd : a * gcd b c ~ᵤ gcd (a * b) (a * c) :=
 complete $ show mk a * mk (gcd b c) = _, by simp; exact associated.mul_inf
 
-lemma coprime_def : (coprime a b) = (is_unit $ gcd a b) :=
-rfl
+
 
 --Is in isa lib
 lemma gcd_mul_cancel (h1 : coprime c b) : (gcd (c * a) b ~ᵤ gcd a b) :=
@@ -2057,49 +1136,6 @@ gcd (a * b) c = (gcd a c) * (gcd b c)
 
 --lemma asso
 
-lemma is_unit_quot_iff_eq_one {a : quot α} : is_unit_quot a ↔ a = 1 :=
-begin
-  split,
-  apply quot.induction_on a,
-  {
-    intros a h,
-    apply quot.sound,
-    apply (asssociated_one_iff_is_unit).2,
-    exact h,
-  },
-  {
-    intros h,
-    rw [h, one_def, ←mk_def],
-    exact is_unit_one,
-  }
-end
-
---open associated
-lemma mul_eq_one_iff_eq_one_and_eq_one {a b : quot α} : a * b = 1 ↔ a = 1 ∧ b = 1 :=
-begin
-  apply @quotient.induction_on₂ _ _ (setoid α) (setoid α) _ a b,
-  intros a b,
-  rw [←mk_def, ←mk_def] {occs := occurrences.all},
-  split,
-  {
-    intro h,
-    rw [←mul_mk, one_def, ←mk_def] at h,
-    have h1 : (a * b ~ᵤ 1),
-    from complete h,
-    have h2 : is_unit (a * b),
-    from is_unit_of_associated is_unit_one h1.symm,
-    have h3 : is_unit a,
-    from is_unit_left_of_is_unit_mul h2,
-    have h4 : is_unit b,
-    from is_unit_right_of_is_unit_mul h2,
-    repeat {rw ←is_unit_quot_iff_eq_one},
-    split; assumption,
-  },
-  {
-    intro h,
-    simp * at *,
-  }
-end
 
 /-
 lemma mk_eq_zero_iff_eq_zero {a : α} : mk a = 0 ↔ a = 0:=
@@ -2119,20 +1155,6 @@ begin
 end
 -/
 
-lemma ne_zero_of_irred {a : quot α} (h : irred a) : a ≠ 0 :=
-begin
-  revert h,
-  apply quot.induction_on a,
-  intros a h,
-  simp,
-  have h1 : irreducible a,
-  from h,
-  have h2 : a ≠ 0,
-  from h1.1,
-  rw [←mk_def'],
-  rw @mk_eq_zero_iff_eq_zero _ _ a,
-  exact h2,
-end
 
 lemma to_multiset_eq_singleton_of_irred {a : quot α} (h : irred a) : to_multiset a = a::0 :=
 begin
@@ -2149,8 +1171,7 @@ end
 
 
 
-@[simp] lemma not_irred_one : ¬ irred (1 : quot α) :=
-not_irreducible_one
+
 
 
 lemma inf_eq_one_iff_ne_eq_of_irred_of_irred  {a b : quot α} (ha : irred a) (hb : irred b) : a ⊓ b = 1 ↔ a ≠ b :=
@@ -2237,7 +1258,7 @@ begin
   apply is_unit_of_associated h1 gcd_comm
 end
 
-lemma one_def' : mk (1 : α) = 1 := rfl
+
 
 def facs_to_pow  [monoid α] (p : α →₀ ℕ ) : finset α:= p.support.image (λ a, a^(p a))
 
@@ -2353,78 +1374,6 @@ begin
   repeat {assumption},
 end
 
-lemma prod_eq_zero_iff_zero_mem {s : multiset (quot α)} : prod s = 0 ↔ (0 : quot α) ∈ s :=
-begin
-  split,
-  {
-    apply multiset.induction_on s,
-    {
-      simp * at *,
-      intro h1,
-      exact zero_ne_one h1.symm,
-    },
-    {
-      intros a s h1 h2,
-      simp * at *,
-      by_cases ha : a = 0,
-      {
-        simp * at *,
-      },
-      {
-        have h3 : prod s = 0,
-        {
-          by_contradiction h4,
-          have : a * prod s ≠ 0,
-          from mul_ne_zero ha h4,
-          contradiction,
-        },
-        simp [h1 h3],
-      }
-    }
-  },
-  {
-    intro h,
-    rcases (exists_cons_of_mem h) with ⟨t, ht⟩,
-    subst ht,
-    simp * at *,
-  }
-end
-
---Should be placed elsewhere
-lemma prod_eq_zero_iff_zero_mem' {β : Type u} [integral_domain β] {s : multiset β} : prod s = 0 ↔ (0 : β) ∈ s :=
-begin
-  split,
-  {
-    apply multiset.induction_on s,
-    {
-      simp * at *,
-    },
-    {
-      intros a s h1 h2,
-      simp * at *,
-      by_cases ha : a = 0,
-      {
-        simp * at *,
-      },
-      {
-        have h3 : prod s = 0,
-        {
-          by_contradiction h4,
-          have : a * prod s ≠ 0,
-          from mul_ne_zero ha h4,
-          contradiction,
-        },
-        simp [h1 h3],
-      }
-    }
-  },
-  {
-    intro h,
-    rcases (exists_cons_of_mem h) with ⟨t, ht⟩,
-    subst ht,
-    simp * at *,
-  }
-end
 
 
 lemma to_multiset_prod_of_zero_not_mem {s : multiset (quot α)} (h0 : (0 : quot α) ∉ s) : to_multiset (s.prod) = (multiset.map to_multiset s).sum :=
@@ -2525,22 +1474,6 @@ begin
   }
 end
 
-lemma le_of_mem_to_multiset {y : quot α} : ∀x ∈ to_multiset y, x ≤ y :=
-begin
-  intros x h1,
-  by_cases h2 : y = 0,
-  {
-    simp * at *,
-  },
-  {
-    rw ←to_multiset_prod_eq y h2,
-    rcases (exists_cons_of_mem h1) with ⟨t, ht⟩,
-    rw ht,
-    simp * at *,
-    exact le_mul_right,
-  }
-end
-
 lemma inf_prod_eq_one_iff_forall_inf_eq_one {y: quot α} {s : multiset (quot α)} : y ⊓ s.prod = 1 ↔ ∀x ∈ s, y ⊓ x = 1 :=
 begin
   split,
@@ -2619,16 +1552,6 @@ begin
   }
 end
 
-lemma forall_map_mk_irred_of_forall_irreducible {s : multiset α}(h : ∀x ∈ s, irreducible x) : ∀ x ∈ map mk s, irred x :=
-begin
-  intros x,
-  apply quot.induction_on x,
-  intros a h1,
-  rw mem_map at h1,
-  rcases h1 with ⟨b, hb⟩,
-  rw ← hb.2,
-  exact h b hb.1,
-end
 
 --Why do we need irreucible here?? (h : ∀x ∈ s, irreducible x)
 lemma coprime_prod_iff_forall_coprime  {y: α} {s : multiset α}: coprime y s.prod ↔ ∀x ∈ s, coprime y x :=
@@ -2663,102 +1586,22 @@ end
 
 
 
-lemma succ_eq_succ_iff_eq {n m : ℕ} : nat.succ n = nat.succ m ↔ n = m :=
+lemma le_of_mem_to_multiset {y : quot α} : ∀x ∈ to_multiset y, x ≤ y :=
 begin
-  split,
-    exact nat.succ_inj,
-    intro h,
-    simp *,
-end
-
-lemma eq_zero_or_exists_eq_succ_succ_of_ne_one {n : ℕ} (h : n ≠ 1) : n = 0 ∨ ∃ m, n = nat.succ (nat.succ m) :=
-begin
-  by_cases h2 : n = 0,
-    {simp *},
-    {
-      rcases (nat.exists_eq_succ_of_ne_zero h2) with ⟨m, hm⟩,
-      subst hm,
-      simp * at *,
-      rw succ_eq_succ_iff_eq at h,
-      rcases (nat.exists_eq_succ_of_ne_zero h) with ⟨s, hs⟩,
-      subst hs,
-      exact ⟨s, rfl⟩,
-    }
-end
-
-
-lemma is_unit_of_mul_is_unit_left {a b : α} (h : is_unit (a * b)) : is_unit a :=
-begin
-  rcases h with ⟨c, hc⟩,
-  have h1: a * b * c.inv = 1,
+  intros x h1,
+  by_cases h2 : y = 0,
   {
-    rw [hc, units.val_coe c, c.val_inv],
-  },
-  rw mul_assoc at h1,
-  exact is_unit_of_mul_eq_one_left h1,
-end
-
-lemma is_unit_of_mul_is_unit_right {a b : α} (h : is_unit (a * b)) : is_unit b :=
-begin
-  rw mul_comm at h,
-  exact is_unit_of_mul_is_unit_left h,
-end
-
-
-lemma is_unit_mul_iff_is_unit_and_is_unit {a b : α} : is_unit (a * b) ↔ is_unit a ∧ is_unit b :=
-begin
-  split,
-  {
-    intros h,
-    exact ⟨is_unit_of_mul_is_unit_left h, is_unit_of_mul_is_unit_right h⟩,
-  },
-  {
-    intros h,
-    exact is_unit_mul_of_is_unit_of_is_unit h.1 h.2,
-  }
-end
-
-lemma irreducible_pow {a : α} {n : ℕ} (h : irreducible a) : irreducible (a^n) ↔ n = 1 :=
-begin
-  split,
-  {
-    intros h1,
-    by_contradiction h2,
-    have h3 : n = 0 ∨ ∃ m, n = nat.succ (nat.succ m),
-    from eq_zero_or_exists_eq_succ_succ_of_ne_one h2,
-    cases h3,
-    {
-      simp * at *,
-    },
-    {
-      rcases h3 with ⟨m, hm⟩,
-      subst hm,
-      rw pow_succ at *,
-      rw irreducible_iff_irreducible' at h1,
-      unfold irreducible' at h1,
-      have h4: is_unit a ∨ is_unit (a ^ nat.succ m),
-      from h1.2.2 _ _ rfl,
-      cases h4,
-      {
-        have : ¬is_unit a,
-        from h.2.1,
-        contradiction,
-      },
-      {
-        rw pow_succ at h4,
-        rw is_unit_mul_iff_is_unit_and_is_unit at h4,
-        have : ¬is_unit a,
-        from h.2.1,
-        exact this h4.1,
-      }
-    }
-
-  },
-  {
-    intro h,
     simp * at *,
+  },
+  {
+    rw ←to_multiset_prod_eq y h2,
+    rcases (exists_cons_of_mem h1) with ⟨t, ht⟩,
+    rw ht,
+    simp * at *,
+    exact le_mul_right,
   }
 end
+
 
 --Problem? could be that I need it for intergral domain?? [integral_domain α]
 lemma facs_to_pow_prod_dvd {f : α →₀ ℕ} {z : α}
@@ -3013,28 +1856,7 @@ begin
    -- https://github.com/leanprover/lean/issues/1822
 -/
 
---Naming?
-lemma not_is_unit_of_not_is_unit_dvd {a b : α} (h1 : ¬is_unit a) (h2 : a ∣ b) : ¬is_unit b :=
-begin
-  rcases h2 with ⟨c, hc⟩,
-  subst hc,
-  by_contradiction h2,
-  have : is_unit a,
-    from is_unit_left_of_is_unit_mul h2,
-  contradiction,
-end
 
-lemma not_is_unit_prod_of_ne_zero_of_forall_mem_irreducible {s : multiset α} (h1 : s ≠ 0) (h2 : ∀x : α, x ∈ s → irreducible x) : ¬is_unit s.prod :=
-begin
-  rcases (exists_mem_of_ne_zero h1) with ⟨x, hx⟩,
-  have h2b : x ∣ (s.prod),
-    from dvd_prod_of_mem _ hx,
-  have h3: irreducible x,
-    from h2 x hx,
-  have h4: ¬is_unit x,
-    from not_is_unit_of_irreducible h3,
-  exact not_is_unit_of_not_is_unit_dvd h4 h2b,
-end
 
 lemma coprime_of_coprime_of_associated_left {a a' b : α} (h1 : coprime a b)  (h2 : a' ~ᵤ a) : coprime a' b :=
 begin

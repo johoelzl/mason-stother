@@ -398,4 +398,61 @@ begin
   }
 end
 
+
+
+inductive rel_multiset {α β : Type u} (r : α → β → Prop) : multiset α → multiset β → Prop
+| nil : rel_multiset ∅ ∅
+| cons : ∀a b xs ys, r a b → rel_multiset xs ys → rel_multiset (a::xs) (b::ys)
+
+lemma rel_multiset_def {α β : Type u} {r : α → β → Prop} {x : multiset α} {y : multiset β} :
+  rel_multiset r x y ↔
+    ((x = ∅ ∧ y = ∅) ∨ (∃a b x' y', r a b ∧ rel_multiset r x' y' ∧ x = a :: x' ∧ y = b :: y')) :=
+iff.intro
+  (assume h,
+    match x, y, h with
+    | _, _, (rel_multiset.nil r) := or.inl ⟨rfl, rfl⟩
+    | _, _, (rel_multiset.cons a b x y r r') := or.inr ⟨a, b, x, y, r, r', rfl, rfl⟩
+    end)
+  (assume h,
+    match x, y, h with
+    | _, _, or.inl ⟨rfl, rfl⟩ := rel_multiset.nil r
+    | _, _, or.inr ⟨a, b, x, y, r, r', rfl, rfl⟩ := rel_multiset.cons a b x y r r'
+    end)
+
+open multiset
+
+lemma multiset.cons_ne_empty {α : Type u} (a : α) (as : multiset α) : a :: as ≠ ∅ :=
+assume h,
+have a ∈ a :: as, by simp,
+have a ∈ (∅ : multiset α), from h ▸ this,
+not_mem_zero a this
+
+--Can we do an induction on rel_multiset?
+lemma rel_multiset.cons_right {α β: Type u} {r : α → β → Prop} {as : multiset α} {bs : multiset β} {b : β} :
+  rel_multiset r as (b :: bs) → ∃a' as', as = (a' :: as') ∧ r a' b ∧ rel_multiset r as' bs :=
+begin
+  generalize hbs' : (b :: bs) = bs',
+  intro h,
+  induction h generalizing bs,
+  case rel_multiset.nil { exact (multiset.cons_ne_empty _ _ hbs').elim },
+  case rel_multiset.cons : a b' as bs' hr₁ hr' ih {
+    by_cases b_b' : b = b',
+    { subst b_b',
+      have h : bs = bs', from (cons_inj_right b).1 hbs',
+      subst h,
+      exact ⟨_, _, rfl, hr₁, hr'⟩ },
+    exact (
+      have b ∈ b' :: bs', by rw [← hbs']; simp,
+      have b ∈ bs', by simpa [b_b'],
+      have b :: bs'.erase b = bs', from cons_erase this,
+      let ⟨a'', as'', eq, hr₂, hr''⟩ := ih this in
+      have ih' : rel_multiset r (a :: as'') (b' :: bs'.erase b),
+        from rel_multiset.cons _ _ _ _ hr₁ hr'',
+      have b' :: bs'.erase b = bs,
+        by rw [← erase_cons_tail, ← hbs', erase_cons_head]; exact ne.symm b_b',
+      ⟨a'', a :: as'', by simp [eq, cons_swap], hr₂, this ▸ ih'⟩
+    )
+  }
+end
+
 end multiset

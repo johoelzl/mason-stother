@@ -9,7 +9,7 @@ noncomputable theory
 
 local infix ^ := monoid.pow
 
-open classical
+open classical multiset
 local attribute [instance] prop_decidable
 
 universe u
