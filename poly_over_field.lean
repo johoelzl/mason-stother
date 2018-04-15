@@ -582,7 +582,72 @@ begin
   }
 end
 
+--the normal form of a polynomial f = u p_1 p_2 ... p_n, with u a unit, and p_i monic and irreducible
 
+def c_fac (p : polynomial α) : α := 
+if (p = 0) then 0 else some (polynomial_fac p)
+
+def factors (p : polynomial α) : multiset (polynomial α) :=
+if (p = 0) then 0 else classical.some (some_spec $ polynomial_fac p)
+
+lemma factors_irred (p : polynomial α) : ∀x ∈ (p.factors), irreducible x := --The x argument should be implicit
+begin
+  intros x h,
+  rw [polynomial.factors] at h,
+  by_cases h1: p = 0,
+  {
+    simp * at *,
+  },
+  {
+    simp * at *,
+    exact ((some_spec $ some_spec $ polynomial_fac p).2 x h).1,
+  }
+end
+
+lemma factors_monic (p : polynomial α) : ∀x ∈ (p.factors), monic x :=
+begin
+  intros x h,
+  rw [polynomial.factors] at h,
+  by_cases h1: p = 0,
+  {
+    simp * at *,
+  },
+  {
+    simp * at *,
+    exact ((some_spec $ some_spec $ polynomial_fac p).2 x h).2,
+  }
+end
+
+lemma factors_eq (p : polynomial α) : p = C (p.c_fac) * p.factors.prod :=
+begin
+  by_cases h1: p = 0,
+  {
+    simp [polynomial.c_fac,*] at *,
+  },
+  {
+    simp [polynomial.c_fac, polynomial.factors, *] at *,
+    exact (some_spec (some_spec ( polynomial_fac p))).1,
+  }
+end
+
+@[simp] lemma c_fac_zero : (0 : polynomial α).c_fac = 0 :=
+begin
+  simp [polynomial.c_fac],
+end
+
+@[simp] lemma factors_zero : (0 : polynomial α).factors = 0 :=
+begin
+  simp [polynomial.factors],
+end
+
+
+lemma c_fac_ne_zero_of_ne_zero (f : polynomial α) (h : f ≠ 0) : f.c_fac ≠ 0 :=
+begin
+  by_contradiction h1,
+  simp at h1,
+  rw f.factors_eq at h,
+  simp * at *,
+end
 
  
 end field

@@ -39,62 +39,6 @@ variable {β : Type u}
 variables [field β]
 
 
-def polynomial.c_fac (p : polynomial β) : β := 
-if (p = 0) then 0 else some (polynomial_fac p)
-
-def polynomial.factors (p : polynomial β) : multiset (~β) :=
-if (p = 0) then 0 else classical.some (some_spec $ polynomial_fac p)
-
-lemma polynomial.factors_irred (p : polynomial β) : ∀x ∈ (p.factors), irreducible x := --The x argument should be implicit
-begin
-  intros x h,
-  rw [polynomial.factors] at h,
-  by_cases h1: p = 0,
-  {
-    simp * at *,
-  },
-  {
-    simp * at *,
-    exact ((some_spec $ some_spec $ polynomial_fac p).2 x h).1,
-  }
-end
-
-lemma polynomial.factors_monic (p : polynomial β) : ∀x ∈ (p.factors), monic x :=
-begin
-  intros x h,
-  rw [polynomial.factors] at h,
-  by_cases h1: p = 0,
-  {
-    simp * at *,
-  },
-  {
-    simp * at *,
-    exact ((some_spec $ some_spec $ polynomial_fac p).2 x h).2,
-  }
-end
-
-lemma polynomial.factors_eq (p : polynomial β) : p = C (p.c_fac) * p.factors.prod :=
-begin
-  by_cases h1: p = 0,
-  {
-    simp [polynomial.c_fac,*] at *,
-  },
-  {
-    simp [polynomial.c_fac, polynomial.factors, *] at *,
-    exact (some_spec (some_spec ( polynomial_fac p))).1,
-  }
-end
-
-@[simp] lemma c_fac_zero : (0 : polynomial β).c_fac = 0 :=
-begin
-  simp [polynomial.c_fac],
-end
-
-@[simp] lemma factors_zero : (0 : polynomial β).factors = 0 :=
-begin
-  simp [polynomial.factors],
-end
-
 open classical multiset
 section mason_stothers
 
@@ -102,13 +46,6 @@ section mason_stothers
 def rad (p : polynomial β) : polynomial β :=
 p.factors.erase_dup.prod
 
-lemma c_fac_ne_zero_of_ne_zero (f : polynomial β) (h : f ≠ 0) : f.c_fac ≠ 0 :=
-begin
-  by_contradiction h1,
-  simp at h1,
-  rw f.factors_eq at h,
-  simp * at *,
-end
 
 lemma rad_ne_zero {p : polynomial β} : rad p ≠ 0 :=
 begin
@@ -288,7 +225,7 @@ begin
   exact h,
 end
 
-
+--make private?
 lemma Mason_Stothers_lemma (f : polynomial β) :
   degree f ≤ degree (gcd f (derivative f )) + degree (rad f) := --I made degree radical from this one
 begin
