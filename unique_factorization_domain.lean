@@ -850,7 +850,7 @@ def quot : Type u := quotient (associated.setoid α)
 
 variables {α}
 
-@[reducible] def mk (a : α) : quot α := ⟦ a ⟧
+@[reducible] def mk (a : α) : quot α := ⟦ a ⟧ --important: Why did we define this? As we already have: ⟦ a ⟧?
 
 lemma mk_def {a : α} : mk a = ⟦a⟧ := rfl
 lemma mk_def' {a : α} : mk a = quot.mk setoid.r a := rfl
@@ -1459,6 +1459,7 @@ end
 
 --Think it should be le not subset
 --lemma prod_le_prod_of_subset {p q : multiset (quot α)} (h : p ⊆ q) : p.prod ≤ q.prod :=
+--Could we work with  lattice morphism?
 lemma prod_le_prod_of_le {p q : multiset (quot α)} (h : p ≤ q) : p.prod ≤ q.prod :=
 begin
   have h1 : p + (q - p) = q,
@@ -2468,6 +2469,9 @@ end
 section ufd
 variables [unique_factorization_domain α] {a b c : α}
 
+
+--Instead of writing inf everywhere, could we use the symbols for the meet and the join?
+--Or do we want to keep inf and sup because they generalize to sets?
 instance unique_factorization_domain.has_gcd : has_gcd α :=
 {
   gcd := assume a b : α, quot.out (inf (mk a) (mk b)),
