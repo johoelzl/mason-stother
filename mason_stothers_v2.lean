@@ -10,6 +10,7 @@ import data.finsupp
 import algebraically_closed_field
 import poly_over_UFD
 import poly_over_field
+import poly_derivative
 
 
 noncomputable theory

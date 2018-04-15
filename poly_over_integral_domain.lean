@@ -318,102 +318,6 @@ begin
   }
 end
 
-lemma derivative_apply {p : polynomial α} {n : ℕ} : derivative p n = (n + 1) * p (n + 1) :=
-calc derivative p n = ({n + 1} : finset ℕ).sum (λm, (nat.cases_on m 0 (λn, single n (p m * (↑n + 1))) : polynomial α) n) :
-  begin
-    rw [derivative, sum_apply],
-    apply finset.sum_bij_ne_zero (λx _ _, x),
-    { intro m, cases m,
-      { dsimp, simp },
-      { by_cases m = n,
-        { dsimp, simp [single_apply, h] },
-        { dsimp, simp [single_apply, h] } } },
-    { intros m hm, exact id },
-    { intros a₁ a₂ _ _ _ _, exact id },
-    { dsimp, simp,
-      intro h,
-      refine ⟨n + 1, _, _, _⟩, 
-      { change (single n (p (n + 1) * (n + 1)) n ≠ 0) at h,
-        simp [mul_eq_zero, not_or_distrib] at h,
-        exact h.left },
-      { assumption },
-      { refl } },
-    { dsimp, simp }
-  end
-  ... = _ :
-  begin
-    simp,
-    change single n (p (n + 1) * (n + 1)) n = (1 + n) * p (n + 1),
-    simp [mul_comm]
-  end
-
---Problem with decidability propagated
-lemma derivative_degree_sub_one_eq_degree_mul_leading_coeff {p : polynomial α} :
-  derivative p (degree p - 1) = degree p * (leading_coeff p) :=
-begin
-  rw [leading_coeff],
-  cases h : degree p,
-  { 
-    have : is_constant p, 
-    { rwa [is_constant_iff_degree_eq_zero] },
-    rcases this with ⟨a, ha⟩,
-    rw [ha, derivative_C],
-    simp
-  },
-  {  exact derivative_apply}
-end
-
-lemma derivative_eq_zero_of_is_constant {p : polynomial α} : (is_constant p) → (derivative p = 0) :=
-begin
-  intro h1,
-  rw [is_constant] at h1,
-  rcases h1 with ⟨c, h2⟩,
-  simp [h2],
-end
-
---We need characteristic_zero for derivative_eq_zero -> is_constant
-lemma derivative_eq_zero_iff_is_constant {p : polynomial α} (h : characteristic_zero α) :
-  (derivative p = 0) ↔ (is_constant p) :=
-begin
-  constructor,
-  {
-    by_cases h1 : (p = 0),
-    {
-      intro h2,
-      simp *,
-    },
-    {
-      rw ←not_imp_not,
-      intros h2,
-      rw is_constant_iff_degree_eq_zero at h2,
-      have h3 : degree p ∈ support p,
-        from degree_mem_support_of_ne_zero h1,
-      rw mem_support_iff at h3,
-      have h4 : (derivative p) ((degree p)-1) = (degree p * (leading_coeff p)),
-        from derivative_degree_sub_one_eq_degree_mul_leading_coeff,
-      have h5 : (derivative p) (degree p - 1) ≠ 0,
-      {
-        rw h4,
-        apply mul_ne_zero,
-        apply h,
-        exact h2,
-        have h5 : leading_coeff p ≠ 0,
-        {
-          rw [←leading_coef_eq_zero_iff_eq_zero] at h1,
-          exact h1,
-        },
-        exact h5,
-      },
-      by_contradiction h6,
-      rw [h6, zero_apply] at h5,
-      contradiction
-    }
-  },
-  {
-    exact derivative_eq_zero_of_is_constant
-  }
-end
-
 --naming?
 lemma is_constant_add {a b c : polynomial α} (h1 : is_constant a) (h2 : is_constant b) (h_add : a + b = c): is_constant c :=
 begin
@@ -424,16 +328,6 @@ begin
   exact nat.eq_zero_of_le_zero h3,
 end
 
---Why placed here?
-lemma degree_derivative_le {p : polynomial α} : degree (derivative p) ≤ degree p - 1 :=
-degree_le $ assume m hm,
-  have degree p < m + 1,
-    from calc degree p ≤ (degree p - 1) + 1 : nat.le_sub_add (degree p) 1
-      ... ≤ m : hm
-      ... < m + 1 : nat.lt_succ_self _,
-  have p (m + 1) = 0,
-    from eq_zero_of_gt_degree this,
-  by rw [derivative_apply, this, mul_zero]
 
 
 lemma degree_eq_zero_of_is_unit [integral_domain α]{p : polynomial α}(h : is_unit p) : degree p = 0 :=
