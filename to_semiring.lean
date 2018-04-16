@@ -4,13 +4,8 @@ import .to_finset
 import .to_multiset
 
 
-
-noncomputable theory
-
 local infix ^ := monoid.pow
 
-open classical
-local attribute [instance] prop_decidable
 
 universe u
 variable {α : Type u}

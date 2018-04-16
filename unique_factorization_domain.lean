@@ -69,7 +69,7 @@ instance discrete_field.to_integral_domain [s : discrete_field α] : integral_do
 
 
 
-namespace associated 
+namespace associated
 local attribute [instance] setoid
 -- Can we Prove the existence of a gcd here? Problem is has_dvd, why is it not defined here??
 --If we can show the existence of a gcd here, we can reuse some lemmas
@@ -552,19 +552,7 @@ end
 
 open lattice
 
-/-
-instance : semilattice_inf_top (quot α) := --We need bot aswell
-{ inf := inf,
-  inf_le_left := assume a b, inf_le_left,
-  inf_le_right := assume a b, inf_le_right,
-  le_inf := assume a b c, le_inf,
-  top := 0,
-  le_top := assume a, zero_is_top _,
-  .. associated.partial_order }
--/
-
-
-instance : bounded_lattice (quot α) := --We need bot aswell
+instance : bounded_lattice (quot α) :=
 { inf := inf,
   inf_le_left := assume a b, inf_le_left,
   inf_le_right := assume a b, inf_le_right,
@@ -580,25 +568,13 @@ instance : bounded_lattice (quot α) := --We need bot aswell
 
   .. associated.partial_order }
 
-lemma sup_def {a b : quot α} : a ⊔ b =
-if a = 0 then 0 else if b = 0 then 0 else (to_multiset a ∪ to_multiset b).prod:=
+lemma sup_def {a b : quot α} :
+  a ⊔ b = if a = 0 then 0 else if b = 0 then 0 else (to_multiset a ∪ to_multiset b).prod :=
 rfl
 
-lemma inf_def {a b : quot α} : a ⊓ b = if a = 0 then b else if b = 0 then a else (to_multiset a ∩ to_multiset b).prod :=
+lemma inf_def {a b : quot α} :
+  a ⊓ b = if a = 0 then b else if b = 0 then a else (to_multiset a ∩ to_multiset b).prod :=
 rfl
-
-instance : semilattice_inf_bot (quot α) := --We need bot aswell
-{ inf := inf,
-  inf_le_left := assume a b, inf_le_left,
-  inf_le_right := assume a b, inf_le_right,
-  le_inf := assume a b c, le_inf,
-  bot := 1,
-  bot_le := one_le,
-  .. associated.partial_order }
-
-
-
-
 
 
 
@@ -671,24 +647,7 @@ begin
 end
 
 lemma inf_assoc {a b c : quot α} : a ⊓ b ⊓ c = a ⊓ (b ⊓ c) :=
-begin
-  have h1 : a ⊓ b ⊓ c ≤ a ⊓ b,
-  from inf_le_left,
-  have h2 : a ⊓ (b ⊓ c) ≤ (b ⊓ c),
-  from inf_le_right,
-  apply le_antisymm,
-  {
-    apply le_inf,
-      exact le_trans h1 inf_le_left,
-      exact le_inf (le_trans h1 inf_le_right) (inf_le_right),
-  },
-  {
-    apply le_inf,
-      exact le_inf (inf_le_left) (le_trans h2 inf_le_left),
-      exact le_trans h2 inf_le_right,
-  }
-end
-
+lattice.inf_assoc
 
 --We need to prove the following
 lemma mul_inf_eq_inf_of_inf_eq_one {a b c : quot α} (h : c ⊓ b = 1) : (c * a) ⊓ b = a ⊓ b :=

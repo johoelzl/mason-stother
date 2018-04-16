@@ -3,7 +3,7 @@
 
 --Defining the gcd
 import poly
---import euclidean_domain 
+--import euclidean_domain
 --Need to fix an admit in UFD, for the ...multiset lemma
 import unique_factorization_domain
 import data.finsupp
@@ -65,7 +65,7 @@ end
 --naming --Where do we use this?
 lemma degree_rad_eq_sum_support_degree {f : polynomial β} :
   degree (rad f) = sum (map degree f.factors.erase_dup) :=
-begin 
+begin
   rw rad,
   have h1 : finset.prod (to_finset (polynomial.factors f)) id ≠ 0,
     {
@@ -79,7 +79,7 @@ begin
       exact and.elim_left this,
     },
   rw ←to_finset_val f.factors,
-  exact calc degree (prod ((to_finset (polynomial.factors f)).val)) = 
+  exact calc degree (prod ((to_finset (polynomial.factors f)).val)) =
     degree (prod (map id (to_finset (polynomial.factors f)).val)) : by rw map_id_eq
     ... = sum (map degree ((to_finset (polynomial.factors f)).val)) : degree_prod_eq_sum_degree_of_prod_ne_zero h1,
 end
@@ -105,7 +105,7 @@ begin
 end
 
 
-lemma degree_factors_prod_eq_degree_factors_sub_erase_dup_add_degree_rad {f : polynomial β} : 
+lemma degree_factors_prod_eq_degree_factors_sub_erase_dup_add_degree_rad {f : polynomial β} :
   degree (f.factors.prod) = degree ((f.factors)-(f.factors.erase_dup)).prod + degree (rad f) :=
 begin
   rw [← sub_erase_dup_add_erase_dup_eq f.factors] {occs := occurrences.pos [1]},
@@ -130,7 +130,7 @@ end
 
 open polynomial --Why here?
 
-private lemma Mason_Stothers_lemma_aux_1 (f : polynomial β): 
+private lemma Mason_Stothers_lemma_aux_1 (f : polynomial β):
   ∀x ∈ f.factors, x^(count x f.factors - 1) ∣ d[f.factors.prod] :=
 begin
   rw [derivative_prod_multiset],
@@ -189,13 +189,13 @@ begin
   }
 end
 
-private lemma Mason_Stothers_lemma_aux_2 (f : polynomial β) (h_dvd : ∀x ∈ f.factors, x^(count x f.factors - 1) ∣ gcd f d[f]): 
+private lemma Mason_Stothers_lemma_aux_2 (f : polynomial β) (h_dvd : ∀x ∈ f.factors, x^(count x f.factors - 1) ∣ gcd f d[f]):
   (f.factors - f.factors.erase_dup).prod ∣ gcd f d[f] :=
 begin
   apply facs_to_pow_prod_dvd_multiset,
   intros x h,
   have h1 : x ∈ f.factors,
-    from mem_factors_of_mem_factors_sub_factors_erase_dup f x h,  
+    from mem_factors_of_mem_factors_sub_factors_erase_dup f x h,
   split,
   {
     exact f.factors_irred x h1,
@@ -212,7 +212,7 @@ begin
     have h3: monic x,
       from f.factors_monic x h1,
     have h4: monic y,
-      from f.factors_monic y this,   
+      from f.factors_monic y this,
     rw associated_iff_eq_of_monic_of_monic h3 h4,
     exact h2,
   }
@@ -271,12 +271,12 @@ begin
     rw h2,
     apply add_le_add_right,
     exact h1,
-  }  
+  }
 end
 
 
 lemma Mason_Stothers_lemma'
-(f : polynomial β) : degree f - degree (gcd f (derivative f )) ≤  degree (rad f) := 
+(f : polynomial β) : degree f - degree (gcd f (derivative f )) ≤  degree (rad f) :=
 begin
   have h1 : degree f - degree (gcd f (derivative f )) ≤ degree (gcd f (derivative f )) + degree (rad f) - degree (gcd f (derivative f )),
   {
@@ -325,10 +325,10 @@ end
 
 --In MS detailed I call this zero wronskian
 lemma derivative_eq_zero_and_derivative_eq_zero_of_coprime_of_wron_eq_zero
-{a b : polynomial β} 
+{a b : polynomial β}
 (h1 : coprime a b)
 (h2 : d[a] * b - a * d[b] = 0)
-: d[a] = 0 ∧  d[b] = 0 := 
+: d[a] = 0 ∧  d[b] = 0 :=
 begin
   have h3 : d[a] * b = a * d[b],
   {
@@ -474,51 +474,39 @@ end
 --a and b can be implicit
 lemma factors_inter_factors_eq_zero_of_coprime (a b : polynomial β) (h : coprime a b) : a.factors ∩ b.factors = 0 :=
 begin
-  by_cases ha: a = 0,
-  {
-    subst ha,
-    simp,
-  },
-  {
-    by_cases hb: b = 0,
-    {
-      subst hb,
-      simp,
-    },
-    { --I already have a similar lemma for coprime
-      rw [coprime_iff_mk_inf_mk_eq_one, a.factors_eq, b.factors_eq, mul_mk, mul_mk] at h, --we go to the quotient structure with respect to units.
-      rw inf_mul_eq_one_iff_inf_eq_one_and_inf_eq_one at h, --We probably can do without going to the quotient, because we have the lemmas for coprime
-      let h1 := h.2,    
-      rw mul_inf_eq_one_iff_inf_eq_one_and_inf_eq_one at h1,
-      let h2 := h1.2,
-      rw [mk_def, mk_def, ←prod_mk, ←prod_mk] at h2,
-      rw prod_inf_prod_eq_one_iff_forall_forall_inf_eq_one at h2,
+  by_cases ha: a = 0, { subst ha, simp, },
+  by_cases hb: b = 0, { subst hb, simp, },
+  --I already have a similar lemma for coprime
+  rw [coprime_iff_mk_inf_mk_eq_one, a.factors_eq, b.factors_eq, mul_mk, mul_mk] at h, --we go to the quotient structure with respect to units.
+  rw inf_mul_eq_one_iff_inf_eq_one_and_inf_eq_one at h, --We probably can do without going to the quotient, because we have the lemmas for coprime
+  let h1 := h.2,
+  rw mul_inf_eq_one_iff_inf_eq_one_and_inf_eq_one at h1,
+  let h2 := h1.2,
+  rw [mk_def, mk_def, ←prod_mk, ←prod_mk] at h2,
+  rw prod_inf_prod_eq_one_iff_forall_forall_inf_eq_one at h2,
 
-      rw [inter_eq_zero_iff_disjoint, disjoint_iff_ne],
+  rw [inter_eq_zero_iff_disjoint, disjoint_iff_ne],
+  {
+    intros x hx y hy,
+    have h3 : mk x ⊓ mk y = 1,
+    {
+      apply h2,
       {
-        intros x hx y hy,
-        have h3 : mk x ⊓ mk y = 1,
-        {
-          apply h2,
-          {
-            rw mem_map,
-            exact ⟨x, hx, rfl⟩,
-          },
-          {
-            rw mem_map,
-            exact ⟨y, hy, rfl⟩,            
-          },
-        },
-        rw [←coprime_iff_mk_inf_mk_eq_one, coprime_iff_not_associated_of_irreducible_of_irreducible] at h3,
-        rw [associated_iff_eq_of_monic_of_monic] at h3,
-        exact h3,
-        exact a.factors_monic x hx,
-        exact b.factors_monic y hy,
-        exact a.factors_irred x hx,
-        exact b.factors_irred y hy,
-      }
-    }
-  }
+        rw mem_map,
+        exact ⟨x, hx, rfl⟩,
+      },
+      {
+        rw mem_map,
+        exact ⟨y, hy, rfl⟩,
+      },
+    },
+    rw [←coprime_iff_mk_inf_mk_eq_one, coprime_iff_not_associated_of_irreducible_of_irreducible] at h3,
+    rw [associated_iff_eq_of_monic_of_monic] at h3,
+    exact h3,
+    exact a.factors_monic x hx,
+    exact b.factors_monic y hy,
+    exact a.factors_irred x hx,
+    exact b.factors_irred y hy, }
 end
 
 open associated
@@ -547,10 +535,10 @@ end
 private lemma C_inv_c_fac_mul_eq_prod_factors {a : polynomial β} (ha : a ≠ 0): (C a.c_fac⁻¹) * a = a.factors.prod :=
 begin
   have h1 : a = (C a.c_fac) * a.factors.prod,
-    from a.factors_eq,    
+    from a.factors_eq,
   rw [ne.def, ←c_fac_eq_zero_iff_eq_zero] at ha,
   exact calc (C a.c_fac⁻¹) * a = (C a.c_fac⁻¹) * (C (c_fac a) * prod (factors a)) : by rw [←h1]
-      ... = _ : by rw [←mul_assoc, ←C_mul_C, inv_mul_cancel ha, C_1, one_mul], 
+      ... = _ : by rw [←mul_assoc, ←C_mul_C, inv_mul_cancel ha, C_1, one_mul],
 end
 
 lemma factors_eq_map_monic_out_to_multiset_mk (a : polynomial β) : a.factors = map monic_out (associated.to_multiset (associated.mk a)) :=
@@ -595,14 +583,14 @@ begin
       rwa [ne.def, mk_eq_zero_iff_eq_zero],
       {
         rw c_fac_eq_leading_coeff,
-        exact leading_coeff_inv_mul_monic_of_ne_zero ha,          
+        exact leading_coeff_inv_mul_monic_of_ne_zero ha,
       },
       {
         apply monic_monic_out_of_ne_zero,
         rw [to_multiset_prod_eq],--Wrong naminG!!
         rw ←mk_eq_zero_iff_eq_zero at ha, --Duplicate
         exact ha,
-        rw ←mk_eq_zero_iff_eq_zero at ha,         
+        rw ←mk_eq_zero_iff_eq_zero at ha,
         exact ha,
       }
     },
@@ -656,7 +644,7 @@ begin
   simp only [rad],
   rw prod_mul_prod_eq_add_prod,
   apply congr_arg,
-  
+
   rw factors_mul_eq_factors_add_factors ha hb, --Might be good to go to nodup
   rw multiset.ext,
   intros x,
@@ -704,7 +692,7 @@ begin
         rwa count_eq_zero,
       },
       rw count_add,
-      simp * at *,      
+      simp * at *,
     }
   },
   {
@@ -716,12 +704,12 @@ begin
     have h3 : count x (erase_dup (factors a)) = 0,
     {
       rw [count_eq_zero, mem_erase_dup],
-      exact h1.1,  
+      exact h1.1,
     },
     have h4 : count x (erase_dup (factors b)) = 0,
     {
       rw [count_eq_zero, mem_erase_dup],
-      exact h1.2,        
+      exact h1.2,
     },
     simp * at *,
   },
@@ -746,7 +734,7 @@ begin
     apply multiset.prod_ne_zero_of_forall_mem_ne_zero,
     intros x h,
     rw mem_erase_dup at h,
-    exact (b.factors_irred _ h).1 --Anoying setup for factors_irred    
+    exact (b.factors_irred _ h).1 --Anoying setup for factors_irred
   },
 end
 
@@ -825,7 +813,7 @@ begin
   rw h5 at h4,
   have : degree a = 0,
   from nat.eq_zero_of_le_zero h4,
-  contradiction,     
+  contradiction,
 end
 
 lemma MS_aux_1 {a b c : polynomial β} (h_char : characteristic_zero β) (h_add : a + b = c)
@@ -895,7 +883,7 @@ begin
     rcases (exists_mem_of_ne_zero h2) with ⟨x, hx⟩,
     have h2 : x ∣ C c, --The part below could be a separate lemma
     {
-      exact dvd_of_mem_factors (C c) x hx,   
+      exact dvd_of_mem_factors (C c) x hx,
     },
     have h3: irreducible x,
       from (C c).factors_irred x hx,
@@ -906,7 +894,7 @@ begin
     have h6 : is_constant (C c),
       {simp},
     rw is_constant_iff_eq_zero_or_is_unit at h6,
-    simp * at *, 
+    simp * at *,
   }
 end
 
@@ -935,13 +923,13 @@ begin
   rw rad,
   apply prod_dvd_prod_of_le,
   exact erase_dup_le _,
-end 
+end
 
 lemma rad_dvd (a : polynomial β) : (rad a) ∣ a :=
 begin
   rw [a.factors_eq] {occs := occurrences.pos [2]},
   apply dvd_mul_of_dvd_right,
-  exact rad_dvd_prod_factors _,  
+  exact rad_dvd_prod_factors _,
 end
 
 lemma degree_rad_le (a : polynomial β) : degree (rad a) ≤ degree a :=
@@ -1056,13 +1044,13 @@ begin
         have : degree a = 0,
         from nat.eq_zero_of_le_zero h4,
         contradiction,
-      }, 
+      },
       rw [is_constant_iff_degree_eq_zero] at h3,
       have h4 : 1 ≤ (degree c - degree (gcd c d[c])),
       from MS_aux_1a h3 h_char,
       apply nat.le_trans h4,
       simp,
-      exact nat.zero_le _,   
+      exact nat.zero_le _,
     }
   },
   {
@@ -1078,7 +1066,7 @@ begin
       from MS_aux_1a h3 h_char,
       apply nat.le_trans h4,
       simp,
-      exact nat.zero_le _,   
+      exact nat.zero_le _,
     },
     {
       have : degree a ≠ 0,
@@ -1100,7 +1088,7 @@ begin
   }
 end
 
-private lemma rw_aux_1a [field β] 
+private lemma rw_aux_1a [field β]
   (a b c : polynomial β)
   (h_add : a + b = c)
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)) :
@@ -1116,7 +1104,7 @@ begin
     cases h_constant,
     {
       rw is_constant_iff_degree_eq_zero at h_constant,
-      simp *,      
+      simp *,
     },
     {
       rw is_constant_iff_degree_eq_zero at h_constant,
@@ -1143,13 +1131,13 @@ begin
           simp * at *,
           exact nat.not_succ_le_zero _ this,
         },
-        simp *,        
+        simp *,
       }
     }
   }
 end
 
-private lemma rw_aux_1b [field β] 
+private lemma rw_aux_1b [field β]
   (a b c : polynomial β)
   (h_add : a + b = c)
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)) :
@@ -1179,7 +1167,7 @@ lemma rw_aux_1 [field β]
   --(h_coprime_bc : coprime b c)
   --(h_coprime_ca : coprime c a)
   (h_add : a + b = c)
-  (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)) 
+  (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c))
   (h_deg_add_le : degree (gcd a d[a]) + degree (gcd b d[b]) + degree (gcd c d[c]) ≤ degree a + degree b - 1) :
   degree c ≤
     (degree a - degree (gcd a d[a])) +
@@ -1197,7 +1185,7 @@ have (degree c : ℤ) ≤
     ((degree c : ℤ) - (degree (gcd c d[c]) : ℤ)) - 1,
   from calc (degree c : ℤ) ≤
     ((degree c : ℤ) + ((degree a : ℤ) + (degree b : ℤ) - 1)) -
-      ((degree (gcd a d[a]) : ℤ) + (degree (gcd b d[b]) : ℤ) + (degree (gcd c d[c]) : ℤ)) : 
+      ((degree (gcd a d[a]) : ℤ) + (degree (gcd b d[b]) : ℤ) + (degree (gcd c d[c]) : ℤ)) :
       le_sub_iff_add_le.mpr $ add_le_add_left this _
     ... = _ : by simp,
 have 1 + (degree c : ℤ) ≤
@@ -1214,7 +1202,7 @@ lemma Mason_Stothers_lemma
 (f : polynomial β) : degree f ≤ degree (gcd f (derivative f )) + degree (rad f) -/
 /-
 lemma Mason_Stothers_lemma'
-(f : polynomial β) : degree f - degree (gcd f (derivative f )) ≤  degree (rad f) := 
+(f : polynomial β) : degree f - degree (gcd f (derivative f )) ≤  degree (rad f) :=
  -/
  /-
 --We will need extra conditions here
@@ -1247,10 +1235,10 @@ begin
     from h_rad_add ha hb hc h_coprime_ab h_coprime_bc h_coprime_ca,
   refine nat.le_trans _ h_rad,
   apply nat.add_mono _ (Mason_Stothers_lemma' c),
-  apply nat.add_mono (Mason_Stothers_lemma' a) (Mason_Stothers_lemma' b), 
+  apply nat.add_mono (Mason_Stothers_lemma' a) (Mason_Stothers_lemma' b),
 end
 
-private lemma h_dvd_wron_a 
+private lemma h_dvd_wron_a
 (a b c : polynomial β): gcd a d[a] ∣ d[a] * b - a * d[b] :=
  begin
   have h1 : gcd a d[a] ∣ d[a] * b,
@@ -1268,7 +1256,7 @@ private lemma h_dvd_wron_a
   exact dvd_sub h1 h2,
 end
 
-private lemma h_dvd_wron_b 
+private lemma h_dvd_wron_b
 (a b c : polynomial β): gcd b d[b] ∣ d[a] * b - a * d[b] :=
 begin
   have h1 : gcd b d[b] ∣ d[a] * b,
@@ -1285,8 +1273,8 @@ begin
   },
   exact dvd_sub h1 h2,
 end
-  
-private lemma h_dvd_wron_c 
+
+private lemma h_dvd_wron_c
 (a b c : polynomial β)
 (h_wron : d[a] * b - a * d[b] = d[a] * c - a * d[c])
 : gcd c d[c] ∣ d[a] * b - a * d[b] :=
@@ -1310,11 +1298,11 @@ end
 
 
 
-private lemma one_le_of_ne_zero {n : ℕ } (h : n ≠ 0) : 1 ≤ n := 
+private lemma one_le_of_ne_zero {n : ℕ } (h : n ≠ 0) : 1 ≤ n :=
 begin
   let m := some (nat.exists_eq_succ_of_ne_zero h),
   have h1 : n = nat.succ m,
-  from some_spec (nat.exists_eq_succ_of_ne_zero h), 
+  from some_spec (nat.exists_eq_succ_of_ne_zero h),
   rw [h1, nat.succ_le_succ_iff],
   exact nat.zero_le _,
 end
@@ -1347,7 +1335,7 @@ begin
           from derivative_eq_zero_of_is_constant h2,
           have h6 : derivative b = 0,
           from derivative_eq_zero_of_is_constant h4,
-          simp *,          
+          simp *,
         },
         {
           have h2a : degree a = 0,
@@ -1406,7 +1394,7 @@ begin
             rw [nat.add_sub_assoc],
             apply add_le_add_left,
             exact degree_derivative_le,
-            exact polynomial.one_le_of_ne_zero h4,        
+            exact polynomial.one_le_of_ne_zero h4,
           },
           exact max_le h5 h6,
         }
@@ -1425,7 +1413,7 @@ begin
     {
       apply nat.le_trans degree_mul,
       simp [degree_derivative_le, *],
-    } 
+    }
   },
   {
     by_cases h4 : (degree b = 0), --This case distinction shouldnn't be needed
@@ -1446,20 +1434,20 @@ begin
       {
         apply nat.le_trans degree_mul,
         rw [nat.add_sub_assoc (polynomial.one_le_of_ne_zero h4)],
-        apply add_le_add_left degree_derivative_le,  
+        apply add_le_add_left degree_derivative_le,
       },
       exact max_le h5 h6,
-    }     
+    }
   }
 end
 
 
-private lemma h_wron_ne_zero 
-  (a b c : polynomial β)   
+private lemma h_wron_ne_zero
+  (a b c : polynomial β)
   (h_coprime_ab : coprime a b)
   (h_coprime_ca : coprime c a)
   (h_der_not_all_zero : ¬(d[a] = 0 ∧ d[b] = 0 ∧ d[c] = 0))
-  (h_wron : d[a] * b - a * d[b] = d[a] * c - a * d[c]): 
+  (h_wron : d[a] * b - a * d[b] = d[a] * c - a * d[c]):
   d[a] * b - a * d[b] ≠ 0 :=
 begin
   by_contradiction h1,
@@ -1472,10 +1460,10 @@ begin
   from derivative_eq_zero_and_derivative_eq_zero_of_coprime_of_wron_eq_zero (h_coprime_ca.symm) h2,
   have h3 : (d[a] = 0 ∧ d[b] = 0 ∧ d[c] = 0),
   exact ⟨and.elim_left h_a_b, and.elim_right h_a_b, and.elim_right h_a_c⟩,
-  contradiction    
+  contradiction
 end
 
-private lemma h_deg_add 
+private lemma h_deg_add
   (a b c : polynomial β)
   (h_wron_ne_zero : d[a] * b - a * d[b] ≠ 0)
   (h_gcds_dvd : (gcd a d[a]) * (gcd b d[b]) * (gcd c d[c]) ∣ d[a] * b - a * d[b]):
@@ -1492,7 +1480,7 @@ begin
   rw [h2, h4],
 end
 
-private lemma h_wron 
+private lemma h_wron
 (a b c : polynomial β)
 (h_add : a + b = c)
 (h_der : d[a] + d[b] = d[c])
@@ -1514,7 +1502,7 @@ begin
 end
 
 
-private lemma h_gcds_dvd 
+private lemma h_gcds_dvd
 (a b c : polynomial β)
 (h_coprime_ab : coprime a b)
 (h_coprime_bc : coprime b c)
@@ -1523,7 +1511,7 @@ private lemma h_gcds_dvd
 (h_dvd_wron_b : gcd b d[b] ∣ d[a] * b - a * d[b])
 (h_dvd_wron_c : gcd c d[c] ∣ d[a] * b - a * d[b]):
   (gcd a d[a]) * (gcd b d[b]) * (gcd c d[c]) ∣ d[a] * b - a * d[b] :=
-begin 
+begin
   apply mul_dvd_of_dvd_of_dvd_of_coprime,
   apply coprime_mul_of_coprime_of_coprime_of_coprime,
   exact coprime_gcd_derivative_gcd_derivative_of_coprime (h_coprime_ca.symm) _ _,
@@ -1535,7 +1523,7 @@ begin
   exact h_dvd_wron_c
 end
 
-private lemma degree_rad_pos  
+private lemma degree_rad_pos
 (a b c : polynomial β)
 (ha : a ≠ 0)
 (hb : b ≠ 0)
@@ -1584,7 +1572,7 @@ begin
   have h_dvd_wron_a : gcd a d[a] ∣ d[a] * b - a * d[b],
     from h_dvd_wron_a a b c,
   have h_dvd_wron_b : gcd b d[b] ∣ d[a] * b - a * d[b],
-    from h_dvd_wron_b a b c,   
+    from h_dvd_wron_b a b c,
   have h_dvd_wron_c : gcd c d[c] ∣ d[a] * b - a * d[b],
     from h_dvd_wron_c a b c h_wron,
   have h_gcds_dvd : (gcd a d[a]) * (gcd b d[b]) * (gcd c d[c]) ∣ d[a] * b - a * d[b],
@@ -1626,7 +1614,7 @@ begin
     simp,
   },
   simp * at *,
-end 
+end
 
 --place in to_multiset
 --private?
@@ -1648,7 +1636,7 @@ begin
     },
     {
       intro h1,
-      simp * at *,  
+      simp * at *,
     },
   }
 end
@@ -1713,7 +1701,7 @@ end
 
 private lemma neg_ne_zero_iff_ne_zero {a : polynomial β} : -a ≠ 0 ↔ a ≠ 0 :=
   not_iff_not_of_iff neg_eq_zero_iff_eq_zero
-  
+
 local attribute [simp] is_constant_neg_iff_is_constant
 
 theorem Mason_Stothers_case_c [field β]
@@ -1733,13 +1721,13 @@ theorem Mason_Stothers_case_c [field β]
     {
       have h_add : a + b = - c,
       {
-        exact calc a + b = a + b + (c - c) : by simp 
+        exact calc a + b = a + b + (c - c) : by simp
           ... = a + b + c - c : by simp
           ... = 0 - c : by rw [h_add]
           ... = _ : by simp,
       },
       rw ←(is_constant_neg_iff_is_constant c) at h_constant, --The argument should not have been implicit
-      apply Mason_Stothers_special h_char _ _ _ ha hb _ h_coprime_ab _ _ h_add h_constant,--We need relPrime.symm in general 
+      apply Mason_Stothers_special h_char _ _ _ ha hb _ h_coprime_ab _ _ h_add h_constant,--We need relPrime.symm in general
       {
         simp [neg_ne_zero_iff_ne_zero, *],
       },
@@ -1770,7 +1758,13 @@ theorem Mason_Stothers_case_a [field β]
   (h_coprime_ca : coprime c a)
   (h_add : a + b + c = 0)
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)):
-  degree a < degree ( rad (a*b*c)) :=
+  degree a < degree (rad (a*b*c)) :=
+/-
+suffices degree a < degree (rad (c*b*a)),
+  from Mason_Stothers_case_c h_char c b a hc hb ha _ _ _ _ _,
+_
+-/
+
   begin
     have h_a : degree (-a) < degree ( rad (b*c*(-a))),
     {
@@ -1780,7 +1774,7 @@ theorem Mason_Stothers_case_a [field β]
       },
       have h_add_2 : b + c = - a,
       {
-        exact calc b + c = b + c + (a - a) : by simp 
+        exact calc b + c = b + c + (a - a) : by simp
           ... = b + c + a - a : by simp
           ... = 0 - a : by rw [h_add_1]
           ... = _ : by simp,
@@ -1803,7 +1797,7 @@ theorem Mason_Stothers_case_a [field β]
     {
       simp,
       exact calc b * c * a = b * (a * c) : by rw [mul_assoc, mul_comm c a]
-        ... = _ : by rw [←mul_assoc, mul_comm b a],      
+        ... = _ : by rw [←mul_assoc, mul_comm b a],
     },
     rw [degree_neg, h_neg_abc, rad_neg_eq_rad] at h_a,
     exact h_a,
@@ -1830,7 +1824,7 @@ theorem Mason_Stothers_case_b [field β]
       },
       have h_add_2 : a + c = - b,
       {
-        exact calc a + c = a + c + (b - b) : by simp 
+        exact calc a + c = a + c + (b - b) : by simp
           ... = a + c + b - b : by simp
           ... = 0 - b : by rw [h_add_1]
           ... = _ : by simp,
@@ -1846,12 +1840,12 @@ theorem Mason_Stothers_case_b [field β]
       {
         simp [h_coprime_ab.symm, *],
       }
-    },    
+    },
     have h_neg_abc: a * c * -b = - (a * b * c),
     {
       simp,
       exact calc a * c * b = a * (b * c) : by rw [mul_assoc, mul_comm c b]
-        ... = _ : by rw [←mul_assoc],      
+        ... = _ : by rw [←mul_assoc],
     },
     rw [degree_neg, h_neg_abc, rad_neg_eq_rad] at h_b,
     exact h_b,
@@ -1870,7 +1864,7 @@ theorem Mason_Stothers [field β]
   (h_constant : ¬(is_constant a ∧ is_constant b ∧ is_constant c)):
   max (degree a) (max (degree b) (degree c)) < degree ( rad (a*b*c)) :=
 begin
-  have h_a: degree a < degree ( rad (a*b*c)), 
+  have h_a: degree a < degree ( rad (a*b*c)),
     from Mason_Stothers_case_a h_char a b c ha hb hc h_coprime_ab h_coprime_bc h_coprime_ca h_add h_constant,
   have h_b: degree b < degree ( rad (a*b*c)),
     from Mason_Stothers_case_b h_char a b c ha hb hc h_coprime_ab h_coprime_bc h_coprime_ca h_add h_constant,

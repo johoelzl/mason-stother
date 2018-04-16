@@ -1,4 +1,5 @@
 
+
 #exit
 
 -- so every polynomial has a GCD? Shouldn't there be some restriction on α

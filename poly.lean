@@ -57,18 +57,14 @@ lemma C_apply {c : α } {n : ℕ}: ((C c) : ℕ → α) n = (if 0 = n then c els
 lemma C_eq_zero_iff_eq_zero (c : α) : C c = 0 ↔ c = 0 :=
 begin
   split,
-  {
-    intro h,
+  { intro h,
     have : ((C c) : ℕ → α) 0 = (0 : polynomial α) 0,
       { rw h},
     rw [C_apply, if_pos] at this,
-    simp *,
-  },
-  {
-    intro h,
-    simp *,
-  }
-end 
+    simp * },
+  { intro h,
+    simp * }
+end
 
 lemma C_add_C (a b : α) : C a + C b = C (a + b) :=
 begin
@@ -84,7 +80,7 @@ def is_constant (p : polynomial α) : Prop := ∃ c : α, p = C c
 
 --naming?
 lemma eq_zero_iff_embed_eq_zero {f : α} : f = 0 ↔ (↑f : polynomial α) = 0 :=
-begin 
+begin
   rw embedding,
   constructor, --Do we prefer constructor or split?
   {
@@ -111,7 +107,7 @@ lemma single_eq_X_pow : ∀{n:ℕ}, single n a = C a * X ^ n
     ... = C a * X ^ (n + 1) : by rw [@single_eq_X_pow n]; simp [pow_add, pow_one, mul_assoc]
 
 lemma X_pow_eq_single {n:ℕ} : (X ^ (n) : polynomial α) = single n 1 :=
-begin  
+begin
   calc (X ^ n : polynomial α) = C 1 * X ^ n : by simp [C_apply]
   ... = single n 1 : eq.symm single_eq_X_pow,
 end
@@ -122,7 +118,7 @@ by rw [X_pow_eq_single, single_apply]
 --naming?
 lemma sum_const_mul_pow_X  {f : polynomial α} : finsupp.sum f (λ n a, C a * X ^ n) = f :=
 begin
-  have h1: f.sum single = f, 
+  have h1: f.sum single = f,
     from sum_single,
   simp [finsupp.sum] at h1,
   have h2 : finset.sum (support f) (λ (a : ℕ), single a (f a)) =  sum f (λ (n : ℕ) (a : α), C a * X ^ n),
@@ -195,7 +191,7 @@ def monic (p : polynomial α):= leading_coeff p = 1
 lemma ext : ∀{f g : polynomial α}, (∀a, f a = g a) → f = g:= @finsupp.ext _ _ _
 
 lemma exists_coeff_ne_zero_of_ne_zero {f : polynomial α}: f ≠ 0 → ∃m, f m ≠ 0:=
-assume h, 
+assume h,
   have ¬(∀k, f k = (0 : polynomial α) k),
     from (iff.elim_right not_imp_not ext) h,
   classical.not_forall.1 this
@@ -205,7 +201,7 @@ show id n ≤ degree p, from finset.le_Sup_fin (by simp [h])
 
 lemma le_degree_of_mem_support {p : polynomial α} {n : ℕ} : n ∈ support p → n ≤ degree p :=
 begin
-  intro h1,  
+  intro h1,
   apply le_degree,
   rwa [mem_support_iff] at h1,
 end
@@ -236,7 +232,7 @@ begin
       simpa,
     }
   }
-end 
+end
 
 @[simp] lemma degree_X (h : 0 ≠ (1:α)) : degree (X : polynomial α) = 1 :=
 by rwa [X, degree_single_eq, if_neg h.symm]
@@ -310,9 +306,9 @@ begin
   intro h1,
   subst h1,
   exact not_monic_zero h0 h,
-end 
+end
 
-lemma monic_X : monic (X : polynomial α) := 
+lemma monic_X : monic (X : polynomial α) :=
 by rw [monic, leading_coeff_X]
 
 @[simp] lemma monic_one : monic (1 : polynomial α) := leading_coeff_one
@@ -320,7 +316,7 @@ by rw [monic, leading_coeff_X]
 lemma leading_coeff_X_pow {n : ℕ} : leading_coeff ((X ^ n) : polynomial α) = (1 : α) :=
 by  rw [X_pow_eq_single, leading_coeff_single]
 
-lemma monic_X_pow {n : ℕ }: monic ((X ^ n) : polynomial α) := 
+lemma monic_X_pow {n : ℕ }: monic ((X ^ n) : polynomial α) :=
 by rw [monic, leading_coeff_X_pow]
 
 def root_of (a : polynomial α) (b : α) := polynomial.eval a b = 0
@@ -343,7 +339,7 @@ begin
   {
     have : p = 0,
     {
-      exact eq_zero_of_support_eq_empty _ h1,    
+      exact eq_zero_of_support_eq_empty _ h1,
     },
     exact ⟨0, by simp * at *⟩,
   }
@@ -377,7 +373,7 @@ begin
     {
       have h3a : p ≠ 0,
         from ne_zero_of_degree_ne_zero h2,
-      rwa [ne.def, ←eq_zero_iff_support_eq_empty p],      
+      rwa [ne.def, ←eq_zero_iff_support_eq_empty p],
     },
     have h4 : degree p ∈ support p,
       from Sup_fin_mem_of_id_nat h3,
@@ -392,16 +388,8 @@ by simp [leading_coeff]
 
 --Should we remove the sublemmas?
 lemma leading_coef_eq_zero_iff_eq_zero {p : polynomial α} : leading_coeff p = 0 ↔ p = 0 :=
-begin
-  constructor, --Should we use constructor or split
-  {
-    exact eq_zero_of_leading_coef_eq_zero,
-  },
-  {
-    intro h,
-    simp *,
-  }
-end
+iff.intro eq_zero_of_leading_coef_eq_zero (by simp {contextual := tt})
+
 
 --lt maybe better?
 lemma eq_zero_of_gt_degree : ∀{h : polynomial α}, ∀{x : ℕ}, x > degree h → h x = 0 :=
@@ -436,7 +424,7 @@ begin
     contradiction
 end
 
-private lemma h_sum (f g : polynomial α) : 
+private lemma h_sum (f g : polynomial α) :
 sum f (λ (n : ℕ) (b : α), sum g (λ (m : ℕ) (c : α), ite (n + m = degree f + degree g) (b * c) 0)) =
 sum f (λ (n : ℕ) (b : α), sum g (λ (m : ℕ) (c : α), (ite (n = degree f) b 0) * (ite (m = degree g) c 0))) :=
 begin
@@ -444,7 +432,7 @@ begin
   intros n h1,
   apply finsupp.sum_congr (eq.refl (support g)),
   intros m h2,
-  
+
   by_cases h5 : (n + m = degree f + degree g),
   {
     by_cases h3 : (n = degree f),
@@ -463,8 +451,8 @@ begin
         from add_lemma h8 h5,
       have h8 : g m = 0,
         from eq_zero_of_gt_degree h7,
-      simp *,       
-    },  
+      simp *,
+    },
   },
   {
     have h5 : ¬ ((n = degree f) ∧ (m = degree g)),
@@ -477,17 +465,17 @@ begin
   }
 end
 
-private lemma h_sum_2 (f g : polynomial α) :  
+private lemma h_sum_2 (f g : polynomial α) :
 sum f (λ (n : ℕ) (b : α), sum g (λ (m : ℕ) (c : α), ite (n = degree f) b 0 * ite (m = degree g) c 0)) =
 sum f (λ (n : ℕ) (b : α), ite (n = degree f) b 0 * sum g (λ (m : ℕ) (c : α), ite (m = degree g) c 0)):=
 finsupp.sum_congr (eq.refl f.support) (assume x h1, eq.symm finset.mul_sum)
 
-private lemma h_sum_3 (f g : polynomial α) : 
+private lemma h_sum_3 (f g : polynomial α) :
 sum f (λ (n : ℕ) (b : α), ite (n = degree f) b 0 * sum g (λ (m : ℕ) (c : α), ite (m = degree g) c 0)) =
 (sum f (λ (n : ℕ) (b : α), ite (n = degree f) b 0)) * sum g (λ (m : ℕ) (c : α), ite (m = degree g) c 0):=
 eq.symm finsupp.sum_mul
 
-private lemma h_sum_g (f g : polynomial α): 
+private lemma h_sum_g (f g : polynomial α):
 sum g (λ (m : ℕ) (c : α), ite (m = degree g) c 0) = if (degree g ∈ g.support) then g (degree g) else 0 :=
 finsupp.sum_ite
 
@@ -506,14 +494,14 @@ end
 lemma mul_degree_add_degree_eq_leading_coeff_mul_leading_coeff {f g : polynomial α} : (f * g) (degree f + degree g) = (leading_coeff f) * (leading_coeff g):=
 begin
   rw mul_def,
-  simp [single_apply], 
+  simp [single_apply],
   rw [h_sum, h_sum_2, h_sum_3,h_sum_g f g, h_sum_f f g],
   by_cases h1 : (f = 0),
   {
     subst h1,
     simp *,
   },
-  { 
+  {
     rw [if_pos (degree_mem_support_of_ne_zero h1)],
     by_cases h4 : (g = 0),
     {
@@ -523,11 +511,11 @@ begin
     {
       rw [if_pos (degree_mem_support_of_ne_zero h4)],
       exact rfl,
-    }, 
+    },
   }
 end
 
-lemma degree_mul_eq_degree_add_degree_of_leading_coeff_mul_leading_coeff_ne_zero 
+lemma degree_mul_eq_degree_add_degree_of_leading_coeff_mul_leading_coeff_ne_zero
 {f g : polynomial α} (h : leading_coeff f * leading_coeff g ≠ 0) : degree (f * g) = degree f + degree g :=
 begin
   have h4: (f * g) (degree f + degree g) ≠  0,
@@ -554,16 +542,16 @@ end
 
 --naming?
 lemma leading_coeff_monic_mul{f g: polynomial α} {h1 : monic f} (h2 : (0 : α) ≠ 1): leading_coeff (f * g) = leading_coeff g :=
-begin 
+begin
   by_cases h3 : (g = 0),
   {
    simp *,
   },
   {
-    have h4 : degree (f * g) = degree f + degree g,    
+    have h4 : degree (f * g) = degree f + degree g,
       from degree_monic_mul h1 h2 h3,
     rw [leading_coeff, h4, mul_degree_add_degree_eq_leading_coeff_mul_leading_coeff],
-    simp [monic, *] at *, 
+    simp [monic, *] at *,
   }
 end
 
@@ -639,7 +627,7 @@ begin
     have htmp: (∀ (x : β), x ∈ s → p ∣ f x),
     {
       intros y h4,
-      have : y ∈ insert a s, 
+      have : y ∈ insert a s,
       {
         simp [finset.mem_insert, h4],
       },

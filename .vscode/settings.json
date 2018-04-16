@@ -1,2 +1,4 @@
 {
+    "lean.executablePath": "/home/hoelzl/Projects/lean-ms/bin/lean",
+    "lean.leanpkgPath": "/home/hoelzl/Projects/lean-ms/bin/leanpkg"
 }
