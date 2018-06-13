@@ -1316,6 +1316,7 @@ begin
   rw inf_eq_one_iff_ne_eq_of_irred_of_irred; assumption,
 end
 
+--Could have been proven using the defintion irreducible, since than gcd x y ≠ 1 would imply x ~ᵤ y which is a contradiction
 lemma coprime_iff_not_associated_of_irreducible_of_irreducible {x y : α} (hx : irreducible x) (hy : irreducible y) : coprime x y ↔ ¬ (x ~ᵤ y) :=
 begin
   rw [coprime_iff_mk_inf_mk_eq_one, inf_eq_one_iff_ne_eq_of_irred_of_irred, associated_iff_mk_eq_mk],

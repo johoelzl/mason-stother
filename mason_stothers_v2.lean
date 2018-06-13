@@ -228,6 +228,7 @@ begin
 end
 
 --make private?
+--in theses as degree_le
 lemma Mason_Stothers_lemma (f : polynomial β) :
   degree f ≤ degree (gcd f (derivative f )) + degree (rad f) := --I made degree radical from this one
 begin
@@ -1306,8 +1307,8 @@ begin
   rw [h1, nat.succ_le_succ_iff],
   exact nat.zero_le _,
 end
-
---Todo can we remove the a = 0, b = 0 cases?
+/-
+Todo can we remove the a = 0, b = 0 cases?
 lemma degree_wron_le {a b : polynomial β} : degree (d[a] * b - a * d[b]) ≤ degree a + degree b - 1 :=
 begin
   by_cases h1 : (a = 0),
@@ -1401,9 +1402,9 @@ begin
       }
     }
   }
-end
+end-/
 
-lemma degree_wron_le2 {a b : polynomial β} : degree (d[a] * b - a * d[b]) ≤ degree a + degree b - 1 :=
+lemma degree_wron_le {a b : polynomial β} : degree (d[a] * b - a * d[b]) ≤ degree a + degree b - 1 :=
 begin
   by_cases h2 : (degree a = 0),
   {
